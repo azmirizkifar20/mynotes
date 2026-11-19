@@ -2,6 +2,8 @@ const $ = id => document.getElementById(id);
     const icon = (name, cls = '') => `<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
     const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const boot = JSON.parse($('bootstrap').textContent);
+    const basePath = boot.basePath || '';
+    const appUrl = path => basePath + path;
     let pages = boot.pages || [];
     let current = 'home', filter = 'all', editing = false, createType = 'doc', sharingId = null;
     let navigationSequence = 0, saving = false, manageId = null, activeUrl = location.pathname + location.search;
@@ -10,7 +12,7 @@ const $ = id => document.getElementById(id);
     function readPreference(key) { try { const value = JSON.parse(localStorage.getItem(key)); return Array.isArray(value) ? value.filter(id => typeof id === 'string') : []; } catch { return []; } }
     let recent = readPreference('md-previewer-recent').filter(id => pages.some(p => p.id === id && p.type === 'doc'));
     const favorites = new Set(readPreference('md-previewer-favorites').filter(id => pages.some(p => p.id === id)));
-    const urlFor = page => page.path.split('/').map(encodeURIComponent).join('/');
+    const urlFor = page => appUrl(page.path.split('/').map(encodeURIComponent).join('/'));
     const dateLabel = value => value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : 'Workspace';
     function persistNavigation() { try { localStorage.setItem('md-previewer-recent', JSON.stringify(recent)); localStorage.setItem('md-previewer-favorites', JSON.stringify([...favorites])); } catch {} }
     function isDirty() { return editing && $('markdown-editor') && $('markdown-editor').value !== (pages.find(p => p.id === current)?.body || ''); }
@@ -18,7 +20,7 @@ const $ = id => document.getElementById(id);
     function setBusy(value) { if(value) navigationSequence++; saving = value; if($('markdown-editor')) $('markdown-editor').readOnly = value; }
     async function api(endpoint, body) {
       const options = body instanceof FormData ? { method: 'POST', body } : body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
-      const response = await fetch('/api/' + endpoint, options);
+      const response = await fetch(appUrl('/api/' + endpoint), options);
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.success) {
         if (response.status === 401 && boot.mode === 'workspace' && !$('auth-dialog').open) $('auth-dialog').showModal();
@@ -143,7 +145,7 @@ const $ = id => document.getElementById(id);
       document.querySelectorAll('[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === id));
       renderFavorites(); syncFavorite(); expandCurrentFolder(); render(); window.scrollTo({top:0});
       document.title = (page?.title || 'Terakhir dibuka') + ' · MD Previewer';
-      const url = id === 'recent' ? '/?view=recent' : urlFor(page);
+      const url = id === 'recent' ? appUrl('/?view=recent') : urlFor(page);
       if(historyMode === 'replace') history.replaceState({id}, '', url);
       else if(historyMode === 'push' && location.pathname + location.search !== url) history.pushState({id}, '', url);
       activeUrl = url;
@@ -385,7 +387,7 @@ const $ = id => document.getElementById(id);
     async function logout() {
       if(!canLeave()) return;
       setBusy(true);
-      try { await api('logout', {}); editing = false; setBusy(false); location.replace('/'); }
+      try { await api('logout', {}); editing = false; setBusy(false); location.replace(appUrl('/')); }
       catch (error) { notify(error.message); }
       finally { setBusy(false); }
     }
@@ -403,14 +405,14 @@ const $ = id => document.getElementById(id);
     function renderAccessPage() {
       $('access-page').hidden = false;
       const theme = `<label class="theme-setting" for="visitor-theme">${icon('theme')}<span>Tampilan</span><select id="visitor-theme" onchange="setTheme(this.value)"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>`;
-      const toolbar = `<header class="public-topbar"><a class="public-brand" href="/">${icon('book')}MD Previewer</a>${theme}</header>`;
+      const toolbar = `<header class="public-topbar"><a class="public-brand" href="${escape(appUrl('/'))}">${icon('book')}MD Previewer</a>${theme}</header>`;
       if(boot.mode === 'public') {
         document.title = boot.document.title + ' · MD Previewer';
         $('access-page').innerHTML = toolbar + `<main class="public-document"><div class="visitor-meta">${icon('globe')}Publik · Hanya baca</div><h1>${escape(boot.document.title)}</h1><article class="prose">${boot.document.html}</article><footer class="page-footer"><span>MD Previewer</span><span>${escape(dateLabel(boot.document.modified))}</span></footer></main>`;
       } else if(boot.mode === 'login') {
         $('access-page').innerHTML = toolbar + `<main class="login-page"><div class="page-icon">${icon('lock')}</div><p class="page-kicker">Personal workspace</p><h1>Ruang untuk catatanmu.</h1><p class="lead">Masuk untuk membuka workspace dan mengelola dokumen privat.</p><form class="login-form" onsubmit="authenticate(event)">${loginFields}</form></main>`;
       } else {
-        $('access-page').innerHTML = toolbar + `<main class="login-page"><div class="page-icon">${icon('lock')}</div><h1>${escape(boot.message || 'Halaman tidak tersedia')}</h1><p class="lead">${escape(boot.description || 'Periksa alamat halaman atau kembali ke workspace.')}</p><a class="small-button" href="/">Buka workspace</a></main>`;
+        $('access-page').innerHTML = toolbar + `<main class="login-page"><div class="page-icon">${icon('lock')}</div><h1>${escape(boot.message || 'Halaman tidak tersedia')}</h1><p class="lead">${escape(boot.description || 'Periksa alamat halaman atau kembali ke workspace.')}</p><a class="small-button" href="${escape(appUrl('/'))}">Buka workspace</a></main>`;
       }
       $('visitor-theme').value = themePreference;
     }
@@ -455,7 +457,7 @@ const $ = id => document.getElementById(id);
     window.addEventListener('popstate', async () => {
       if(boot.mode !== 'workspace') return;
       if(saving) { history.pushState({id: current}, '', activeUrl); notify('Tunggu hingga proses selesai.'); return; }
-      let key; try { key = decodeURIComponent(location.pathname).replace(/\/$/, '') || '/'; } catch { location.reload(); return; }
+      let key; try { key = decodeURIComponent(location.pathname.slice(basePath.length)).replace(/\/$/, '') || '/'; } catch { location.reload(); return; }
       const id = new URLSearchParams(location.search).get('view') === 'recent' ? 'recent' : pages.find(p => p.path === key)?.id;
       if(!id) { if(canLeave()) location.reload(); else history.pushState({id: current}, '', activeUrl); return; }
       if(id !== current && !await navigate(id, 'none')) history.pushState({id: current}, '', activeUrl);

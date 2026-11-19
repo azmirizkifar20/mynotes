@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>MD Previewer</title>
-  <link rel="icon" type="image/svg+xml" sizes="any" href="/static/favicon.svg">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="<%= basePath %>/static/favicon.svg">
   <script>
     const systemTheme = matchMedia('(prefers-color-scheme: dark)');
     let themePreference = 'system';
@@ -15,8 +15,8 @@
     applyTheme();
     systemTheme.addEventListener('change', applyTheme);
   </script>
-  <link rel="preload" href="/static/fonts/inter-variable.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="preload" href="<%= basePath %>/static/fonts/inter-variable.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="<%= basePath %>/static/style.css">
 </head>
 <body>
   <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -129,7 +129,7 @@
   <input id="upload-input" type="file" accept=".md,.markdown,text/markdown,text/plain" hidden>
   <div class="toast" id="toast" role="status" hidden></div>
   <script id="bootstrap" type="application/json"><%- bootstrap %></script>
-  <script src="/static/app.js" defer></script>
+  <script src="<%= basePath %>/static/app.js" defer></script>
   <noscript><p class="empty">Aktifkan JavaScript untuk membuka MD Previewer.</p></noscript>
 </body>
 </html>

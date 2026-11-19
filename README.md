@@ -138,13 +138,31 @@ Contoh konfigurasi tersedia di [`nginx/mdpreview.conf`](nginx/mdpreview.conf). S
 
 Pada mode `production`, cookie sesi hanya dikirim melalui HTTPS. Mengakses server langsung melalui HTTP pada mode ini akan membuat sesi login tidak bertahan.
 
-Untuk mendukung import hingga 5 MB melalui nginx, tambahkan konfigurasi berikut di blok `server` HTTPS:
+Untuk mendukung import hingga 5 MB melalui nginx, tambahkan konfigurasi berikut di blok `server`:
 
 ```nginx
 client_max_body_size 6m;
 ```
 
 Nilainya memberi ruang untuk overhead multipart. Jika `JSON_BODY_LIMIT` dinaikkan, sesuaikan juga batas nginx. Batas file import di aplikasi tetap 5 MB.
+
+## Cloudflare Tunnel dan URL /mynotes
+
+Aplikasi mendukung `https://mdpreview.azmirf.my.id/` dan `https://itsazmi.com/mynotes/` sekaligus. Keduanya memakai dokumen dan pengaturan akses yang sama. Link berbagi mengikuti domain dan prefix halaman yang sedang dibuka. Sesi login serta preferensi browser terpisah antar domain.
+
+Konfigurasi `nginx/mdpreview.conf` memakai listener lokal `127.0.0.1:8027`, meneruskan request ke Node pada port `8026`, mempertahankan prefix `/mynotes`, meneruskan protokol HTTPS dari Tunnel, dan menyediakan batas body 6 MB untuk upload file 5 MB. URL `/mynotes` diarahkan ke `/mynotes/`. Host `itsazmi.com` pada listener ini hanya melayani path aplikasi; situs utamanya tetap memakai service sebelumnya.
+
+Di Cloudflare Tunnel, tambahkan **Published application**:
+
+| Input | Nilai |
+| --- | --- |
+| Subdomain | Kosong |
+| Domain | `itsazmi.com` |
+| Path | `^/mynotes(/.*)?$` |
+| Service URL | `http://localhost:8027` |
+| HTTP Host Header | Kosong, agar hostname asli diteruskan |
+
+Letakkan rule ini **sebelum** rule `itsazmi.com` tanpa pembatasan path. Rule domain lama tetap ada. Path Tunnel hanya mencocokkan request; Tunnel tidak menghapus `/mynotes`. Tidak perlu URL Rewrite Rule atau mengganti DNS domain utama jika domain tersebut sudah mengarah ke tunnel yang sama.
 
 ## Menghapus file
 

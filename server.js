@@ -27,6 +27,10 @@ const upload = multer({
 });
 
 const app = express();
+const routes = express.Router();
+app.use('/mynotes', routes);
+app.use(routes);
+routes.use((req, res, next) => { res.locals.basePath = req.baseUrl; next(); });
 const PORT = process.env.PORT || 8026;
 const DOCS_ROOT = fs.realpathSync.native(path.join(__dirname, 'docs'));
 const ACCESS_CODE_HASH = process.env.ACCESS_CODE_HASH || '';
@@ -81,20 +85,20 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('trust proxy', 1);
 
 // Request logging
-app.use(morgan('combined', {
+routes.use(morgan('combined', {
   stream: fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' })
 }));
 
 // Static assets
-app.use('/static', express.static(path.join(__dirname, 'public')));
+routes.use('/static', express.static(path.join(__dirname, 'public')));
 
 // Parse JSON bodies.
 // Limit eksplisit 5mb (default body-parser hanya 100kb) supaya menyimpan file
 // .md berukuran besar tidak gagal 413. Ubah lewat env JSON_BODY_LIMIT bila perlu.
-app.use(express.json({ limit: JSON_BODY_LIMIT }));
+routes.use(express.json({ limit: JSON_BODY_LIMIT }));
 
 // Session middleware
-app.use(session({
+routes.use(session({
   secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
@@ -107,7 +111,7 @@ app.use(session({
   }
 }));
 
-app.use('/api', (req, res, next) => {
+routes.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
   if (req.get('origin') && req.get('origin') !== `${req.protocol}://${req.get('host')}`) {
     return res.status(403).json({ success: false, message: 'Asal request tidak diizinkan' });
@@ -156,7 +160,7 @@ const isMarkdown = filename => /\.md$/i.test(filename);
 const fileKey = filename => '/' + path.relative(DOCS_ROOT, filename).split(path.sep).join('/');
 const pageId = key => key === '/' ? 'home' : 'p-' + Buffer.from(key).toString('base64url');
 const encodedPath = key => key.split('/').map(encodeURIComponent).join('/');
-function renderMarkdown(content, key, images = new Set()) {
+function renderMarkdown(content, key, images = new Set(), basePath = '') {
   const base = new URL(encodedPath(key), 'http://workspace.local');
   function localUrl(value) {
     if (typeof value !== 'string' || !value) return null;
@@ -168,7 +172,7 @@ function renderMarkdown(content, key, images = new Set()) {
   return sanitizeHtml(marked.parse(content), { ...sanitizeOptions, transformTags: {
     a(tagName, attribs) {
       const url = localUrl(attribs.href);
-      if (url && !attribs.href.startsWith('#')) attribs.href = url.pathname + url.search + url.hash;
+      if (url && !attribs.href.startsWith('#')) attribs.href = basePath + url.pathname + url.search + url.hash;
       if (attribs.target === '_blank') attribs.rel = 'noopener noreferrer';
       return { tagName, attribs };
     },
@@ -180,7 +184,7 @@ function renderMarkdown(content, key, images = new Set()) {
         const filename = safePath(image);
         if (filename && /\.(png|jpe?g|gif|webp|avif)$/i.test(filename)) {
           images.add(fileKey(filename));
-          attribs.src = '/media?' + new URLSearchParams({ document: key, file: fileKey(filename) });
+          attribs.src = basePath + '/media?' + new URLSearchParams({ document: key, file: fileKey(filename) });
         } else delete attribs.src;
       }
       return { tagName, attribs };
@@ -213,20 +217,20 @@ function workspace() {
   return pages;
 }
 
-function documentData(filename) {
+function documentData(filename, basePath = '') {
   const content = fs.readFileSync(filename, 'utf8');
-  return { content, html: renderMarkdown(content, fileKey(filename)), modified: fs.statSync(filename).mtime.toISOString() };
+  return { content, html: renderMarkdown(content, fileKey(filename), undefined, basePath), modified: fs.statSync(filename).mtime.toISOString() };
 }
 
 function renderPage(res, bootstrap, status = 200) {
   res.set('Cache-Control', 'no-store');
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Referrer-Policy', 'same-origin');
-  return res.status(status).render('layout', { bootstrap: JSON.stringify(bootstrap).replace(/</g, '\\u003c') });
+  return res.status(status).render('layout', { bootstrap: JSON.stringify({ ...bootstrap, basePath: res.locals.basePath }).replace(/</g, '\\u003c') });
 }
 
 // API: verify access code (rate limited)
-app.post('/api/verify', verifyLimiter, async (req, res, next) => {
+routes.post('/api/verify', verifyLimiter, async (req, res, next) => {
   const { code } = req.body;
   if (!code || typeof code !== 'string') {
     return res.status(400).json({ success: false, message: 'Kode akses harus diisi' });
@@ -238,6 +242,7 @@ app.post('/api/verify', verifyLimiter, async (req, res, next) => {
       return req.session.regenerate(error => {
         if (error) return next(error);
         req.session.authenticated = true;
+        req.session.cookie.path = req.baseUrl || '/';
         req.session.save(error => {
           if (error) return next(error);
           auditLog('AUTH_SUCCESS', 'Login berhasil', req.ip);
@@ -253,16 +258,16 @@ app.post('/api/verify', verifyLimiter, async (req, res, next) => {
 });
 
 // API: logout
-app.post('/api/logout', (req, res, next) => {
+routes.post('/api/logout', (req, res, next) => {
   req.session.destroy(error => {
     if (error) return next(error);
-    res.clearCookie('mdprev.sid');
+    res.clearCookie('mdprev.sid', { path: req.baseUrl || '/' });
     return res.json({ success: true });
   });
 });
 
 // API: get raw file content for editing
-app.post('/api/raw', requireAuth, (req, res) => {
+routes.post('/api/raw', requireAuth, (req, res) => {
   const { filePath } = req.body;
   const resolved = safePath(filePath);
   if (!resolved || !isMarkdown(resolved)) {
@@ -275,16 +280,16 @@ app.post('/api/raw', requireAuth, (req, res) => {
   return res.json({ success: true, content });
 });
 
-app.get('/api/workspace', requireAuth, (req, res) => res.json({ success: true, pages: workspace() }));
+routes.get('/api/workspace', requireAuth, (req, res) => res.json({ success: true, pages: workspace() }));
 
-app.post('/api/document', requireAuth, (req, res) => {
+routes.post('/api/document', requireAuth, (req, res) => {
   const resolved = safePath(req.body.filePath);
   if (!resolved || !isMarkdown(resolved)) return res.status(400).json({ success: false, message: 'Path file tidak valid' });
   if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return res.status(404).json({ success: false, message: 'File tidak ditemukan' });
-  return res.json({ success: true, ...documentData(resolved) });
+  return res.json({ success: true, ...documentData(resolved, req.baseUrl) });
 });
 
-app.post('/api/share', requireAuth, (req, res) => {
+routes.post('/api/share', requireAuth, (req, res) => {
   const resolved = safePath(req.body.filePath);
   const visibility = req.body.visibility;
   if (!resolved || !isMarkdown(resolved) || (visibility !== undefined && !['public', 'private'].includes(visibility))) {
@@ -295,11 +300,11 @@ app.post('/api/share', requireAuth, (req, res) => {
   let record = access.get(key);
   if (visibility !== undefined || !record.id) record = access.set(key, visibility || record.visibility);
   if (visibility !== undefined) auditLog('FILE_ACCESS', `${key}: ${visibility}`, req.ip);
-  return res.json({ success: true, visibility: record.visibility, sharePath: record.visibility === 'public' ? encodedPath(key) : null });
+  return res.json({ success: true, visibility: record.visibility, sharePath: record.visibility === 'public' ? req.baseUrl + encodedPath(key) : null });
 });
 
 // API: save file (create or edit)
-app.post('/api/save', requireAuth, (req, res) => {
+routes.post('/api/save', requireAuth, (req, res) => {
   const { filePath, content } = req.body;
   const resolved = safePath(filePath);
   if (!resolved || !isMarkdown(resolved) || typeof content !== 'string' || (req.body.create !== undefined && typeof req.body.create !== 'boolean')) {
@@ -318,11 +323,11 @@ app.post('/api/save', requireAuth, (req, res) => {
     fs.renameSync(temporary, resolved);
   } finally { fs.rmSync(temporary, { force: true }); }
   auditLog('FILE_SAVE', filePath, req.ip);
-  return res.json({ success: true, message: 'File berhasil disimpan', ...documentData(resolved) });
+  return res.json({ success: true, message: 'File berhasil disimpan', ...documentData(resolved, req.baseUrl) });
 });
 
 // API: create folder
-app.post('/api/create-folder', requireAuth, (req, res) => {
+routes.post('/api/create-folder', requireAuth, (req, res) => {
   const { folderPath } = req.body;
   const resolved = safePath(folderPath);
   if (!resolved || resolved === DOCS_ROOT) {
@@ -340,7 +345,7 @@ app.post('/api/create-folder', requireAuth, (req, res) => {
   return res.json({ success: true, message: 'Folder berhasil dibuat' });
 });
 
-app.post('/api/rename', requireAuth, (req, res) => {
+routes.post('/api/rename', requireAuth, (req, res) => {
   const { path: targetPath, newName } = req.body;
   const resolved = safePath(targetPath);
   if (!resolved || resolved === DOCS_ROOT || !fs.existsSync(resolved)) {
@@ -370,7 +375,7 @@ app.post('/api/rename', requireAuth, (req, res) => {
 });
 
 // API: upload file
-app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
+routes.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
   const { targetFolder } = req.body;
   if (!req.file) {
     return res.status(400).json({ success: false, message: 'Tidak ada file diupload' });
@@ -396,7 +401,7 @@ app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
   }
 });
 
-app.post('/api/delete', requireAuth, (req, res) => {
+routes.post('/api/delete', requireAuth, (req, res) => {
   const { path: targetPath, force } = req.body;
   const resolved = safePath(targetPath);
   if (!resolved || resolved === DOCS_ROOT || (force !== undefined && typeof force !== 'boolean')) {
@@ -428,7 +433,7 @@ app.post('/api/delete', requireAuth, (req, res) => {
   return res.json({ success: true, message: 'File berhasil dihapus' });
 });
 
-app.get('/media', (req, res) => {
+routes.get('/media', (req, res) => {
   const document = safePath(req.query.document), image = safePath(req.query.file);
   if (!document || !image || !isMarkdown(document) || !/\.(png|jpe?g|gif|webp|avif)$/i.test(image) ||
       !fs.existsSync(document) || !fs.statSync(document).isFile() || !fs.existsSync(image) || !fs.statSync(image).isFile()) return res.sendStatus(404);
@@ -442,19 +447,19 @@ app.get('/media', (req, res) => {
 });
 
 // Public share URLs never include a workspace index or private document payload.
-app.get('/share/:id', (req, res) => {
+routes.get('/share/:id', (req, res) => {
   const match = /^[a-f0-9]{48}$/.test(req.params.id) && access.entries().find(([key, value]) => {
     const filename = safePath(key);
     return value.id === req.params.id && value.visibility === 'public' && filename && isMarkdown(filename) && fs.existsSync(filename) && fs.statSync(filename).isFile();
   });
   if (!match) return renderPage(res, { mode: 'unavailable', message: 'Link tidak tersedia', description: 'File ini privat, sudah dihapus, atau link tidak valid.' }, 404);
   const [key] = match;
-  return renderPage(res, { mode: 'public', document: { title: path.basename(key).replace(/\.md$/i, ''), ...documentData(safePath(key)) } });
+  return renderPage(res, { mode: 'public', document: { title: path.basename(key).replace(/\.md$/i, ''), ...documentData(safePath(key), req.baseUrl) } });
 });
 
-app.use('/api', (req, res) => res.status(404).json({ success: false, message: 'API tidak ditemukan' }));
+routes.use('/api', (req, res) => res.status(404).json({ success: false, message: 'API tidak ditemukan' }));
 
-app.get('*', (req, res) => {
+routes.get('*', (req, res) => {
   let key;
   try { key = decodeURIComponent(req.path); } catch { return renderPage(res, { mode: 'unavailable', message: 'Path tidak valid' }, 400); }
   const filename = safePath(key);
@@ -465,7 +470,7 @@ app.get('*', (req, res) => {
   const directory = fs.statSync(filename).isDirectory();
   if (!authenticated) {
     if (directory || access.get(key).visibility === 'private' || !isMarkdown(filename)) return renderPage(res, { mode: 'login' });
-    return renderPage(res, { mode: 'public', document: { title: path.basename(key).replace(/\.md$/i, ''), ...documentData(filename) } });
+    return renderPage(res, { mode: 'public', document: { title: path.basename(key).replace(/\.md$/i, ''), ...documentData(filename, req.baseUrl) } });
   }
   if (!directory && !isMarkdown(filename)) {
     if (!/\.(png|jpe?g|gif|webp|avif)$/i.test(filename)) return res.status(404).send('File tidak tersedia');
@@ -479,7 +484,7 @@ app.get('*', (req, res) => {
 
 // Payload terlalu besar (413) dan error body-parser lainnya.
 // Tanpa handler ini Express menampilkan stack trace lengkap ke client.
-app.use((err, req, res, next) => {
+routes.use((err, req, res, next) => {
   if (err && (err.type === 'entity.too.large' || err.status === 413)) {
     return res.status(413).json({
       success: false,

@@ -61,6 +61,11 @@ async function main() {
   try {
     await start();
     assert.equal((await page('/')).data.mode, 'login');
+    const prefixedHome = await page('/mynotes/');
+    assert.equal(prefixedHome.data.basePath, '/mynotes');
+    assert(prefixedHome.html.includes('href="/mynotes/static/style.css"'));
+    assert(prefixedHome.html.includes('src="/mynotes/static/app.js"'));
+    assert.equal((await fetch(base + '/mynotes/static/fonts/inter-variable.ttf')).status, 200);
     assert.equal((await page('/Existing.md')).data.mode, 'public');
     for (const route of ['raw', 'document', 'save', 'share', 'create-folder', 'rename', 'delete']) assert.equal((await request('/api/' + route, {}, false)).status, 401);
     assert.equal((await request('/api/workspace', undefined, false)).status, 401);
@@ -70,10 +75,19 @@ async function main() {
     assert.equal(initial.body.pages.filter(p => p.type === 'doc').length, 2);
     assert(initial.body.pages.filter(p => p.type === 'doc').every(p => p.visibility === 'public'));
     const rendered = await request('/api/document', { filePath: '/Existing.md' });
+    const prefixedRendered = await request('/mynotes/api/document', { filePath: '/Existing.md' });
+    assert(prefixedRendered.body.html.includes('href="/mynotes/other.md"'));
+    assert(prefixedRendered.body.html.includes('src="/mynotes/media?'));
+    const prefixedSave = await request('/mynotes/api/save', { filePath: '/Existing.md', content: rendered.body.content });
+    assert(prefixedSave.body.html.includes('href="/mynotes/other.md"'));
+    assert(prefixedSave.body.html.includes('src="/mynotes/media?'));
     assert(!rendered.body.html.includes('<script')); assert(!rendered.body.html.includes('onerror'));
     assert(rendered.body.html.includes('href="/other.md"'));
     const published = await request('/api/share', { filePath: '/Existing.md' });
     const share = published.body.sharePath; assert.equal(share, '/Existing.md');
+    const prefixedShare = await request('/mynotes/api/share', { filePath: '/Existing.md' });
+    assert.equal(prefixedShare.body.sharePath, '/mynotes/Existing.md');
+    assert.equal((await page(prefixedShare.body.sharePath)).data.mode, 'public');
     const legacyShare = '/share/' + JSON.parse(fs.readFileSync(path.join(temporary, '.data', 'file-access.json'), 'utf8'))['/Existing.md'].id;
     assert.equal((await page(legacyShare)).data.mode, 'public');
     const visitor = await page(share); assert.equal(visitor.data.mode, 'public'); assert(!visitor.data.pages);
@@ -84,6 +98,7 @@ async function main() {
     const madePrivate = await request('/api/share', { filePath: '/Existing.md', visibility: 'private' });
     assert.equal(madePrivate.body.sharePath, null);
     assert.equal((await page(share)).data.mode, 'login');
+    assert.equal((await page('/mynotes/Existing.md')).data.mode, 'login');
     assert.equal((await page(legacyShare)).status, 404);
     const privatePage = await page('/Existing.md'); assert.equal(privatePage.data.mode, 'login'); assert(!privatePage.html.includes('![Image]'));
     if (process.platform === 'win32') assert.equal((await page('/EXISTING.MD')).data.mode, 'login');
@@ -148,6 +163,11 @@ async function main() {
     assert.equal((await request('/api/delete', { path: '/Moved', force: true })).status, 200);
     assert.equal((await page(movedShare.body.sharePath)).status, 404);
     assert.equal((await page(draftShare.body.sharePath)).status, 404);
+    const prefixLogin = await fetch(base + '/mynotes/api/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+    assert.equal(prefixLogin.status, 200);
+    assert.match(prefixLogin.headers.get('set-cookie'), /Path=\/mynotes;/);
+    const prefixLogout = await fetch(base + '/mynotes/api/logout', { method: 'POST', headers: { Cookie: prefixLogin.headers.get('set-cookie').split(';')[0] } });
+    assert.match(prefixLogout.headers.get('set-cookie'), /Path=\/mynotes;/);
     assert.equal((await request('/api/logout', {})).status, 200);
     assert.equal((await request('/api/workspace')).status, 401);
     console.log('PASS: auth, workspace, sanitization, public/private access, uploads, images, rename, restart persistence, deletion, invalid paths and logout.');
