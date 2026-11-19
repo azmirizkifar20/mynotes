@@ -5,6 +5,8 @@ const $ = id => document.getElementById(id);
     let pages = boot.pages || [];
     let current = 'home', filter = 'all', editing = false, createType = 'doc', sharingId = null;
     let navigationSequence = 0, saving = false, manageId = null, activeUrl = location.pathname + location.search;
+    let deletion = null;
+    let pendingUpload = null, fileDragDepth = 0;
     function readPreference(key) { try { const value = JSON.parse(localStorage.getItem(key)); return Array.isArray(value) ? value.filter(id => typeof id === 'string') : []; } catch { return []; } }
     let recent = readPreference('md-previewer-recent').filter(id => pages.some(p => p.id === id && p.type === 'doc'));
     const favorites = new Set(readPreference('md-previewer-favorites').filter(id => pages.some(p => p.id === id)));
@@ -29,8 +31,8 @@ const $ = id => document.getElementById(id);
       function children(parent) {
         return pages.filter(p => p.parent === parent && p.type === 'folder').map(p => {
           const nested = pages.some(child => child.parent === p.id && child.type === 'folder');
-          const button = '<button class="nav-item" data-nav="' + p.id + '" onclick="navigate(\'' + p.id + '\')">' + icon('folder') + '<span>' + escape(p.title) + '</span></button>';
-          return nested ? '<details class="tree-group"><summary>' + icon('chevron') + icon('folder') + escape(p.title) + '</summary><div class="tree-children">' + button + children(p.id) + '</div></details>' : button;
+          const button = '<button type="button" class="nav-item" data-nav="' + p.id + '" onclick="event.preventDefault(); event.stopPropagation(); navigate(\'' + p.id + '\')">' + icon('folder') + '<span>' + escape(p.title) + '</span></button>';
+          return nested ? '<details class="tree-group"><summary>' + icon('chevron') + button + '</summary><div class="tree-children">' + children(p.id) + '</div></details>' : button;
         }).join('');
       }
       $('folder-tree').innerHTML = children('home');
@@ -97,7 +99,26 @@ const $ = id => document.getElementById(id);
     function closeSidebar() { document.body.classList.remove('mobile-open'); syncSidebar(); }
     function toggleSidebar() { if(matchMedia('(max-width:760px)').matches) document.body.classList.toggle('mobile-open'); else document.body.classList.toggle('sidebar-hidden'); syncSidebar(); }
     function toggleWidth() { const on = document.body.classList.toggle('full-width'); $('width-button').setAttribute('aria-pressed', on); }
-    function renderFavorites() { $('favorites').innerHTML = [...favorites].map(id => pages.find(p => p.id === id)).filter(Boolean).map(p => `<button class="nav-item ${current === p.id ? 'active' : ''}" onclick="navigate('${p.id}')">${icon(p.type === 'folder' ? 'folder' : 'doc')}<span>${escape(p.title)}</span></button>`).join('') || '<div class="subtle" style="padding:5px 10px">Belum ada halaman favorit.</div>'; }
+    function renderFavorites() { $('favorites').innerHTML = [...favorites].map(id => pages.find(p => p.id === id)).filter(Boolean).map(p => `<div class="favorite-item"><button type="button" class="nav-item ${current === p.id ? 'active' : ''}" onclick="navigate('${p.id}')">${icon(p.type === 'folder' ? 'folder' : 'doc')}<span>${escape(p.title)}</span></button><button type="button" class="icon-button favorite-remove" onclick="removeFavorite('${p.id}')" aria-label="Hapus ${escape(p.title)} dari favorit" title="Hapus dari favorit">${icon('close')}</button></div>`).join('') || '<div class="subtle" style="padding:5px 10px">Belum ada halaman favorit.</div>'; }
+    function removeFavorite(id) { favorites.delete(id); persistNavigation(); renderFavorites(); syncFavorite(); $('favorite-button').focus({ preventScroll: true }); }
+    function breadcrumbTrail(id) {
+      const trail = [];
+      for(let page = pages.find(p => p.id === id); page; page = pages.find(p => p.id === page.parent)) trail.unshift(page);
+      return id === 'recent' ? [pages.find(p => p.id === 'home'), { id: 'recent', title: 'Terakhir dibuka' }] : trail;
+    }
+    function renderBreadcrumbs() {
+      const trail = breadcrumbTrail(current), container = $('breadcrumb-path');
+      container.innerHTML = trail.map((page, index) => {
+        const label = escape(page.id === 'home' ? 'docs' : page.id === 'recent' ? page.title : page.path.split('/').pop());
+        const item = index === trail.length - 1 ? `<span aria-current="page">${label}</span>` : `<a href="${escape(urlFor(page))}" data-breadcrumb="${escape(page.id)}">${label}</a>`;
+        return `<li>${index ? '<span class="slash" aria-hidden="true">/</span>' : ''}${item}</li>`;
+      }).join('');
+      container.querySelectorAll('a').forEach(link => link.addEventListener('click', event => {
+        if(event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault(); navigate(link.dataset.breadcrumb);
+      }));
+      container.scrollLeft = container.scrollWidth;
+    }
     function syncFavorite() { const active = favorites.has(current); $('favorite-button').classList.toggle('is-favorite', active); $('favorite-button').setAttribute('aria-pressed', active); $('favorite-button').setAttribute('aria-label', active ? 'Hapus dari favorit' : 'Tambah ke favorit'); $('favorite-button').title = active ? 'Hapus dari favorit' : 'Tambah ke favorit'; }
     function toggleFavorite() { if(current === 'recent') return notify('Buka halaman atau folder untuk menambah favorit.'); favorites.has(current) ? favorites.delete(current) : favorites.add(current); persistNavigation(); renderFavorites(); syncFavorite(); }
     async function navigate(id, historyMode = 'push', completingMutation = false) {
@@ -116,7 +137,7 @@ const $ = id => document.getElementById(id);
       }
       current = id; filter = 'all'; editing = false; closeSidebar();
       if(page?.type === 'doc') { recent = [id,...recent.filter(p => p !== id)].slice(0,8); persistNavigation(); }
-      $('breadcrumb-current').textContent = page?.title || 'Terakhir dibuka';
+      renderBreadcrumbs();
       $('save-state').textContent = page?.type === 'doc' ? 'Tersimpan di server' : 'Workspace pribadi';
       $('manage-button').hidden = id === 'home' || id === 'recent';
       document.querySelectorAll('[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === id));
@@ -144,7 +165,7 @@ const $ = id => document.getElementById(id);
           <button class="tab ${filter === 'folder' ? 'selected' : ''}" role="tab" aria-selected="${filter === 'folder'}" onclick="setFilter('folder')">Folder</button>
           <button class="tab ${filter === 'doc' ? 'selected' : ''}" role="tab" aria-selected="${filter === 'doc'}" onclick="setFilter('doc')">Halaman</button>
         </div><div class="library-actions"><button class="icon-button" onclick="openSearch()" aria-label="Cari dokumen" title="Cari dokumen">${icon('search')}</button><button class="small-button" onclick="openCreate('folder')">${icon('folder')}Folder</button><button class="small-button primary" onclick="openCreate('doc')">${icon('plus')}Baru</button></div></div>
-        <div class="table-wrap"><table><thead><tr><th>Nama</th><th class="type-column">Jenis</th><th class="access-column">Akses</th><th class="action-column"><span class="sr-only">Bagikan file</span></th></tr></thead><tbody id="entries"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nama</th><th class="type-column">Jenis</th><th class="access-column">Akses</th><th class="action-column"><span class="sr-only">Aksi file</span></th></tr></thead><tbody id="entries"></tbody></table></div>
         <button class="add-row" onclick="openCreate('doc')">${icon('plus')}Tambah halaman baru</button>
       </section><aside class="callout" id="note-section">${icon('book')}<div><strong>Catatan yang rapi, pikiran yang lebih lega.</strong>Kelompokkan halaman berdasarkan proyek. Pakai favorit untuk menyimpan dokumen yang sering kamu buka.</div></aside><footer class="page-footer"><span>MD Previewer · Ruang untuk catatan kerja.</span><span>Tersimpan di server</span></footer>`;
       renderEntries();
@@ -158,7 +179,7 @@ const $ = id => document.getElementById(id);
         <td><button class="entry" onclick="navigate('${p.id}')">${icon(p.type === 'folder' ? 'folder' : 'doc', p.type === 'folder' ? 'folder-icon' : '')}<span>${escape(p.title)}</span>${icon('chevron','arrow')}</button></td>
         <td class="type-column">${p.type === 'folder' ? 'Folder' : 'Markdown'}</td>
         <td class="access-column">${p.type === 'doc' ? `<span class="file-access ${p.visibility === 'public' ? 'public-access' : ''}">${accessLabel(p)}</span>` : '<span aria-label="Akses diatur per file">/</span>'}</td>
-        <td class="action-column">${p.type === 'doc' ? `<button class="small-button row-share" onclick="openShare('${p.id}')" aria-label="Bagikan ${escape(p.title)}" title="Bagikan file">${icon('share')}<span>Bagikan</span></button>` : ''}</td>
+        <td class="action-column">${p.type === 'doc' ? `<div class="row-actions"><button class="small-button row-share" onclick="openShare('${p.id}')" aria-label="Bagikan ${escape(p.title)}" title="Bagikan file">${icon('share')}<span>Bagikan</span></button><button class="small-button row-delete" onclick="deleteItem('${p.id}')" aria-label="Hapus ${escape(p.title)}" title="Hapus file">${icon('trash')}<span>Hapus</span></button></div>` : ''}</td>
       </tr>`).join('') : '<tr><td colspan="4"><div class="empty">Belum ada item di sini.<br>Buat halaman atau folder untuk mulai menulis.</div></td></tr>';
     }
     function renderDoc(page) {
@@ -203,6 +224,67 @@ const $ = id => document.getElementById(id);
       return page?.type === 'folder' ? page : pages.find(p => p.id === page?.parent) || pages[0];
     }
     function validName(value) { return value && !value.startsWith('.') && !/[<>:"/\\|?*\x00-\x1f]/.test(value) && !/[. ]$/.test(value); }
+    function resetFileDrag() { fileDragDepth = 0; $('file-drop-zone').hidden = true; }
+    async function openUploadPreview(file) {
+      if(boot.mode !== 'workspace' || !file) return;
+      if(saving || document.querySelector('dialog[open]')) return notify('Selesaikan dialog atau proses yang sedang berjalan terlebih dahulu.');
+      if(!/\.(md|markdown)$/i.test(file.name)) return notify('Pilih file Markdown dengan ekstensi .md.');
+      if(file.size > 5 * 1024 * 1024) return notify('Ukuran file maksimal 5 MB.');
+      const folder = activeFolder();
+      const upload = pendingUpload = { file, folderPath: folder.path, ready: false, uploadedPath: null };
+      $('upload-name').value = file.name.replace(/\.markdown$/i, '.md');
+      $('upload-name').disabled = false; $('upload-name').setCustomValidity('');
+      $('upload-target').textContent = 'docs' + folder.path;
+      $('upload-size').textContent = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 1 }).format(file.size / 1024) + ' KB';
+      $('upload-content').value = '';
+      $('upload-draft').hidden = !isDirty();
+      $('upload-error').textContent = '';
+      $('upload-status').textContent = 'Membaca file dari perangkat…';
+      $('confirm-upload').textContent = 'Upload'; $('confirm-upload').disabled = true;
+      $('upload-form').setAttribute('aria-busy', 'true');
+      $('upload-dialog').showModal(); $('upload-name').focus();
+      try {
+        const content = await file.text();
+        if(pendingUpload !== upload) return;
+        $('upload-content').value = content;
+        upload.ready = true; $('confirm-upload').disabled = false;
+        $('upload-status').textContent = 'Isi Markdown asli · belum diupload';
+      } catch {
+        if(pendingUpload === upload) { $('upload-error').textContent = 'File tidak dapat dibaca. Tutup dialog dan pilih file kembali.'; $('upload-status').textContent = 'Gagal membaca file'; }
+      } finally {
+        if(pendingUpload === upload) $('upload-form').setAttribute('aria-busy', 'false');
+      }
+    }
+    function closeUploadDialog() { if(!saving) $('upload-dialog').close(); }
+    async function confirmUpload(event) {
+      event.preventDefault();
+      const upload = pendingUpload;
+      if(!upload?.ready || saving) return;
+      const name = $('upload-name').value.trim();
+      if(!validName(name) || !/\.md$/i.test(name)) { $('upload-name').setCustomValidity('Gunakan nama file .md tanpa karakter path atau titik di awal/akhir.'); $('upload-name').reportValidity(); return; }
+      const dialog = $('upload-dialog');
+      setBusy(true); $('upload-error').textContent = ''; $('upload-form').setAttribute('aria-busy', 'true');
+      dialog.querySelectorAll('button,input').forEach(control => control.disabled = true);
+      $('confirm-upload').textContent = upload.uploadedPath ? 'Memuat ulang…' : 'Mengupload…';
+      try {
+        if(!upload.uploadedPath) {
+          const data = new FormData();
+          data.append('targetFolder', upload.folderPath); data.append('filename', name); data.append('file', upload.file);
+          const result = await api('upload', data); upload.uploadedPath = result.path;
+        }
+        await refreshWorkspace();
+        const folder = pages.find(page => page.type === 'folder' && page.path === upload.folderPath);
+        await navigate(folder?.id || 'home', 'push', true);
+        dialog.close(); $('main').focus(); notify('File diupload sebagai privat.');
+      } catch (error) {
+        $('upload-error').textContent = upload.uploadedPath ? 'File sudah diupload, tetapi daftar belum berhasil dimuat. Klik Muat ulang daftar untuk melanjutkan.' : error.message;
+      } finally {
+        setBusy(false); $('upload-form').setAttribute('aria-busy', 'false');
+        dialog.querySelectorAll('button,input').forEach(control => control.disabled = false);
+        $('upload-name').disabled = Boolean(upload.uploadedPath);
+        $('confirm-upload').textContent = upload.uploadedPath ? 'Muat ulang daftar' : 'Upload';
+      }
+    }
     function openCreate(type) {
       createType = type;
       $('create-title').textContent = type === 'folder' ? 'Folder baru' : 'Halaman baru';
@@ -249,21 +331,56 @@ const $ = id => document.getElementById(id);
       } catch (error) { notify(error.message); }
       finally { setBusy(false); submit.disabled = false; }
     }
-    async function deleteItem() {
-      const page = pages.find(p => p.id === manageId); if(!page || !canLeave() || !confirm('Hapus “' + page.title + '”? Tindakan ini tidak dapat dibatalkan.')) return;
-      $('delete-item').disabled = true; setBusy(true);
+    function deleteItem(id = manageId) {
+      const page = pages.find(p => p.id === id); if(!page || id === 'home' || $('delete-dialog').open) return;
+      if(saving) return notify('Tunggu hingga proses selesai.');
+      deletion = { id, force: false, removed: false };
+      $('delete-title').textContent = page.type === 'folder' ? 'Hapus folder?' : 'Hapus file?';
+      $('delete-description').textContent = 'Item ini akan dihapus permanen. Link yang pernah dibagikan tidak akan bisa dibuka lagi.';
+      $('delete-filename').textContent = page.path.split('/').pop();
+      $('delete-path').textContent = 'docs' + page.path;
+      $('delete-draft').hidden = !isDirty();
+      $('delete-error').textContent = '';
+      $('confirm-delete').textContent = page.type === 'folder' ? 'Hapus folder' : 'Hapus file';
+      $('delete-dialog').showModal(); $('cancel-delete').focus();
+    }
+    function closeDeleteDialog() {
+      if(!saving) $('delete-dialog').close();
+    }
+    async function confirmDelete(event) {
+      event.preventDefault();
+      const target = deletion, page = pages.find(p => p.id === target?.id);
+      if(!page || page.id === 'home' || saving) return;
+      const dialog = $('delete-dialog'), button = $('confirm-delete');
+      setBusy(true); $('delete-error').textContent = '';
+      $('delete-form').setAttribute('aria-busy', 'true');
+      dialog.querySelectorAll('button').forEach(control => control.disabled = true);
+      button.textContent = target.removed ? 'Memuat ulang…' : 'Menghapus…';
       try {
-        try { await api('delete', { path: page.path }); }
-        catch (error) {
-          if(!error.requiresConfirm || !confirm('Folder ini masih berisi dokumen. Hapus folder beserta seluruh isinya?')) throw error;
-          await api('delete', { path: page.path, force: true });
+        if(!target.removed) {
+          await api('delete', { path: page.path, force: target.force });
+          target.removed = true;
         }
         editing = false; await refreshWorkspace();
         recent = recent.filter(id => pages.some(p => p.id === id));
         [...favorites].filter(id => !pages.some(p => p.id === id)).forEach(id => favorites.delete(id)); persistNavigation();
-        $('manage-dialog').close(); await navigate(pages.some(p => p.id === page.parent) ? page.parent : 'home', 'replace', true); notify('Item dihapus.');
-      } catch (error) { notify(error.message); }
-      finally { setBusy(false); $('delete-item').disabled = false; }
+        const destination = current === 'recent' || pages.some(p => p.id === current) ? current : pages.some(p => p.id === page.parent) ? page.parent : 'home';
+        $('manage-dialog').close(); await navigate(destination, 'replace', true); dialog.close(); $('main').focus(); notify('Item dihapus.');
+      } catch (error) {
+        if(error.requiresConfirm) {
+          target.force = true;
+          $('delete-title').textContent = 'Hapus folder beserta isinya?';
+          $('delete-description').textContent = 'Folder ini masih berisi dokumen. Semua file dan subfolder di dalamnya akan dihapus permanen. Konfirmasi sekali lagi untuk melanjutkan.';
+        } else {
+          $('delete-error').textContent = error.message;
+          if(target.removed) $('delete-description').textContent = 'Item sudah dihapus, tetapi daftar belum berhasil dimuat ulang. Coba muat ulang daftar.';
+        }
+      } finally {
+        setBusy(false); $('delete-form').setAttribute('aria-busy', 'false');
+        dialog.querySelectorAll('button').forEach(control => control.disabled = false);
+        button.textContent = target.removed ? 'Muat ulang daftar' : target.force ? 'Hapus semua isi' : page.type === 'folder' ? 'Hapus folder' : 'Hapus file';
+        if(dialog.open && target.force) $('cancel-delete').focus();
+      }
     }
     async function logout() {
       if(!canLeave()) return;
@@ -300,26 +417,38 @@ const $ = id => document.getElementById(id);
     $('new-name').addEventListener('input', () => $('new-name').setCustomValidity(''));
     $('rename-name').addEventListener('input', () => $('rename-name').setCustomValidity(''));
     $('search-input').addEventListener('input', renderSearch);
-    $('upload-input').addEventListener('change', async event => {
-      const file = event.target.files[0]; if(!file) return;
-      let ownsBusy = false;
-      try {
-        if(!/\.(md|markdown)$/i.test(file.name)) return notify('Pilih file .md atau .markdown.');
-        if(file.size > 5 * 1024 * 1024) return notify('Ukuran file maksimal 5 MB.');
-        if(!canLeave()) return;
-        setBusy(true); ownsBusy = true;
-        const data = new FormData(); data.append('targetFolder', activeFolder().path); data.append('filename', file.name); data.append('file', file);
-        notify('Mengimpor file…'); const result = await api('upload', data);
-        editing = false; await refreshWorkspace(); const page = pages.find(p => p.path === result.path);
-        if(page) await navigate(page.id, 'push', true); notify('File diimpor sebagai privat.');
-      } catch (error) { notify(error.message); }
-      finally { if(ownsBusy) setBusy(false); event.target.value = ''; }
-    });
+    $('upload-name').addEventListener('input', () => $('upload-name').setCustomValidity(''));
+    $('upload-input').addEventListener('change', event => { openUploadPreview(event.target.files[0]); event.target.value = ''; });
+    if(boot.mode === 'workspace') {
+      const isFileDrag = event => Array.from(event.dataTransfer?.types || []).includes('Files');
+      const canDrop = () => !saving && !document.querySelector('dialog[open]');
+      document.addEventListener('dragenter', event => {
+        if(!isFileDrag(event)) return;
+        event.preventDefault(); fileDragDepth++;
+        if(canDrop()) { $('file-drop-target').textContent = 'Folder tujuan: docs' + activeFolder().path; $('file-drop-zone').hidden = false; }
+      });
+      document.addEventListener('dragover', event => {
+        if(!isFileDrag(event)) return;
+        event.preventDefault(); event.dataTransfer.dropEffect = canDrop() ? 'copy' : 'none';
+      });
+      document.addEventListener('dragleave', () => { if(fileDragDepth > 0 && --fileDragDepth === 0) resetFileDrag(); });
+      document.addEventListener('drop', event => {
+        if(!isFileDrag(event)) return;
+        event.preventDefault(); resetFileDrag();
+        if(!canDrop()) return notify('Selesaikan dialog atau proses yang sedang berjalan terlebih dahulu.');
+        if(Array.from(event.dataTransfer.items || []).some(item => item.webkitGetAsEntry?.()?.isDirectory)) return notify('Pilih file .md, bukan folder.');
+        const files = event.dataTransfer.files;
+        if(files.length !== 1) return notify('Lepaskan satu file .md setiap kali upload.');
+        if(!/\.md$/i.test(files[0].name)) return notify('Drag and drop hanya menerima file .md.');
+        openUploadPreview(files[0]);
+      });
+      window.addEventListener('dragend', resetFileDrag); window.addEventListener('blur', resetFileDrag);
+    }
     document.addEventListener('keydown', event => {
       if(boot.mode !== 'workspace') return;
       if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if(!document.querySelector('dialog[open]')) openSearch(); }
-      if(event.key === 'Escape') closeSidebar();
-      if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && editing) { event.preventDefault(); saveDoc(); }
+      if(event.key === 'Escape') { resetFileDrag(); closeSidebar(); }
+      if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && editing) { event.preventDefault(); if(!$('upload-dialog').open) saveDoc(); }
     });
     window.addEventListener('beforeunload', event => { if(isDirty() || saving) { event.preventDefault(); event.returnValue = ''; } });
     window.addEventListener('pageshow', event => { if(event.persisted) location.reload(); });

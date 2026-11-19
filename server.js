@@ -194,6 +194,7 @@ function workspace() {
   function walk(directory) {
     const entries = fs.readdirSync(directory, { withFileTypes: true })
       .filter(entry => !entry.name.startsWith('.') && !entry.isSymbolicLink() && (entry.isDirectory() || isMarkdown(entry.name)))
+      .filter(entry => directory !== DOCS_ROOT || !entry.isDirectory() || !['steering', 'superpowers'].includes(entry.name.toLowerCase()))
       .sort((a, b) => Number(b.isDirectory()) - Number(a.isDirectory()) || a.name.localeCompare(b.name));
     for (const entry of entries) {
       const filename = path.join(directory, entry.name);
@@ -294,7 +295,7 @@ app.post('/api/share', requireAuth, (req, res) => {
   let record = access.get(key);
   if (visibility !== undefined || !record.id) record = access.set(key, visibility || record.visibility);
   if (visibility !== undefined) auditLog('FILE_ACCESS', `${key}: ${visibility}`, req.ip);
-  return res.json({ success: true, visibility: record.visibility, sharePath: record.visibility === 'public' ? '/share/' + record.id : null });
+  return res.json({ success: true, visibility: record.visibility, sharePath: record.visibility === 'public' ? encodedPath(key) : null });
 });
 
 // API: save file (create or edit)

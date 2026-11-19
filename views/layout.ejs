@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <title>MD Previewer</title>
+  <link rel="icon" type="image/svg+xml" sizes="any" href="/static/favicon.svg">
   <script>
     const systemTheme = matchMedia('(prefers-color-scheme: dark)');
     let themePreference = 'system';
@@ -14,6 +15,7 @@
     applyTheme();
     systemTheme.addEventListener('change', applyTheme);
   </script>
+  <link rel="preload" href="/static/fonts/inter-variable.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -40,12 +42,14 @@
     <symbol id="i-share" viewBox="0 0 24 24"><path d="M8 12 16 7 M8 12l8 5"/><circle cx="5" cy="12" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="19" cy="19" r="3"/></symbol>
     <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7"/></symbol>
   </defs></svg>
   <div id="access-page" class="access-page" hidden></div>
   <div class="app" id="workspace-app" hidden>
     <button class="scrim" aria-label="Tutup navigasi" onclick="closeSidebar()"></button>
     <aside class="sidebar" aria-label="Navigasi workspace">
       <div class="brand"><span class="brand-mark" aria-hidden="true">m.</span><div>MD Previewer<small>Personal workspace</small></div><button class="icon-button collapse" onclick="toggleSidebar()" aria-label="Sembunyikan sidebar" title="Sembunyikan sidebar"><svg><use href="#i-panel"/></svg></button></div>
+      <div class="sidebar-scroll">
       <button class="nav-item" onclick="openSearch()"><svg><use href="#i-search"/></svg><span>Cari catatan</span><kbd>Ctrl K</kbd></button>
       <button class="nav-item active" data-nav="home" onclick="navigate('home')"><svg><use href="#i-home"/></svg><span>Ruang kerja</span></button>
       <button class="nav-item" data-nav="recent" onclick="navigate('recent')"><svg><use href="#i-clock"/></svg><span>Terakhir dibuka</span></button>
@@ -55,11 +59,13 @@
         <div id="folder-tree"></div>
         <button class="nav-item" onclick="openCreate('folder')"><svg><use href="#i-plus"/></svg><span>Tambah folder</span></button>
       </nav>
-      <div class="sidebar-bottom"><button class="nav-item" onclick="document.getElementById('upload-input').click()"><svg><use href="#i-upload"/></svg><span>Import Markdown</span></button><button class="nav-item" onclick="logout()"><svg><use href="#i-lock"/></svg><span>Keluar</span></button><label class="theme-setting" for="theme-select"><svg aria-hidden="true"><use href="#i-theme"/></svg><span>Tampilan</span><select id="theme-select" onchange="setTheme(this.value)"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label><div class="sidebar-note"><i></i>Tersimpan di server</div></div>
+      <div class="sidebar-bottom"><button class="nav-item" onclick="document.getElementById('upload-input').click()"><svg><use href="#i-upload"/></svg><span>Import Markdown</span></button><button class="nav-item" onclick="logout()"><svg><use href="#i-lock"/></svg><span>Keluar</span></button></div>
+      </div>
+      <label class="theme-setting" for="theme-select"><svg aria-hidden="true"><use href="#i-theme"/></svg><span>Tampilan</span><select id="theme-select" onchange="setTheme(this.value)"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>
     </aside>
     <div class="workspace">
       <header class="topbar">
-        <div class="breadcrumbs"><button class="icon-button sidebar-toggle" onclick="toggleSidebar()" aria-label="Buka navigasi"><svg><use href="#i-panel"/></svg></button><button onclick="navigate('home')">docs</button><span class="slash">/</span><span id="breadcrumb-current">Ruang kerja</span></div>
+        <nav class="breadcrumbs" aria-label="Breadcrumb"><button class="icon-button sidebar-toggle" onclick="toggleSidebar()" aria-label="Buka navigasi"><svg><use href="#i-panel"/></svg></button><ol class="breadcrumb-path" id="breadcrumb-path"></ol></nav>
         <div class="top-actions"><span class="save-state" id="save-state">Workspace pribadi</span><button class="small-button detail-share" id="detail-share" onclick="openShare(current)" aria-label="Bagikan file" title="Bagikan file" hidden><svg><use href="#i-share"/></svg><span>Bagikan</span></button><button class="icon-button" id="favorite-button" onclick="toggleFavorite()" aria-label="Tambah ke favorit" title="Tambah ke favorit"><svg><use href="#i-star"/></svg></button><button class="icon-button" id="manage-button" onclick="openManage(current)" aria-label="Kelola halaman atau folder" title="Kelola halaman atau folder"><svg><use href="#i-more"/></svg></button><button class="icon-button" onclick="toggleWidth()" aria-label="Ganti lebar halaman" title="Ganti lebar halaman" aria-pressed="false" id="width-button"><svg><use href="#i-expand"/></svg></button></div>
       </header>
       <div class="page-layout"><main id="main" tabindex="-1"></main><aside class="outline" aria-label="Daftar isi" id="outline"></aside></div>
@@ -84,6 +90,34 @@
       <div class="dialog-head"><h2 id="manage-title">Kelola halaman</h2><button type="button" class="icon-button" onclick="document.getElementById('manage-dialog').close()" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></div>
       <div class="dialog-body"><label class="field-label" for="rename-name">Nama</label><input class="text-input" id="rename-name" required maxlength="100" autocomplete="off"><p class="edit-hint">Link berbagi dan pengaturan akses tetap tersimpan saat nama berubah.</p></div>
       <div class="dialog-foot"><button type="button" class="small-button danger" id="delete-item" onclick="deleteItem()">Hapus</button><button type="button" class="small-button" onclick="document.getElementById('manage-dialog').close()">Batal</button><button type="submit" class="small-button primary">Simpan nama</button></div>
+    </form>
+  </dialog>
+  <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-description delete-draft" oncancel="if(saving) event.preventDefault()" onclose="deletion = null">
+    <form id="delete-form" onsubmit="confirmDelete(event)" aria-busy="false">
+      <div class="dialog-head"><h2 id="delete-title">Hapus file?</h2><button type="button" class="icon-button" onclick="closeDeleteDialog()" aria-label="Tutup konfirmasi hapus"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+      <div class="dialog-body">
+        <p id="delete-description">Item ini akan dihapus permanen.</p>
+        <div class="delete-target"><svg aria-hidden="true"><use href="#i-trash"/></svg><div><strong id="delete-filename"></strong><small id="delete-path"></small></div></div>
+        <p class="delete-warning" id="delete-draft" hidden>Perubahan yang belum disimpan di editor juga akan dibuang.</p>
+        <p class="delete-warning">Tindakan ini tidak dapat dibatalkan.</p>
+        <p class="delete-error" id="delete-error" role="alert"></p>
+      </div>
+      <div class="dialog-foot"><button type="button" class="small-button" id="cancel-delete" onclick="closeDeleteDialog()" autofocus>Batal</button><button type="submit" class="small-button destructive" id="confirm-delete">Hapus file</button></div>
+    </form>
+  </dialog>
+  <div id="file-drop-zone" class="file-drop-zone" role="status" hidden><div class="file-drop-card"><svg aria-hidden="true"><use href="#i-upload"/></svg><strong>Lepaskan file .md di sini</strong><span id="file-drop-target"></span><small>Satu file, maksimal 5 MB. Tinjau file sebelum upload.</small></div></div>
+  <dialog id="upload-dialog" aria-labelledby="upload-title" aria-describedby="upload-description upload-draft" oncancel="if(saving) event.preventDefault()" onclose="pendingUpload = null">
+    <form id="upload-form" onsubmit="confirmUpload(event)" aria-busy="false">
+      <div class="dialog-head"><h2 id="upload-title">Tinjau file sebelum upload</h2><button type="button" class="icon-button" onclick="closeUploadDialog()" aria-label="Tutup pratinjau upload"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+      <div class="dialog-body">
+        <p id="upload-description" class="upload-description">Periksa nama dan isi file. File baru akan disimpan sebagai privat setelah kamu klik Upload.</p>
+        <div class="upload-meta"><span>Folder tujuan</span><strong id="upload-target"></strong><small id="upload-size"></small></div>
+        <label class="field-label" for="upload-name">Nama file</label><input class="text-input" id="upload-name" required autocomplete="off" spellcheck="false" aria-describedby="upload-name-hint"><p class="edit-hint" id="upload-name-hint">Gunakan ekstensi .md. File dengan nama yang sama tidak akan ditimpa.</p>
+        <label class="field-label" for="upload-content">Isi file</label><textarea id="upload-content" class="upload-content" readonly spellcheck="false" aria-describedby="upload-status"></textarea><p id="upload-status" class="edit-hint" role="status"></p>
+        <p id="upload-draft" class="delete-warning" hidden>Setelah upload berhasil, kamu akan kembali ke folder tujuan. Perubahan dokumen yang belum disimpan akan dibuang. Pilih Batal untuk menyimpannya terlebih dahulu.</p>
+        <p id="upload-error" class="delete-error" role="alert"></p>
+      </div>
+      <div class="dialog-foot"><button type="button" class="small-button" onclick="closeUploadDialog()">Batal</button><button id="confirm-upload" class="small-button primary" type="submit">Upload</button></div>
     </form>
   </dialog>
   <dialog id="auth-dialog" aria-labelledby="auth-title">

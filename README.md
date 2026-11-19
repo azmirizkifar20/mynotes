@@ -5,11 +5,16 @@ Workspace untuk membaca, menulis, dan mengelola dokumen Markdown dengan tampilan
 ## Fitur
 
 - Navigasi folder, pencarian nama file, favorit, dan riwayat dokumen.
+- Breadcrumb mengikuti path lengkap; klik nama folder untuk menuju folder tersebut.
 - Editor Markdown dan pratinjau dengan syntax highlighting.
 - Membuat, mengubah nama, menghapus, mengimpor, dan mengunduh dokumen.
-- Tema Sistem, Terang, dan Gelap.
+- Drag and drop satu file `.md` (maksimal 5 MB), lalu tinjau nama dan isi sebelum konfirmasi upload ke folder aktif.
+- Tema Sistem, Terang, dan Gelap dengan palet Graphite untuk mode gelap.
+- Font antarmuka Inter dimuat dari server sendiri; editor dan blok kode memakai monospace.
 - Pengaturan file Publik/Privat dan link berbagi publik dari daftar maupun detail file.
 - Login menggunakan satu kode akses bersama untuk mengelola seluruh workspace.
+
+Link dari menu **Bagikan** menggunakan path asli dokumen, misalnya `https://domain-anda/catatan/proyek.md`. Domain dan port mengikuti alamat web yang sedang dibuka. Spasi dan karakter khusus di-encode agar URL tetap valid. File privat meminta login; pengunjung tanpa akses tidak mendapatkan isi dokumen. Jika file atau folder dipindah/diubah namanya, bagikan ulang URL path yang baru. Link `/share/:id` yang pernah dibagikan tetap didukung dan mengikuti status Publik/Privat file.
 
 ## Persyaratan
 
@@ -18,6 +23,10 @@ Workspace untuk membaca, menulis, dan mengelola dokumen Markdown dengan tampilan
 - Hak baca/tulis pada direktori project untuk menyimpan dokumen, metadata, upload sementara, dan log.
 
 Backend menggunakan Express dan EJS. Frontend menggunakan JavaScript dan CSS biasa; tidak ada langkah build frontend.
+
+Font [Inter](https://github.com/google/fonts/tree/main/ofl/inter) disertakan di `public/fonts/` dengan lisensi SIL Open Font License pada `OFL-Inter.txt`. File font disajikan melalui `/static/fonts/`, sehingga browser tidak perlu menghubungi layanan font eksternal.
+
+Saat file diseret ke workspace, area drop menampilkan folder tujuan. Setelah drop, dialog menampilkan nama file yang bisa diubah dan isi Markdown asli yang hanya bisa dibaca. Klik **Upload** untuk mengirimnya; **Batal** tidak mengirim file. Saat membuka dokumen, folder tujuan adalah folder induknya; pada halaman Terakhir dibuka, tujuannya root `docs/`. Menu **Import Markdown** memakai dialog yang sama dan tetap menerima `.markdown` (dikonversi menjadi `.md`). File baru dimulai sebagai privat dan nama duplikat ditolak. Setelah berhasil, folder tujuan ditampilkan. Jika editor memiliki perubahan belum disimpan, dialog memperingatkan sebelum upload agar pengguna bisa membatalkan dan menyimpannya terlebih dahulu.
 
 ## Instalasi
 
@@ -80,6 +89,8 @@ Folder `docs/` harus tersedia sebelum aplikasi dijalankan. Repository menyertaka
 
 Tambahkan file `.md` beserta subfoldernya ke `docs/`, atau buat dokumen melalui aplikasi setelah login. Pada instalasi baru, workspace dapat dimulai dalam keadaan kosong.
 
+Folder internal `docs/steering/` dan `docs/superpowers/` beserta isinya dikecualikan dari listing workspace, sidebar, dan pencarian. Pengecualian listing tidak mengubah status Publik/Privat atau akses melalui URL langsung.
+
 **File yang ditambahkan langsung ke `docs/` default-nya publik jika belum memiliki pengaturan akses.** Dokumen yang dibuat atau diimpor melalui aplikasi mulai sebagai privat. Gunakan menu **Bagikan** untuk mengubahnya.
 
 ## Menjalankan web
@@ -134,6 +145,12 @@ client_max_body_size 6m;
 ```
 
 Nilainya memberi ruang untuk overhead multipart. Jika `JSON_BODY_LIMIT` dinaikkan, sesuaikan juga batas nginx. Batas file import di aplikasi tetap 5 MB.
+
+## Menghapus file
+
+Klik **Hapus** di baris file pada daftar workspace atau riwayat bacaan. Di detail dokumen, buka menu **Kelola** (ikon tiga titik), lalu pilih **Hapus**. Dialog aplikasi menampilkan nama/path file, peringatan, dan tombol **Batal**/**Hapus file**. Saat proses berjalan, tombol dinonaktifkan; kegagalan ditampilkan dalam dialog untuk dicoba ulang. Folder yang berisi dokumen meminta konfirmasi tambahan sebelum seluruh isinya dihapus. Setelah berhasil, file dihapus dari daftar, favorit, dan riwayat; link publiknya tidak lagi tersedia.
+
+Penghapusan bersifat permanen dan tidak memiliki fitur pemulihan. Gunakan backup jika dokumen perlu dikembalikan.
 
 ## Penyimpanan dan backup
 
