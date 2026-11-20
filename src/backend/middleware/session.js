@@ -14,7 +14,7 @@ module.exports = session({
   name: "mdprev.sid",
   cookie: {
     httpOnly: true,
-    secure: env.production,
+    secure: env.production || "auto",
     sameSite: "strict",
     maxAge: 30 * 60 * 1000,
   },

@@ -7,9 +7,12 @@
     "start": "node server.js",
     "dev": "nodemon --ignore docs/ --ignore .data/ --ignore uploads/ server.js",
     "db:setup": "node scripts/setup-database.js",
-    "docs:sync": "node scripts/sync-docs.js"
+    "docs:sync": "node scripts/sync-docs.js",
+    "auth:recover": "node scripts/recover-passkey.js"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "14.0.0",
+    "@simplewebauthn/server": "14.1.0",
     "bcrypt": "5.1.1",
     "connect-pg-simple": "^10.0.0",
     "crypto": "1.0.1",

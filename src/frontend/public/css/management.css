@@ -7,3 +7,177 @@
 .management-content {
   margin-top: 28px;
 }
+.security-page {
+  container-type: inline-size;
+}
+.security-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.security-heading .page-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  background: var(--inset);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.security-heading .page-icon svg {
+  width: 28px;
+  height: 28px;
+}
+.security-heading h1 {
+  font-size: 32px;
+  letter-spacing: -1px;
+  margin: 0;
+}
+.security-page > .lead {
+  margin-top: 16px;
+}
+.security-loading {
+  padding: 24px 0;
+  color: var(--muted);
+}
+.security-verification {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 28px 0;
+  padding: 18px 20px;
+  background: var(--inset);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.security-verification strong,
+.security-recovery strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.security-verification p,
+.security-section-heading p,
+.security-hint,
+.security-recovery p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.security-section {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 28px;
+  padding: 28px 0;
+  border-top: 1px solid var(--line);
+}
+.security-section-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+.passkey-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.security-page .field-label {
+  display: block;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+}
+.passkey-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 8px;
+}
+.security-page .text-input {
+  min-width: 0;
+  width: 100%;
+  flex: 1;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 400;
+  background: var(--paper);
+}
+.security-page .small-button {
+  min-height: 42px;
+  justify-content: center;
+  padding: 9px 12px;
+  text-decoration: none;
+}
+.security-section .security-hint {
+  margin: 10px 0 0;
+}
+.security-section .security-hint + a {
+  margin-top: 12px;
+}
+.passkey-device + .passkey-device {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.passkey-device-heading,
+.passkey-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.passkey-device-heading {
+  justify-content: space-between;
+}
+.passkey-current {
+  background: var(--inset);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 10px;
+  padding: 1px 6px;
+}
+.security-page .danger {
+  margin: 0;
+}
+.passkey-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 10px;
+}
+.security-recovery {
+  border-top: 1px solid var(--line);
+  padding-top: 22px;
+}
+@container (max-width: 660px) {
+  .security-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 24px 0;
+  }
+}
+@container (max-width: 460px) {
+  .security-verification {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px;
+  }
+  .passkey-controls {
+    flex-direction: column;
+  }
+  .passkey-row-actions > button {
+    flex: 1;
+  }
+  .security-page .small-button {
+    min-height: 44px;
+  }
+}

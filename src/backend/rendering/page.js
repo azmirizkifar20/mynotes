@@ -7,6 +7,8 @@ function renderPage(res, bootstrap, status = 200) {
       ...bootstrap,
       basePath: res.locals.basePath,
       editorVersion: res.app.locals.editorVersion,
+      passkeyBrowserVersion: res.app.locals.passkeyBrowserVersion,
+      authURL: require("../modules/auth/config").authURL,
     }).replace(/</g, "\\u003c"),
   });
 }

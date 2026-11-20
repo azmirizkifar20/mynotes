@@ -288,9 +288,79 @@ async function main() {
     });
   fs.mkdirSync(path.join(appRoot, "docs"));
   const port = 18000 + Math.floor(Math.random() * 10000),
-    base = "http://127.0.0.1:" + port;
+    base = "http://localhost:" + port;
   const code = randomUUID(),
-    hash = await require("bcrypt").hash(code, 4);
+    hash = await require("bcrypt").hash(code, 4),
+    sessionSecret = randomUUID();
+  process.env.PASSKEY_AUTH_URL = base;
+  process.env.PASSKEY_APP_URLS = base + "," + base + "/mynotes";
+  const authStore = require("../src/backend/modules/auth/store");
+  const authSettings = await authStore.settings();
+  const passkeyId = randomUUID().replace(/-/g, "");
+  await db.query(
+    "INSERT INTO mdpreview.passkeys(id,rp_id,public_key,name,device_type,backed_up) VALUES($1,$2,$3,$4,$5,$6)",
+    [
+      passkeyId,
+      "localhost",
+      Buffer.from([1]),
+      "Isolated API fixture",
+      "singleDevice",
+      false,
+    ],
+  );
+  const request = {
+    protocol: "http",
+    method: "POST",
+    baseUrl: "",
+    sessionID: randomUUID(),
+    session: {},
+    body: {},
+    get: (name) => (name === "host" ? new URL(base).host : base),
+  };
+  const challenge = await authStore.challenge(request, "authentication", {
+    challenge: randomUUID(),
+  });
+  request.body.challengeId = challenge.challengeId;
+  await assert.rejects(
+    authStore.consumeChallenge(
+      { ...request, sessionID: randomUUID() },
+      "authentication",
+    ),
+    (error) => error.status === 400,
+  );
+  await authStore.consumeChallenge(request, "authentication");
+  await assert.rejects(
+    authStore.consumeChallenge(request, "authentication"),
+    (error) => error.status === 400,
+  );
+  const bridgeService = require("../src/backend/modules/auth/passkeys");
+  request.baseUrl = "/mynotes";
+  const bridge = await bridgeService.startBridge(request);
+  request.body = { token: bridge.token };
+  await assert.rejects(bridgeService.claimBridge(request));
+  const completion = authStore.hash(randomUUID());
+  request.body.completion = completion;
+  await assert.rejects(bridgeService.claimBridge(request));
+  await assert.rejects(
+    bridgeService.claimBridge({ ...request, sessionID: randomUUID() }),
+    (error) => error.status === 400,
+  );
+  await db.query(
+    "UPDATE mdpreview.auth_bridges SET passkey_id=$2,completion_hash=$3 WHERE token_hash=$1",
+    [authStore.hash(bridge.token), passkeyId, authStore.hash(completion)],
+  );
+  await assert.rejects(bridgeService.claimBridge({
+    ...request, body: { token: bridge.token },
+  }), "A relayed request token cannot claim approval without the completion secret");
+  await assert.rejects(bridgeService.claimBridge({
+    ...request, body: { token: bridge.token, completion: authStore.hash(randomUUID()) },
+  }));
+  await assert.rejects(bridgeService.claimBridge({ ...request, sessionID: randomUUID() }));
+  assert.equal(await bridgeService.claimBridge(request), passkeyId);
+  await assert.rejects(
+    bridgeService.claimBridge(request),
+    (error) => error.status === 400,
+  );
   server = spawn(process.execPath, ["server.js"], {
     cwd: appRoot,
     windowsHide: true,
@@ -300,7 +370,7 @@ async function main() {
       NODE_ENV: "development",
       NODE_PATH: path.join(root, "node_modules"),
       ACCESS_CODE_HASH: hash,
-      SESSION_SECRET: randomUUID(),
+      SESSION_SECRET: sessionSecret,
     },
     stdio: "ignore",
   });
@@ -336,8 +406,35 @@ async function main() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
     });
-    assert.equal(login.status, 200);
-    const cookie = login.headers.get("set-cookie").split(";")[0];
+    assert.equal(login.status, 410);
+    // The API regression fixture owns its isolated DB; passkey ceremonies are checked separately.
+    const sid = randomUUID(),
+      expires = new Date(Date.now() + 1800000);
+    await db.query(
+      "INSERT INTO mdpreview.sessions(sid,sess,expire) VALUES($1,$2,$3)",
+      [
+        sid,
+        JSON.stringify({
+          cookie: {
+            path: prefix || "/",
+            expires: expires.toISOString(),
+            httpOnly: true,
+            originalMaxAge: 1800000,
+          },
+          authenticated: true,
+          authMethod: "passkey",
+          authAt: Date.now(),
+          passkeyId,
+          authGeneration: authSettings.auth_generation,
+        }),
+        expires,
+      ],
+    );
+    const cookie =
+      "mdprev.sid=" +
+      encodeURIComponent(
+        "s:" + require("cookie-signature").sign(sid, sessionSecret),
+      );
     const workspace = await (
       await fetch(base + prefix + "/api/workspace", {
         headers: { Cookie: cookie },

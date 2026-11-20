@@ -15,11 +15,11 @@ Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak 
 - Template dokumen yang bisa dibuat, diedit, dan digunakan kembali.
 - Aktivitas workspace dan session login tersimpan di PostgreSQL.
 
-Login memakai satu kode akses bersama. Favorit, riwayat bacaan, tema, template, dan draft menjadi milik **workspace bersama**, belum per akun. Favorit/riwayat browser lama dapat diimpor sekali lewat sidebar setelah login. Pengunjung publik hanya mendapat dokumen yang dibuka; tema pengunjung disimpan pada browsernya.
+Login memakai passkey dengan pusat autentikasi di `https://itsazmi.com/mynotes` (RP ID `itsazmi.com`). Domain lama dan lokal membuka pusat login melalui popup, kemudian menerima session masing-masing melalui handoff sekali pakai. Favorit, riwayat bacaan, tema, template, dan draft menjadi milik **workspace bersama**, belum per akun. Favorit/riwayat browser lama dapat diimpor sekali lewat sidebar setelah login. Pengunjung publik hanya mendapat dokumen yang dibuka; tema pengunjung disimpan pada browsernya.
 
 ## Persyaratan
 
-- Node.js 20 atau lebih baru dan npm.
+- Node.js 22 atau lebih baru dan npm (server dan lokal saat ini Node.js 24).
 - PostgreSQL 14 atau lebih baru yang dapat dijangkau aplikasi.
 - Hak membuat schema/tabel pada database. Hak `CREATEDB` diperlukan jika database belum dibuat.
 - Hak tulis pada `docs/`, `.data/`, dan `uploads/`.
@@ -43,6 +43,8 @@ Di PowerShell, gunakan `Copy-Item .env.example .env`. Isi `.env`:
 PORT=8026
 JSON_BODY_LIMIT=5mb
 ACCESS_CODE_HASH='<bcrypt hash kode akses>'
+PASSKEY_AUTH_URL=https://itsazmi.com/mynotes
+PASSKEY_APP_URLS=https://itsazmi.com/mynotes,https://mdpreview.azmirf.my.id,https://mdpreview.azmirf.my.id/mynotes,http://localhost:8027,http://localhost:8027/mynotes
 SESSION_SECRET='<secret acak yang tetap>'
 DB_HOST=<host PostgreSQL>
 DB_PORT=5432
@@ -119,6 +121,29 @@ Aplikasi menolak startup bila DB belum diimpor atau tidak tersedia. Kegagalan mi
 - Restore sampah tidak menimpa path aktif yang sama. Pulihkan folder induk terlebih dahulu jika diperlukan.
 - Hapus permanen menghapus isi, draft, dan riwayat item tersebut.
 
+## Autentikasi passkey
+
+### Pendaftaran dan pengelolaan passkey
+
+1. Buka `https://itsazmi.com/mynotes/`. Sebelum ada passkey, kode akses lama hanya memberi izin pendaftaran pertama selama 5 menit; kode tersebut tidak membuka workspace.
+2. Isi kode, beri nama perangkat, lalu daftarkan passkey melalui biometrik, PIN perangkat, password manager atau security key. Setelah berhasil, kode akses tidak lagi bisa dipakai untuk masuk atau mendaftarkan perangkat.
+3. Login berikutnya memakai tombol **Masuk dengan passkey**. Untuk domain lama/lokal, izinkan popup pusat login, periksa alamat tujuan yang ditampilkan, lalu verifikasi passkey. Halaman asal tetap terbuka sehingga draft/editor tidak hilang.
+4. Buka **Pengelolaan → Keamanan** untuk menambah passkey cadangan, mengganti nama atau mencabut perangkat. Penambahan dilakukan pada pusat login. Perubahan keamanan membutuhkan verifikasi passkey dalam 5 menit terakhir; gunakan **Verifikasi ulang** jika diminta. Passkey terakhir tidak dapat dicabut. Pencabutan mengakhiri sesi yang menggunakan passkey tersebut pada request berikutnya.
+
+Data kredensial publik disimpan di `mdpreview.passkeys`; private key tetap berada pada authenticator/password manager. Challenge dan handoff sementara memakai `auth_challenges`/`auth_bridges`, terikat ke session serta alamat aplikasi, dibatasi masa berlaku dan dikonsumsi sekali. Popup mengirim rahasia penyelesaian baru ke jendela asal melalui `postMessage`; penerima memeriksa origin, jendela pengirim dan token permintaan. Token tautan saja tidak dapat diklaim untuk login. Server memeriksa signature, RP ID, origin dan user verification. Endpoint login kode lama mengembalikan 410; session lama perlu masuk lagi dengan passkey.
+
+**Jika semua perangkat hilang**, dari root project pada terminal homeserver jalankan:
+
+```sh
+npm run auth:recover
+```
+
+Buka URL privat yang dicetak untuk menambahkan passkey pengganti. Token berlaku 15 menit, hanya bisa digunakan sekali, dan penerbitan token baru membatalkan token lama. Jangan bagikan atau commit URL itu. Pemulihan tidak menghapus passkey lama maupun dokumen; setelah masuk, cabut perangkat yang hilang dari halaman Keamanan.
+
+`PASSKEY_AUTH_URL` dan daftar `PASSKEY_APP_URLS` harus sama di server/lokal yang berbagi DB. Daftar menggunakan **URL aplikasi lengkap termasuk prefix dan port**, tanpa trailing slash; origin lain tidak dapat membuat/menukar handoff. Lokal default `http://localhost:8027`; HTTPS wajib untuk alamat lain. Untuk lingkungan dev terpisah, gunakan database terpisah dan pusat login `http://localhost:<port>`. Mengganti hostname RP setelah mendaftarkan passkey memerlukan pendaftaran baru. Login dari domain lama/lokal membutuhkan pusat login online.
+
+Library browser disajikan dari npm lokal pada `/static/passkeys/<version>/`; tidak bergantung CDN atau Related Origin Requests. Cookie session otomatis memakai Secure pada HTTPS; `NODE_ENV=production` mewajibkan Secure untuk seluruh request.
+
 ## Deploy dengan PM2
 
 Pasang dependencies, isi `.env`, dan lakukan import pertama sebelum mengaktifkan versi baru:
@@ -184,7 +209,7 @@ Backend tetap CommonJS; frontend memakai ES Modules native tanpa build step. `ma
 
 ## Kendala umum
 
-Pemeriksaan regresi terisolasi tersedia di `node tests/check-sharing.cjs`. Script membuat database sementara dengan nama acak, memeriksa storage/konflik/privacy/prefix melalui aplikasi terpisah, lalu menghapus database sementara itu. Role memerlukan `CREATEDB`; script tidak memakai dokumen workspace aktif. Pemeriksaan dialog tersedia di `node tests/check-delete-dialog.cjs` dan `node tests/check-upload-dialog.cjs`; keduanya memakai modul frontend dengan mock DOM. Jalankan hanya ketika ingin melakukan pemeriksaan.
+Pemeriksaan regresi terisolasi tersedia di `node tests/check-sharing.cjs`. Script membuat database sementara dengan nama acak, memeriksa storage/konflik/privacy/prefix dan konsumsi challenge/handoff melalui aplikasi terpisah, lalu menghapus database sementara itu. Role memerlukan `CREATEDB`; script tidak memakai dokumen workspace aktif. Pemeriksaan konfigurasi passkey tersedia di `node tests/check-passkey.cjs`. Pemeriksaan dialog tersedia di `node tests/check-delete-dialog.cjs` dan `node tests/check-upload-dialog.cjs`; keduanya memakai modul frontend dengan mock DOM. Script tidak menggantikan verifikasi passkey memakai perangkat nyata. Jalankan hanya ketika ingin melakukan pemeriksaan.
 
 - **Koneksi DB gagal:** cek Tailscale, host/port, credentials, serta hak role PostgreSQL.
 - **Workspace belum diimpor:** jalankan import satu kali dari snapshot server yang lengkap.

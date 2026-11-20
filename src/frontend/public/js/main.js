@@ -22,6 +22,7 @@ import { createFeature as createManagementPages } from "./features/management/pa
 import { createFeature as createTrash } from "./features/management/trash.js";
 import { createFeature as createTemplates } from "./features/management/templates.js";
 import { createFeature as createHistory } from "./features/management/history.js";
+import { createFeature as createPasskeys } from "./features/management/passkeys.js";
 
 const state = createState(
   JSON.parse(document.getElementById("bootstrap").textContent),
@@ -50,6 +51,7 @@ Object.assign(actions, createManagementPages(context));
 Object.assign(actions, createTrash(context));
 Object.assign(actions, createTemplates(context));
 Object.assign(actions, createHistory(context));
+Object.assign(actions, createPasskeys(context));
 bindActions(context);
 actions.bindUpload();
 actions.bindNavigation();
@@ -118,3 +120,5 @@ if (state.boot.mode === "workspace") {
   actions.decorateHeadings(document.querySelector(".public-document .prose"));
   actions.scrollToHash();
 }
+if (state.boot.mode === "workspace" || state.boot.mode === "login")
+  actions.initializeAuth();

@@ -26,6 +26,13 @@ app.locals.assetVersion = hashAssets(paths.public, createHash("sha256"))
   .digest("hex")
   .slice(0, 12);
 app.locals.editorVersion = require("vditor/package.json").version;
+const passkeyBrowserRoot = path.resolve(
+  path.dirname(require.resolve("@simplewebauthn/browser")),
+  "..",
+);
+app.locals.passkeyBrowserVersion = JSON.parse(
+  fs.readFileSync(path.join(passkeyBrowserRoot, "package.json"), "utf8"),
+).version;
 const routes = express.Router();
 app.use("/mynotes", routes);
 app.use(routes);
@@ -51,8 +58,16 @@ routes.use(
   express.static(paths.public, { maxAge: "1y", immutable: true }),
 );
 routes.use("/static", express.static(paths.public));
+routes.use(
+  "/static/passkeys/" + app.locals.passkeyBrowserVersion,
+  express.static(path.join(passkeyBrowserRoot, "esm"), {
+    maxAge: "1y",
+    immutable: true,
+  }),
+);
 routes.use(express.json({ limit: env.jsonBodyLimit }));
 routes.use(require("./middleware/session"));
+routes.use(require("./modules/auth/store").normalizeSession);
 routes.use("/api", require("./middleware/origin"));
 routes.use(require("./modules/auth/routes"));
 const api = express.Router();

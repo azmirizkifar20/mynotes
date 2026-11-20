@@ -42,7 +42,15 @@ export function createState(boot) {
       ),
     ),
     toastTimer: null,
-    loginFields: `<label class="field-label" for="access-code">Kode akses</label><input class="text-input" id="access-code" name="code" type="password" required autocomplete="current-password" placeholder="Masukkan kode akses"><p class="form-error" role="alert"></p><button class="small-button primary" type="submit">Buka workspace</button>`,
+    loginFields: '<p role="status">Memuat metode masuk…</p>',
+    authStatus: null,
+    authBusy: false,
+    authCancel: null,
+    authPopup: null,
+    authFragmentsRead: false,
+    authBridgeToken: null,
+    authRecoveryToken: null,
+    passkeySetupReady: false,
     draftState: null,
     draftTimer: null,
     draftRequest: null,
@@ -52,6 +60,12 @@ export function createState(boot) {
     availableTemplates: [],
     selectedVersion: null,
     managementPages: {
+      passkeys: {
+        title: "Keamanan",
+        icon: "lock",
+        description:
+          "Kelola passkey untuk masuk ke workspace dari kedua alamat.",
+      },
       trash: {
         title: "Sampah",
         icon: "trash",

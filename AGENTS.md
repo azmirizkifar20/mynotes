@@ -62,6 +62,8 @@ Read these before changing behavior or answering implementation questions:
 - Do not serve hidden files (dotfiles).
 - Sanitize rendered HTML output.
 - Keep auth session-backed and rate-limited.
+- Passkey login is centralized at itsazmi.com/mynotes (RP ID itsazmi.com); legacy/local apps use session-bound single-use bridges through the shared PostgreSQL DB. Only configured app URLs may exchange a handoff.
+- Code access grants first-passkey registration only, never workspace access. Once a passkey exists, use passkeys or the expiring CLI recovery grant. Credential changes require recent verification; do not remove the last credential.
 
 ## Deployment
 - Server dikelola dengan PM2, nama proses: `md-previewer`

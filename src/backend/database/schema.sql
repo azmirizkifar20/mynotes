@@ -53,3 +53,35 @@ CREATE TABLE IF NOT EXISTS mdpreview.sessions (
   expire timestamp(6) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS sessions_expire ON mdpreview.sessions(expire);
+
+CREATE TABLE IF NOT EXISTS mdpreview.passkeys (
+  id text PRIMARY KEY,
+  rp_id text NOT NULL,
+  public_key bytea NOT NULL,
+  counter bigint NOT NULL DEFAULT 0,
+  name text NOT NULL CHECK(length(name) BETWEEN 1 AND 80),
+  transports text[] NOT NULL DEFAULT '{}',
+  device_type text NOT NULL,
+  backed_up boolean NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz
+);
+CREATE TABLE IF NOT EXISTS mdpreview.auth_challenges (
+  id uuid PRIMARY KEY,
+  challenge text NOT NULL,
+  purpose text NOT NULL CHECK(purpose IN ('registration','authentication')),
+  session_hash text NOT NULL,
+  app_url text NOT NULL,
+  metadata jsonb NOT NULL DEFAULT '{}',
+  expires_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS auth_challenges_expiry ON mdpreview.auth_challenges(expires_at);
+CREATE TABLE IF NOT EXISTS mdpreview.auth_bridges (
+  token_hash text PRIMARY KEY,
+  session_hash text NOT NULL,
+  app_url text NOT NULL,
+  passkey_id text REFERENCES mdpreview.passkeys(id) ON DELETE CASCADE,
+  expires_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS auth_bridges_expiry ON mdpreview.auth_bridges(expires_at);
+ALTER TABLE mdpreview.auth_bridges ADD COLUMN IF NOT EXISTS completion_hash text;
