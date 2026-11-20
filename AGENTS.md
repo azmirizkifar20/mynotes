@@ -1,7 +1,7 @@
 # AGENTS.md — MD Previewer
 
 ## Project Overview
-MD Previewer is a Node.js + Express markdown browser/editor. It serves content from `docs/`, renders `.md` files to HTML, and uses session-backed auth for folder browsing and editing.
+MD Previewer is a Node.js + Express markdown browser/editor. PostgreSQL owns document bytes, access metadata, versions, drafts, preferences and sessions. `docs/` is a materialized mirror shared through the same DB by local and homeserver deployments. Read README.md for current setup and migration details.
 
 ## Steering Files
 Read these before changing behavior or answering implementation questions:
@@ -33,9 +33,9 @@ Read these before changing behavior or answering implementation questions:
 ```
 
 ## Conventions
-- All markdown content lives under `docs/`.
+- All document content is stored in PostgreSQL and mirrored under `docs/`; direct mirror edits are overwritten. Never import local files automatically or serve docs as static files.
 - Directory browsing shows folders and `.md` files only.
-- URL paths map directly to filesystem paths under `docs/`.
+- URL paths map to active database entries and their mirrored paths under `docs/`.
 - `views/layout.ejs` is the shared shell for login gate, directory listing, markdown preview, and modals.
 - CSS is custom, responsive, and lightweight.
 - Dependencies stay minimal; there is no frontend build step.
@@ -45,6 +45,8 @@ Read these before changing behavior or answering implementation questions:
 - `npm install` — install dependencies
 - `npm start` — start the server
 - `npm run dev` — start with nodemon for development
+- `npm run db:setup` — check/create the configured PostgreSQL database
+- `npm run docs:sync` — materialize the database into this instance's docs mirror
 
 ## Security
 - Path traversal prevention: all paths must resolve within `docs/`.

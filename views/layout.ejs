@@ -53,6 +53,10 @@
       <button class="nav-item" onclick="openSearch()"><svg><use href="#i-search"/></svg><span>Cari catatan</span><kbd>Ctrl K</kbd></button>
       <button class="nav-item active" data-nav="home" onclick="navigate('home')"><svg><use href="#i-home"/></svg><span>Ruang kerja</span></button>
       <button class="nav-item" data-nav="recent" onclick="navigate('recent')"><svg><use href="#i-clock"/></svg><span>Terakhir dibuka</span></button>
+      <button class="nav-item" onclick="openTrash()"><svg><use href="#i-trash"/></svg><span>Sampah</span></button>
+      <button class="nav-item" onclick="openTemplates()"><svg><use href="#i-doc"/></svg><span>Template</span></button>
+      <button class="nav-item" onclick="openActivity()"><svg><use href="#i-clock"/></svg><span>Aktivitas</span></button>
+      <button class="nav-item" id="import-preferences" onclick="importBrowserPreferences()" hidden><svg><use href="#i-upload"/></svg><span>Impor favorit browser</span></button>
       <div class="nav-section"><div class="section-label">Favorit</div><div id="favorites"></div></div>
       <nav class="nav-section" aria-label="Folder dokumen">
         <div class="section-label">Workspace <span>docs /</span></div>
@@ -71,8 +75,8 @@
       <div class="page-layout"><main id="main" tabindex="-1"></main><aside class="outline" aria-label="Daftar isi" id="outline"></aside></div>
     </div>
   </div>
-  <dialog id="search-dialog" aria-label="Cari catatan"><div class="search-line"><svg><use href="#i-search"/></svg><input id="search-input" placeholder="Cari judul catatan atau folder…" aria-label="Cari judul catatan atau folder" autocomplete="off"><button class="icon-button" onclick="document.getElementById('search-dialog').close()" aria-label="Tutup pencarian"><svg><use href="#i-close"/></svg></button></div><div class="search-results" id="search-results"></div><div class="search-foot">Cari di seluruh workspace. Escape untuk menutup.</div></dialog>
-  <dialog id="create-dialog" aria-labelledby="create-title"><form id="create-form"><div class="dialog-head"><h2 id="create-title">Halaman baru</h2><button type="button" class="icon-button" onclick="document.getElementById('create-dialog').close()" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></div><div class="dialog-body"><label class="field-label" for="new-name" id="name-label">Judul halaman</label><input class="text-input" id="new-name" required maxlength="100" autocomplete="off"><p class="edit-hint">Tersimpan di folder yang sedang dibuka.</p></div><div class="dialog-foot"><button type="button" class="small-button" onclick="document.getElementById('create-dialog').close()">Batal</button><button class="small-button primary" type="submit">Buat</button></div></form></dialog>
+  <dialog id="search-dialog" aria-label="Cari catatan"><div class="search-line"><svg><use href="#i-search"/></svg><input id="search-input" placeholder="Cari judul, path, atau isi dokumen…" aria-label="Cari judul, path, atau isi dokumen" autocomplete="off"><button class="icon-button" onclick="document.getElementById('search-dialog').close()" aria-label="Tutup pencarian"><svg><use href="#i-close"/></svg></button></div><div class="search-results" id="search-results"></div><div class="search-foot">Cari di seluruh workspace. Escape untuk menutup.</div></dialog>
+  <dialog id="create-dialog" aria-labelledby="create-title"><form id="create-form"><div class="dialog-head"><h2 id="create-title">Halaman baru</h2><button type="button" class="icon-button" onclick="document.getElementById('create-dialog').close()" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></div><div class="dialog-body"><label class="field-label" for="new-name" id="name-label">Judul halaman</label><input class="text-input" id="new-name" required maxlength="100" autocomplete="off"><div id="template-field"><label class="field-label" for="new-template">Template</label><select id="new-template" class="text-input"><option value="">Halaman kosong</option></select></div><p class="edit-hint">Tersimpan di folder yang sedang dibuka.</p></div><div class="dialog-foot"><button type="button" class="small-button" onclick="document.getElementById('create-dialog').close()">Batal</button><button class="small-button primary" type="submit">Buat</button></div></form></dialog>
   <dialog id="share-dialog" aria-labelledby="share-title" aria-describedby="share-caveat">
     <div class="dialog-head"><h2 id="share-title">Bagikan file</h2><button class="icon-button" onclick="document.getElementById('share-dialog').close()" aria-label="Tutup pengaturan berbagi"><svg><use href="#i-close"/></svg></button></div>
     <div class="dialog-body">
@@ -89,7 +93,7 @@
     <form onsubmit="renameItem(event)">
       <div class="dialog-head"><h2 id="manage-title">Kelola halaman</h2><button type="button" class="icon-button" onclick="document.getElementById('manage-dialog').close()" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></div>
       <div class="dialog-body"><label class="field-label" for="rename-name">Nama</label><input class="text-input" id="rename-name" required maxlength="100" autocomplete="off"><p class="edit-hint">Link berbagi dan pengaturan akses tetap tersimpan saat nama berubah.</p></div>
-      <div class="dialog-foot"><button type="button" class="small-button danger" id="delete-item" onclick="deleteItem()">Hapus</button><button type="button" class="small-button" onclick="document.getElementById('manage-dialog').close()">Batal</button><button type="submit" class="small-button primary">Simpan nama</button></div>
+      <div class="dialog-foot"><button type="button" class="small-button danger" id="delete-item" onclick="deleteItem()">Hapus</button><button type="button" class="small-button" onclick="openMove()">Pindahkan</button><button type="button" class="small-button" onclick="document.getElementById('manage-dialog').close()">Batal</button><button type="submit" class="small-button primary">Simpan nama</button></div>
     </form>
   </dialog>
   <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-description delete-draft" oncancel="if(saving) event.preventDefault()" onclose="deletion = null">
@@ -99,7 +103,7 @@
         <p id="delete-description">Item ini akan dihapus permanen.</p>
         <div class="delete-target"><svg aria-hidden="true"><use href="#i-trash"/></svg><div><strong id="delete-filename"></strong><small id="delete-path"></small></div></div>
         <p class="delete-warning" id="delete-draft" hidden>Perubahan yang belum disimpan di editor juga akan dibuang.</p>
-        <p class="delete-warning">Tindakan ini tidak dapat dibatalkan.</p>
+        <p class="delete-warning">Item dapat dipulihkan melalui menu Sampah.</p>
         <p class="delete-error" id="delete-error" role="alert"></p>
       </div>
       <div class="dialog-foot"><button type="button" class="small-button" id="cancel-delete" onclick="closeDeleteDialog()" autofocus>Batal</button><button type="submit" class="small-button destructive" id="confirm-delete">Hapus file</button></div>
@@ -127,8 +131,10 @@
     </form>
   </dialog>
   <input id="upload-input" type="file" accept=".md,.markdown,text/markdown,text/plain" hidden>
+  <dialog id="tool-dialog" aria-labelledby="tool-title" oncancel="if(toolBusy) event.preventDefault()"><div class="dialog-head"><h2 id="tool-title"></h2><button type="button" class="icon-button" onclick="if(!toolBusy) document.getElementById('tool-dialog').close()" aria-label="Tutup dialog"><svg><use href="#i-close"/></svg></button></div><div class="dialog-body" id="tool-body"></div><p class="delete-error tool-error" id="tool-error" role="alert"></p></dialog>
   <div class="toast" id="toast" role="status" hidden></div>
   <script id="bootstrap" type="application/json"><%- bootstrap %></script>
+  <script src="<%= basePath %>/static/workspace-tools.js" defer></script>
   <script src="<%= basePath %>/static/app.js" defer></script>
   <noscript><p class="empty">Aktifkan JavaScript untuk membuka MD Previewer.</p></noscript>
 </body>

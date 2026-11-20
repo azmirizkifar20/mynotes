@@ -1,208 +1,181 @@
 # MD Previewer
 
-Workspace untuk membaca, menulis, dan mengelola dokumen Markdown dengan tampilan bergaya Notion. Dokumen disimpan sebagai file di folder `docs/`, tanpa database.
+Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak ada build frontend. Tampilan memakai Inter, tema terang/sistem, dan dark mode Graphite.
 
 ## Fitur
 
-- Navigasi folder, pencarian nama file, favorit, dan riwayat dokumen.
-- Breadcrumb mengikuti path lengkap; klik nama folder untuk menuju folder tersebut.
-- Editor Markdown dan pratinjau dengan syntax highlighting.
-- Membuat, mengubah nama, menghapus, mengimpor, dan mengunduh dokumen.
-- Drag and drop satu file `.md` (maksimal 5 MB), lalu tinjau nama dan isi sebelum konfirmasi upload ke folder aktif.
-- Tema Sistem, Terang, dan Gelap dengan palet Graphite untuk mode gelap.
-- Font antarmuka Inter dimuat dari server sendiri; editor dan blok kode memakai monospace.
-- Pengaturan file Publik/Privat dan link berbagi publik dari daftar maupun detail file.
-- Login menggunakan satu kode akses bersama untuk mengelola seluruh workspace.
+- Navigasi folder dan breadcrumb, favorit, serta 50 dokumen terakhir dibuka.
+- Editor Markdown, syntax highlighting, daftar isi, dan link ke heading.
+- Pencarian judul, path, dan isi dokumen dengan PostgreSQL full-text search.
+- Buat folder/dokumen, rename, pindahkan, unduh, dan upload Markdown dengan konfirmasi nama/isi.
+- Akses publik/privat, URL path asli, serta kompatibilitas link lama `/share/:id`.
+- Sampah dengan pemulihan dan hapus permanen, riwayat versi dengan preview/pemulihan.
+- Autosave draft privat dengan deteksi konflik antarperangkat dan dialog pemulihan.
+- Template dokumen yang bisa dibuat, diedit, dan digunakan kembali.
+- Aktivitas workspace dan session login tersimpan di PostgreSQL.
 
-Link dari menu **Bagikan** menggunakan path asli dokumen, misalnya `https://domain-anda/catatan/proyek.md`. Domain dan port mengikuti alamat web yang sedang dibuka. Spasi dan karakter khusus di-encode agar URL tetap valid. File privat meminta login; pengunjung tanpa akses tidak mendapatkan isi dokumen. Jika file atau folder dipindah/diubah namanya, bagikan ulang URL path yang baru. Link `/share/:id` yang pernah dibagikan tetap didukung dan mengikuti status Publik/Privat file.
+Login memakai satu kode akses bersama. Favorit, riwayat bacaan, tema, template, dan draft menjadi milik **workspace bersama**, belum per akun. Favorit/riwayat browser lama dapat diimpor sekali lewat sidebar setelah login. Pengunjung publik hanya mendapat dokumen yang dibuka; tema pengunjung disimpan pada browsernya.
 
 ## Persyaratan
 
-- Node.js dan npm terpasang.
-- Git jika mengambil project melalui clone.
-- Hak baca/tulis pada direktori project untuk menyimpan dokumen, metadata, upload sementara, dan log.
+- Node.js 20 atau lebih baru dan npm.
+- PostgreSQL 14 atau lebih baru yang dapat dijangkau aplikasi.
+- Hak membuat schema/tabel pada database. Hak `CREATEDB` diperlukan jika database belum dibuat.
+- Hak tulis pada `docs/`, `.data/`, dan `uploads/`.
+- Tailscale aktif jika host DB menggunakan alamat jaringan Tailscale.
 
-Backend menggunakan Express dan EJS. Frontend menggunakan JavaScript dan CSS biasa; tidak ada langkah build frontend.
-
-Font [Inter](https://github.com/google/fonts/tree/main/ofl/inter) disertakan di `public/fonts/` dengan lisensi SIL Open Font License pada `OFL-Inter.txt`. File font disajikan melalui `/static/fonts/`, sehingga browser tidak perlu menghubungi layanan font eksternal.
-
-Saat file diseret ke workspace, area drop menampilkan folder tujuan. Setelah drop, dialog menampilkan nama file yang bisa diubah dan isi Markdown asli yang hanya bisa dibaca. Klik **Upload** untuk mengirimnya; **Batal** tidak mengirim file. Saat membuka dokumen, folder tujuan adalah folder induknya; pada halaman Terakhir dibuka, tujuannya root `docs/`. Menu **Import Markdown** memakai dialog yang sama dan tetap menerima `.markdown` (dikonversi menjadi `.md`). File baru dimulai sebagai privat dan nama duplikat ditolak. Setelah berhasil, folder tujuan ditampilkan. Jika editor memiliki perubahan belum disimpan, dialog memperingatkan sebelum upload agar pengguna bisa membatalkan dan menyimpannya terlebih dahulu.
+Font Inter disertakan di `public/fonts/` dengan lisensi pada `OFL-Inter.txt`.
 
 ## Instalasi
 
-### 1. Masuk ke direktori project
-
-Jika belum memiliki source code:
-
 ```sh
-git clone <URL_REPOSITORY> md-previewer
+git clone <url-repository> md-previewer
 cd md-previewer
+npm ci
+cp .env.example .env
 ```
 
-Jika source code sudah ada, buka terminal di root project, tempat `package.json` berada.
-
-### 2. Install dependency
-
-```sh
-npm install
-```
-
-### 3. Buat konfigurasi `.env`
-
-Buat file bernama `.env` di root project:
+Di PowerShell, gunakan `Copy-Item .env.example .env`. Isi `.env`:
 
 ```dotenv
 PORT=8026
-NODE_ENV=development
-ACCESS_CODE_HASH='TEMPEL_HASH_BCRYPT_DI_SINI'
-SESSION_SECRET='TEMPEL_SECRET_ACAK_DI_SINI'
 JSON_BODY_LIMIT=5mb
+ACCESS_CODE_HASH='<bcrypt hash kode akses>'
+SESSION_SECRET='<secret acak yang tetap>'
+DB_HOST=<host PostgreSQL>
+DB_PORT=5432
+DB_USER=<role PostgreSQL>
+DB_PASSWORD='<password>'
+DB_NAME=<nama database>
 ```
 
-Generate hash kode akses dengan perintah berikut. Ganti `ganti-dengan-kode-akses-anda` dengan kode yang ingin digunakan untuk login:
+Buat hash kode akses dan secret:
 
 ```sh
-node -e "console.log(require('bcrypt').hashSync(process.argv[1], 12))" "ganti-dengan-kode-akses-anda"
+node -e "require('bcrypt').hash('ganti-kode-akses',12).then(console.log)"
+node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
+npm run db:setup
 ```
 
-Salin hasilnya ke `ACCESS_CODE_HASH`, tetap di dalam tanda kutip tunggal. Yang dimasukkan saat login adalah kode akses asli, bukan hash.
+Perintah setup mengecek koneksi dan hak schema/tabel, serta membuat database bila belum tersedia. Tidak mengimpor dokumen. Jangan masukkan `.env`, `.data/`, atau isi `docs/` ke Git.
 
-Generate secret sesi:
+### Migrasi pertama dari server
+
+Hentikan aplikasi lama agar snapshot konsisten. Backup seluruh aplikasi dan metadata akses sebelum migrasi. Siapkan snapshot privat berisi:
+
+```text
+snapshot/
+  docs/              # seluruh dokumen/aset server
+  file-access.json   # salinan .data/file-access.json server
+```
+
+Metadata wajib tersedia agar pengaturan privat dan share ID lama tetap utuh. Bila aplikasi sumber memang belum pernah memiliki metadata akses, buat `{}` secara eksplisit setelah memastikan keadaan itu. Dokumen tanpa record akses mengikuti perilaku lama: publik. Dokumen baru dari aplikasi dimulai privat.
 
 ```sh
-node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+node scripts/import-server-docs.js --server-snapshot /lokasi/snapshot
 ```
 
-Salin hasilnya ke `SESSION_SECRET`. Gunakan secret sendiri; jangan memakai nilai fallback dari source code. File `.env` diabaikan oleh Git.
+Import berjalan dalam satu transaksi dan menolak database yang sudah berisi workspace. Symlink, path berbahaya, perbedaan kapitalisasi yang bertabrakan, serta Markdown non-UTF-8/NUL ditolak. Untuk lokal dan homeserver yang memakai DB sama, import **sekali dari snapshot homeserver**. Lokal tidak mengimpor dokumennya sendiri.
 
-| Variabel | Fungsi |
-| --- | --- |
-| `PORT` | Port aplikasi; default `8026`. |
-| `NODE_ENV` | Gunakan `development` untuk HTTP lokal dan `production` untuk deployment HTTPS. |
-| `ACCESS_CODE_HASH` | Hash bcrypt dari kode akses workspace; wajib diisi agar login dapat digunakan. |
-| `SESSION_SECRET` | Secret untuk menandatangani cookie sesi. |
-| `JSON_BODY_LIMIT` | Batas body JSON, termasuk request simpan dokumen; default `5mb`. Tidak mengubah batas import file. |
-
-### 4. Siapkan dokumen
-
-Folder `docs/` harus tersedia sebelum aplikasi dijalankan. Repository menyertakan `docs/.gitkeep` agar folder tersebut tetap ada pada clone baru.
-
-Tambahkan file `.md` beserta subfoldernya ke `docs/`, atau buat dokumen melalui aplikasi setelah login. Pada instalasi baru, workspace dapat dimulai dalam keadaan kosong.
-
-Folder internal `docs/steering/` dan `docs/superpowers/` beserta isinya dikecualikan dari listing workspace, sidebar, dan pencarian. Pengecualian listing tidak mengubah status Publik/Privat atau akses melalui URL langsung.
-
-**File yang ditambahkan langsung ke `docs/` default-nya publik jika belum memiliki pengaturan akses.** Dokumen yang dibuat atau diimpor melalui aplikasi mulai sebagai privat. Gunakan menu **Bagikan** untuk mengubahnya.
-
-## Menjalankan web
-
-Jalankan dari root project:
+## Menjalankan
 
 ```sh
 npm start
 ```
 
-Buka **http://localhost:8026**, lalu masukkan kode akses yang digunakan saat membuat hash. Sesuaikan URL jika `PORT` diubah. Tekan `Ctrl+C` di terminal untuk menghentikan server.
-
-Untuk pengembangan dengan restart otomatis saat source berubah:
+Buka `http://localhost:8026`. Untuk pengembangan:
 
 ```sh
 npm run dev
 ```
 
-Jalankan salah satu mode tersebut. Jika port `8026` sudah dipakai proses PM2 atau server lain, hentikan proses tersebut atau gunakan port berbeda di `.env`.
+Nodemon mengabaikan `docs/`, `.data/`, dan `uploads/` agar sinkronisasi tidak memicu restart berulang. Setelah database sudah diimpor, salinan aplikasi lain cukup memakai lima credentials DB yang sama dan menjalankan aplikasi.
 
-## Menjalankan di server dengan PM2
+## Penyimpanan dan sinkronisasi
 
-Selesaikan instalasi dan konfigurasi `.env` terlebih dahulu. Untuk deployment HTTPS, ubah `NODE_ENV=production`, lalu jalankan dari root project:
+**PostgreSQL adalah sumber utama isi dokumen dan metadata.** `docs/` merupakan salinan untuk akses filesystem lokal, diperbarui saat startup, setelah perubahan lokal, dan setiap sekitar 5 detik. Browser yang sedang membaca memuat perubahan perangkat lain setiap sekitar 15 detik; editor aktif tidak ditimpa otomatis.
+
+Backup isi `docs/` lokal sebelum mengaktifkan migrasi. File lokal yang belum terdaftar tidak otomatis diimpor. Edit langsung pada file mirror yang terdaftar akan ditimpa oleh DB; lakukan perubahan lewat aplikasi. Untuk sinkronisasi manual:
 
 ```sh
-npm install -g pm2
+npm run docs:sync
+```
+
+Aplikasi menolak startup bila DB belum diimpor atau tidak tersedia. Kegagalan mirror dicatat dan dicoba lagi; perubahan yang sudah tersimpan di DB tetap aman. Jangan sajikan `docs/` langsung lewat nginx karena akan melewati pemeriksaan akses.
+
+`docs/steering` dan `docs/superpowers` disembunyikan dari listing/pencarian/favorit. Akses URL langsung tetap mengikuti status publik/privat dokumen. Hidden files tidak disajikan.
+
+## Berbagi, konflik, dan pemulihan
+
+- Menu Bagikan menghasilkan path asli, misalnya `/proyek/catatan.md`. URL mengikuti domain/prefix yang dibuka.
+- File privat meminta login. File di sampah tidak dapat dibuka melalui URL publik atau share ID lama.
+- Move/rename mempertahankan ID, favorit, akses, dan riwayat. URL path berubah; link `/share/:id` tetap berlaku selama file publik.
+- Simpan memerlukan revisi dan token draft yang cocok. Konflik mempertahankan tulisan di editor; salin/unduh sebelum memuat ulang.
+- Draft bukan versi publik. Saat pemulihan draft belum diselesaikan, editor meminta pemulihan atau pembuangan secara eksplisit. Draft dari revisi lama dapat disalin/diunduh untuk digabungkan.
+- Pemulihan riwayat membuat revisi baru. Selesaikan draft yang masih tersimpan sebelum memulihkan versi.
+- Dialog riwayat menampilkan 100 versi terbaru; versi lebih lama tetap disimpan di DB.
+- Restore sampah tidak menimpa path aktif yang sama. Pulihkan folder induk terlebih dahulu jika diperlukan.
+- Hapus permanen menghapus isi, draft, dan riwayat item tersebut.
+
+## Deploy dengan PM2
+
+Pasang dependencies, isi `.env`, dan lakukan import pertama sebelum mengaktifkan versi baru:
+
+```sh
+npm ci --omit=dev
 pm2 start server.js --name md-previewer
 pm2 save
 ```
 
-Perintah pengelolaan:
+Untuk deployment berikutnya:
 
 ```sh
-pm2 status
-pm2 logs md-previewer
+npm ci --omit=dev
 pm2 restart md-previewer
-pm2 stop md-previewer
+pm2 save
 ```
 
-Jika proses `md-previewer` sudah ada, gunakan `pm2 restart md-previewer`. Untuk menjalankan PM2 kembali setelah reboot pada server Linux, jalankan `pm2 startup`, ikuti perintah yang ditampilkan, lalu jalankan `pm2 save`.
+Gunakan `NODE_ENV=production` di balik HTTPS proxy. Pertahankan `SESSION_SECRET` agar session PostgreSQL tetap dapat dipakai setelah restart. Session berlaku 30 menit; domain/prefix berbeda memiliki cookie login masing-masing.
 
-### Reverse proxy dan HTTPS
+## Nginx dan Cloudflare Tunnel
 
-Contoh konfigurasi tersedia di [`nginx/mdpreview.conf`](nginx/mdpreview.conf). Sesuaikan domain, lokasi sertifikat TLS, dan port upstream sebelum mengaktifkannya. Teruskan header `Host` dan `X-Forwarded-Proto` seperti pada contoh.
+Contoh konfigurasi: `nginx/mdpreview.conf`. Node memakai 8026, nginx origin memakai `127.0.0.1:8027`. Domain lama `mdpreview.azmirf.my.id` tetap melayani root. Domain `itsazmi.com` melayani `/mynotes/` tanpa menghapus prefix; `/mynotes` diarahkan ke slash.
 
-Pada mode `production`, cookie sesi hanya dikirim melalui HTTPS. Mengakses server langsung melalui HTTP pada mode ini akan membuat sesi login tidak bertahan.
-
-Untuk mendukung import hingga 5 MB melalui nginx, tambahkan konfigurasi berikut di blok `server`:
-
-```nginx
-client_max_body_size 6m;
-```
-
-Nilainya memberi ruang untuk overhead multipart. Jika `JSON_BODY_LIMIT` dinaikkan, sesuaikan juga batas nginx. Batas file import di aplikasi tetap 5 MB.
-
-## Cloudflare Tunnel dan URL /mynotes
-
-Aplikasi mendukung `https://mdpreview.azmirf.my.id/` dan `https://itsazmi.com/mynotes/` sekaligus. Keduanya memakai dokumen dan pengaturan akses yang sama. Link berbagi mengikuti domain dan prefix halaman yang sedang dibuka. Sesi login serta preferensi browser terpisah antar domain.
-
-Konfigurasi `nginx/mdpreview.conf` memakai listener lokal `127.0.0.1:8027`, meneruskan request ke Node pada port `8026`, mempertahankan prefix `/mynotes`, meneruskan protokol HTTPS dari Tunnel, dan menyediakan batas body 6 MB untuk upload file 5 MB. URL `/mynotes` diarahkan ke `/mynotes/`. Host `itsazmi.com` pada listener ini hanya melayani path aplikasi; situs utamanya tetap memakai service sebelumnya.
-
-Di Cloudflare Tunnel, tambahkan **Published application**:
+Cloudflare published application:
 
 | Input | Nilai |
 | --- | --- |
-| Subdomain | Kosong |
 | Domain | `itsazmi.com` |
+| Subdomain | kosong |
 | Path | `^/mynotes(/.*)?$` |
 | Service URL | `http://localhost:8027` |
-| HTTP Host Header | Kosong, agar hostname asli diteruskan |
 
-Letakkan rule ini **sebelum** rule `itsazmi.com` tanpa pembatasan path. Rule domain lama tetap ada. Path Tunnel hanya mencocokkan request; Tunnel tidak menghapus `/mynotes`. Tidak perlu URL Rewrite Rule atau mengganti DNS domain utama jika domain tersebut sudah mengarah ke tunnel yang sama.
+Letakkan rule ini sebelum rule `itsazmi.com` tanpa path. Samakan batas body nginx dengan kebutuhan upload/JSON aplikasi. Portfolio di port 8002 tidak perlu diubah.
 
-## Menghapus file
+## Backup
 
-Klik **Hapus** di baris file pada daftar workspace atau riwayat bacaan. Di detail dokumen, buka menu **Kelola** (ikon tiga titik), lalu pilih **Hapus**. Dialog aplikasi menampilkan nama/path file, peringatan, dan tombol **Batal**/**Hapus file**. Saat proses berjalan, tombol dinonaktifkan; kegagalan ditampilkan dalam dialog untuk dicoba ulang. Folder yang berisi dokumen meminta konfirmasi tambahan sebelum seluruh isinya dihapus. Setelah berhasil, file dihapus dari daftar, favorit, dan riwayat; link publiknya tidak lagi tersedia.
+Backup PostgreSQL dengan `pg_dump`, serta simpan `.env` secara privat. Backup `docs/` saja tidak mencakup akses privat, draft, sampah, riwayat, atau session. Database menyimpan semuanya, termasuk isi yang sudah dipindahkan ke sampah. Lindungi backup dengan hak akses terbatas. Jadwal dan retensi backup mengikuti pengelolaan server.
 
-Penghapusan bersifat permanen dan tidak memiliki fitur pemulihan. Gunakan backup jika dokumen perlu dikembalikan.
+## Struktur kode
 
-## Penyimpanan dan backup
-
-| Lokasi | Isi |
+| File | Fungsi |
 | --- | --- |
-| `docs/` | Dokumen Markdown dan asetnya. Git hanya melacak `.gitkeep`; isi dokumen tetap lokal. |
-| `.data/file-access.json` | Status Publik/Privat dan ID link berbagi. Dibuat saat pengaturan akses disimpan. |
-| `.env` | Konfigurasi dan secret lokal. |
-| `uploads/` | File upload sementara. |
-| `access.log`, `audit.log` | Log request dan aktivitas aplikasi. |
-
-**Backup dan pulihkan `docs/` bersama `.data/file-access.json` jika file metadata sudah ada.** Kehilangan metadata menghilangkan ID link berbagi dan membuat file tanpa pengaturan kembali dianggap publik. Simpan juga konfigurasi `.env` secara aman agar instalasi dapat dipulihkan.
-
-Favorit, riwayat dokumen, dan pilihan tema tersimpan di browser masing-masing. Sesi login tersimpan di memori server; restart proses mengharuskan pengguna login ulang. Kode akses memberikan hak kelola seluruh workspace; aplikasi belum memiliki akun dan izin per pengguna.
-
-## Struktur project
-
-```text
-docs/                      Dokumen lokal
-public/app.js              Interaksi workspace
-public/style.css           Styling dan tema
-views/layout.ejs           Tampilan workspace dan halaman publik
-server.js                  Server, API, autentikasi, dan rendering Markdown
-file-access.js             Penyimpanan pengaturan akses dan link berbagi
-nginx/mdpreview.conf       Contoh reverse proxy HTTPS
-scripts/check-sharing.cjs  Pemeriksaan terisolasi untuk fitur sharing
-mockup-notion.html         Mockup desain
-```
+| `server.js` | Auth/session, rendering, mount root dan prefix |
+| `workspace-routes.js` | API dan akses dokumen |
+| `database.js`, `db/schema.sql` | Transaksi dan penyimpanan workspace |
+| `document-path.js`, `document-sync.js` | Validasi path dan mirror filesystem |
+| `scripts/` | Setup DB, import server, sinkronisasi dan pemeriksaan terisolasi |
+| `views/layout.ejs` | Shell dan dialog |
+| `public/app.js`, `public/workspace-tools.js` | Navigasi dan fitur browser |
 
 ## Kendala umum
 
-- **Login gagal:** pastikan `ACCESS_CODE_HASH` berisi hash bcrypt yang valid dan masukkan kode aslinya. Restart aplikasi setelah mengubah `.env`.
-- **Login tidak bertahan di localhost:** gunakan `NODE_ENV=development` untuk HTTP lokal.
-- **`EADDRINUSE`:** port sedang digunakan. Periksa proses yang aktif atau ubah `PORT`.
-- **`ENOENT` untuk `docs`:** buat kembali folder `docs/` di root project sebelum menjalankan server.
-- **Upload atau simpan mendapat HTTP 413:** periksa batas ukuran di aplikasi dan reverse proxy. Import dibatasi 5 MB per file.
-- **Error metadata akses:** pulihkan `.data/file-access.json` dari backup yang sesuai; jangan menghapusnya untuk melewati error karena pengaturan privat dan ID link akan hilang.
+Pemeriksaan regresi terisolasi tersedia di `node scripts/check-sharing.cjs`. Script membuat database sementara dengan nama acak, memeriksa storage/konflik/privacy/prefix melalui aplikasi terpisah, lalu menghapus database sementara itu. Role memerlukan `CREATEDB`; script tidak memakai dokumen workspace aktif. Jalankan hanya ketika ingin melakukan pemeriksaan.
+
+- **Koneksi DB gagal:** cek Tailscale, host/port, credentials, serta hak role PostgreSQL.
+- **Workspace belum diimpor:** jalankan import satu kali dari snapshot server yang lengkap.
+- **Port sudah dipakai:** hentikan proses aplikasi sebelumnya sebelum menjalankan proses baru.
+- **Konflik dokumen/draft:** salin tulisan, muat versi terbaru, lalu gabungkan perubahan.
+- **Mirror tertinggal:** cek log dan izin filesystem, lalu jalankan `npm run docs:sync`.
+- **Login gagal setelah pindah domain:** login pada domain yang sedang dibuka.
+- **413:** sesuaikan `JSON_BODY_LIMIT` dan `client_max_body_size`; upload file dibatasi 5 MB.

@@ -6,7 +6,7 @@ const $ = id => document.getElementById(id);
     const appUrl = path => basePath + path;
     let pages = boot.pages || [];
     let current = 'home', filter = 'all', editing = false, createType = 'doc', sharingId = null;
-    let navigationSequence = 0, saving = false, manageId = null, activeUrl = location.pathname + location.search;
+    let navigationSequence = 0, navigationPending = 0, saving = false, manageId = null, activeUrl = location.pathname + location.search;
     let deletion = null;
     let pendingUpload = null, fileDragDepth = 0;
     function readPreference(key) { try { const value = JSON.parse(localStorage.getItem(key)); return Array.isArray(value) ? value.filter(id => typeof id === 'string') : []; } catch { return []; } }
@@ -16,7 +16,7 @@ const $ = id => document.getElementById(id);
     const dateLabel = value => value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : 'Workspace';
     function persistNavigation() { try { localStorage.setItem('md-previewer-recent', JSON.stringify(recent)); localStorage.setItem('md-previewer-favorites', JSON.stringify([...favorites])); } catch {} }
     function isDirty() { return editing && $('markdown-editor') && $('markdown-editor').value !== (pages.find(p => p.id === current)?.body || ''); }
-    function canLeave() { if(saving) { notify('Tunggu hingga proses selesai.'); return false; } return !isDirty() || confirm('Perubahan belum disimpan. Tinggalkan halaman dan buang perubahan?'); }
+    function canLeave() { if(saving || draftRequest) { notify('Tunggu hingga proses selesai.'); return false; } return !isDirty() || confirm('Tinggalkan editor? Hanya draft yang berhasil tersimpan yang dapat dipulihkan.'); }
     function setBusy(value) { if(value) navigationSequence++; saving = value; if($('markdown-editor')) $('markdown-editor').readOnly = value; }
     async function api(endpoint, body) {
       const options = body instanceof FormData ? { method: 'POST', body } : body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
@@ -24,11 +24,11 @@ const $ = id => document.getElementById(id);
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.success) {
         if (response.status === 401 && boot.mode === 'workspace' && !$('auth-dialog').open) $('auth-dialog').showModal();
-        const error = new Error(result.message || 'Request gagal. Coba lagi.'); error.status = response.status; error.requiresConfirm = result.requiresConfirm; throw error;
+        const error = new Error(result.message || 'Request gagal. Coba lagi.'); error.status = response.status; error.requiresConfirm = result.requiresConfirm; error.conflict = result.conflict; throw error;
       }
       return result;
     }
-    async function refreshWorkspace() { const data = await api('workspace'); pages = data.pages; renderTree(); }
+    async function refreshWorkspace() { const data = await api('workspace'); pages = data.pages; applyPreferences(data.preferences); renderTree(); }
     function renderTree() {
       function children(parent) {
         return pages.filter(p => p.parent === parent && p.type === 'folder').map(p => {
@@ -47,11 +47,12 @@ const $ = id => document.getElementById(id);
     }
     let toastTimer;
     function notify(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').hidden = true, 3300); }
-    function setTheme(preference) {
+    function setTheme(preference, persist = true) {
       if(!['system','light','dark'].includes(preference)) return;
       themePreference = preference; applyTheme(); $('theme-select').value = preference;
       if($('visitor-theme')) $('visitor-theme').value = preference;
       try { localStorage.setItem('md-previewer-theme', preference); } catch { notify('Tema diganti. Browser ini tidak mengizinkan penyimpanan preferensi.'); }
+      if(persist && boot.mode === 'workspace') savePreference({ action: 'theme', value: preference });
     }
     function accessLabel(page) { return `${icon(page.visibility === 'public' ? 'globe' : 'lock')}${page.visibility === 'public' ? 'Publik' : 'Privat'}`; }
     async function openShare(id) {
@@ -102,7 +103,7 @@ const $ = id => document.getElementById(id);
     function toggleSidebar() { if(matchMedia('(max-width:760px)').matches) document.body.classList.toggle('mobile-open'); else document.body.classList.toggle('sidebar-hidden'); syncSidebar(); }
     function toggleWidth() { const on = document.body.classList.toggle('full-width'); $('width-button').setAttribute('aria-pressed', on); }
     function renderFavorites() { $('favorites').innerHTML = [...favorites].map(id => pages.find(p => p.id === id)).filter(Boolean).map(p => `<div class="favorite-item"><button type="button" class="nav-item ${current === p.id ? 'active' : ''}" onclick="navigate('${p.id}')">${icon(p.type === 'folder' ? 'folder' : 'doc')}<span>${escape(p.title)}</span></button><button type="button" class="icon-button favorite-remove" onclick="removeFavorite('${p.id}')" aria-label="Hapus ${escape(p.title)} dari favorit" title="Hapus dari favorit">${icon('close')}</button></div>`).join('') || '<div class="subtle" style="padding:5px 10px">Belum ada halaman favorit.</div>'; }
-    function removeFavorite(id) { favorites.delete(id); persistNavigation(); renderFavorites(); syncFavorite(); $('favorite-button').focus({ preventScroll: true }); }
+    function removeFavorite(id) { setFavorite(id, false); }
     function breadcrumbTrail(id) {
       const trail = [];
       for(let page = pages.find(p => p.id === id); page; page = pages.find(p => p.id === page.parent)) trail.unshift(page);
@@ -122,23 +123,25 @@ const $ = id => document.getElementById(id);
       container.scrollLeft = container.scrollWidth;
     }
     function syncFavorite() { const active = favorites.has(current); $('favorite-button').classList.toggle('is-favorite', active); $('favorite-button').setAttribute('aria-pressed', active); $('favorite-button').setAttribute('aria-label', active ? 'Hapus dari favorit' : 'Tambah ke favorit'); $('favorite-button').title = active ? 'Hapus dari favorit' : 'Tambah ke favorit'; }
-    function toggleFavorite() { if(current === 'recent') return notify('Buka halaman atau folder untuk menambah favorit.'); favorites.has(current) ? favorites.delete(current) : favorites.add(current); persistNavigation(); renderFavorites(); syncFavorite(); }
+    function toggleFavorite() { if(current === 'recent') return notify('Buka halaman atau folder untuk menambah favorit.'); setFavorite(current, !favorites.has(current)); }
     async function navigate(id, historyMode = 'push', completingMutation = false) {
       if(!completingMutation && !canLeave()) return false;
       const previousDraft = $('markdown-editor')?.value;
       const page = pages.find(p => p.id === id);
       if(!page && id !== 'recent') return false;
+      navigationPending++;
+      try {
       const sequence = ++navigationSequence;
       if(page?.type === 'doc') {
         try {
           const data = await api('document', { filePath: page.path });
           if(sequence !== navigationSequence) return false;
           if(isDirty() && $('markdown-editor').value !== previousDraft && !canLeave()) return false;
-          page.body = data.content; page.html = data.html; page.modified = data.modified;
+          page.body = data.content; page.html = data.html; page.modified = data.modified; page.revision = data.revision;
         } catch (error) { notify(error.message); return false; }
       }
-      current = id; filter = 'all'; editing = false; closeSidebar();
-      if(page?.type === 'doc') { recent = [id,...recent.filter(p => p !== id)].slice(0,8); persistNavigation(); }
+      current = id; filter = 'all'; editing = false; draftState = null; closeSidebar();
+      if(page?.type === 'doc') { recent = [id,...recent.filter(p => p !== id)].slice(0,50); savePreference({ action: 'opened', id }); }
       renderBreadcrumbs();
       $('save-state').textContent = page?.type === 'doc' ? 'Tersimpan di server' : 'Workspace pribadi';
       $('manage-button').hidden = id === 'home' || id === 'recent';
@@ -149,7 +152,9 @@ const $ = id => document.getElementById(id);
       if(historyMode === 'replace') history.replaceState({id}, '', url);
       else if(historyMode === 'push' && location.pathname + location.search !== url) history.pushState({id}, '', url);
       activeUrl = url;
+      if(page?.type === 'doc') { try { await loadDraft(page); } catch(error) { notify('Draft belum dapat dimuat: ' + error.message); } }
       return true;
+      } finally { navigationPending--; }
     }
     function header(page) { return `<div class="page-icon">${icon(page.type === 'doc' ? 'doc' : 'book')}</div><p class="page-kicker">${page.type === 'doc' ? escape(pages.find(p => p.id === page.parent)?.title || 'Workspace') : 'Personal workspace'}</p><h1>${escape(page.title)}</h1><p class="lead">${escape(page.description || 'Sebuah ruang baru untuk catatanmu.')}</p><div class="page-meta">${page.type === 'doc' ? `<button class="access-meta ${page.visibility === 'public' ? 'public-access' : ''}" id="file-access" onclick="openShare('${page.id}')" aria-label="Atur akses file">${accessLabel(page)}</button>` : `<span>${icon('lock')}Workspace pribadi</span>`}<span>${icon(page.type === 'doc' ? 'doc' : 'folder')}${page.type === 'doc' ? 'Dokumen Markdown' : 'Koleksi dokumen'}</span><span>${escape(dateLabel(page.modified))}</span></div>`; }
     function render() {
@@ -185,31 +190,39 @@ const $ = id => document.getElementById(id);
       </tr>`).join('') : '<tr><td colspan="4"><div class="empty">Belum ada item di sini.<br>Buat halaman atau folder untuk mulai menulis.</div></td></tr>';
     }
     function renderDoc(page) {
-      $('main').innerHTML = header(page) + `<div class="doc-toolbar"><div class="tabs"><button class="tab ${!editing ? 'selected' : ''}" onclick="setEditing(false)">${icon('book')}Baca</button><button class="tab ${editing ? 'selected' : ''}" onclick="setEditing(true)">${icon('code')}Markdown</button></div><button class="small-button ${editing ? 'primary' : ''}" id="save-document" onclick="${editing ? 'saveDoc()' : 'downloadDoc()'}">${icon(editing ? 'check' : 'upload')}${editing ? 'Simpan' : 'Unduh .md'}</button></div>${editing ? `<label class="field-label" for="markdown-editor">Konten Markdown</label><textarea class="editor" id="markdown-editor" spellcheck="false">${escape(page.body || '')}</textarea><p class="edit-hint">Perubahan disimpan ke server saat menekan Simpan atau Ctrl+S.</p>` : `<article class="prose">${page.html || ''}</article>`}<footer class="page-footer"><span>${escape(page.title)}.md</span><span>${escape(dateLabel(page.modified))}</span></footer>`;
+      $('main').innerHTML = header(page) + `<div class="doc-toolbar"><div class="tabs"><button class="tab ${!editing ? 'selected' : ''}" onclick="setEditing(false)">${icon('book')}Baca</button><button class="tab ${editing ? 'selected' : ''}" onclick="setEditing(true)">${icon('code')}Markdown</button></div><div class="tool-actions"><button class="small-button" onclick="openHistory()">${icon('clock')}Riwayat</button><button class="small-button ${editing ? 'primary' : ''}" id="save-document" onclick="${editing ? 'saveDoc()' : 'downloadDoc()'}">${icon(editing ? 'check' : 'upload')}${editing ? 'Simpan' : 'Unduh .md'}</button></div></div>${editing ? `<label class="field-label" for="markdown-editor">Konten Markdown</label><textarea class="editor" id="markdown-editor" spellcheck="false">${escape(page.body || '')}</textarea><p class="edit-hint">Draft tersimpan otomatis dan tetap privat. Tekan Simpan atau Ctrl+S untuk memperbarui dokumen.</p>` : `<article class="prose">${page.html || ''}</article>`}<footer class="page-footer"><span>${escape(page.title)}.md · Versi ${page.revision}</span><span>${escape(dateLabel(page.modified))}</span></footer>`;
       $('outline').innerHTML = '<div class="outline-title">DI HALAMAN INI</div>';
-      document.querySelectorAll('#main .prose h1,#main .prose h2,#main .prose h3').forEach((heading, index) => {
-        heading.id = 'section-' + index;
-        const link = document.createElement('a'); link.href = '#' + heading.id; link.textContent = heading.textContent; $('outline').append(link);
-      });
+      decorateHeadings(document.querySelector('#main .prose'), true);
       if(editing) {
         $('outline').insertAdjacentHTML('beforeend', '<span class="subtle">Mode edit Markdown</span>');
-        $('markdown-editor').addEventListener('input', () => { $('save-state').textContent = isDirty() ? 'Belum disimpan' : 'Tersimpan di server'; });
+        $('markdown-editor').addEventListener('input', scheduleDraft);
       }
       $('outline').insertAdjacentHTML('beforeend', '<div class="outline-help"><kbd>Ctrl</kbd> + <kbd>K</kbd> untuk cari</div>');
     }
-    function setEditing(value) {
-      if(value === editing || saving || (editing && !canLeave())) return;
+    async function setEditing(value) {
+      if(value === editing || saving || navigationPending || (editing && !canLeave())) return;
+      const page = pages.find(p => p.id === current);
+      if(value && (draftState?.id !== page.id || !draftState.resolved || draftState.conflict)) {
+        try { await loadDraft(page); } catch(error) { return notify(error.message); }
+        if(current !== page.id || !draftState?.resolved || draftState.conflict) return;
+      }
+      if(!value) {
+        setBusy(true);
+        try { await flushDraft(); } catch { return; } finally { setBusy(false); }
+      }
       editing = value; renderDoc(pages.find(p => p.id === current));
       $('save-state').textContent = 'Tersimpan di server';
-      if(editing) $('markdown-editor').focus();
+      if(editing) { $('markdown-editor').value = draftState.content; $('markdown-editor').focus(); }
     }
     async function saveDoc() {
       if(!editing || saving) return;
       const page = pages.find(p => p.id === current); const content = $('markdown-editor').value;
       setBusy(true); $('save-document').disabled = true; $('save-state').textContent = 'Menyimpan…';
       try {
-        const data = await api('save', { filePath: page.path, content });
-        page.body = content; page.html = data.html; page.modified = data.modified;
+        await flushDraft();
+        const data = await api('save', { filePath: page.path, content, revision: page.revision, draftToken: draftState?.token || undefined });
+        page.body = content; page.html = data.html; page.modified = data.modified; page.revision = data.revision;
+        draftState = { id: page.id, token: null, content, conflict: false, resolved: true };
         editing = false; renderDoc(page); $('save-state').textContent = 'Tersimpan di server'; notify('Perubahan disimpan.');
       } catch (error) { $('save-state').textContent = 'Gagal menyimpan'; notify(error.message); }
       finally { setBusy(false); if($('save-document')) $('save-document').disabled = false; }
@@ -220,7 +233,7 @@ const $ = id => document.getElementById(id);
       const link = document.createElement('a'); link.href = url; link.download = page.title + '.md'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
     function openSearch() { $('search-input').value = ''; renderSearch(); $('search-dialog').showModal(); $('search-input').focus(); }
-    function renderSearch() { const query = $('search-input').value.trim().toLocaleLowerCase(); const results = pages.filter(p => p.id !== 'home' && p.title.toLocaleLowerCase().includes(query)); $('search-results').innerHTML = results.map(p => `<button class="search-result" onclick="document.getElementById('search-dialog').close();navigate('${p.id}')">${icon(p.type === 'folder' ? 'folder' : 'doc')}<span>${escape(p.title)}<small>${escape(pages.find(f => f.id === p.parent)?.title || 'Workspace')}</small></span></button>`).join('') || '<div class="empty">Tidak ada judul yang cocok.<br>Coba kata kunci lain.</div>'; }
+    function renderSearch() { renderFullSearch(); }
     function activeFolder() {
       const page = pages.find(p => p.id === current);
       return page?.type === 'folder' ? page : pages.find(p => p.id === page?.parent) || pages[0];
@@ -293,6 +306,8 @@ const $ = id => document.getElementById(id);
       $('name-label').textContent = type === 'folder' ? 'Nama folder' : 'Judul halaman';
       $('create-dialog').querySelector('.edit-hint').textContent = type === 'doc' ? 'Halaman baru dimulai sebagai privat. Ubah akses melalui Bagikan saat siap dipublikasikan.' : 'Folder disimpan di dalam ' + activeFolder().title + '.';
       $('new-name').value = ''; $('create-dialog').showModal();
+      $('template-field').hidden = type !== 'doc';
+      if(type === 'doc') prepareTemplatePicker();
     }
     $('create-form').addEventListener('submit', async event => {
       event.preventDefault();
@@ -304,7 +319,7 @@ const $ = id => document.getElementById(id);
       const path = parent.path.replace(/\/$/, '') + '/' + filename;
       const submit = event.submitter; submit.disabled = true; setBusy(true);
       try {
-        await api(type === 'folder' ? 'create-folder' : 'save', type === 'folder' ? { folderPath: path } : { filePath: path, content: '# ' + name.replace(/\.md$/i, '') + '\n\n', create: true });
+        await api(type === 'folder' ? 'create-folder' : 'save', type === 'folder' ? { folderPath: path } : { filePath: path, content: documentInitialContent(name), create: true });
         editing = false; await refreshWorkspace(); $('create-dialog').close();
         const page = pages.find(p => p.path === path);
         if(page) { await navigate(page.id, 'push', true); setBusy(false); if(type === 'doc') setEditing(true); }
@@ -338,7 +353,7 @@ const $ = id => document.getElementById(id);
       if(saving) return notify('Tunggu hingga proses selesai.');
       deletion = { id, force: false, removed: false };
       $('delete-title').textContent = page.type === 'folder' ? 'Hapus folder?' : 'Hapus file?';
-      $('delete-description').textContent = 'Item ini akan dihapus permanen. Link yang pernah dibagikan tidak akan bisa dibuka lagi.';
+      $('delete-description').textContent = 'Item akan dipindahkan ke sampah dan bisa dipulihkan. Link publik tidak dapat dibuka selama item berada di sampah.';
       $('delete-filename').textContent = page.path.split('/').pop();
       $('delete-path').textContent = 'docs' + page.path;
       $('delete-draft').hidden = !isDirty();
@@ -372,7 +387,7 @@ const $ = id => document.getElementById(id);
         if(error.requiresConfirm) {
           target.force = true;
           $('delete-title').textContent = 'Hapus folder beserta isinya?';
-          $('delete-description').textContent = 'Folder ini masih berisi dokumen. Semua file dan subfolder di dalamnya akan dihapus permanen. Konfirmasi sekali lagi untuk melanjutkan.';
+          $('delete-description').textContent = 'Semua file dan subfolder akan dipindahkan ke sampah bersama folder ini. Konfirmasi sekali lagi untuk melanjutkan.';
         } else {
           $('delete-error').textContent = error.message;
           if(target.removed) $('delete-description').textContent = 'Item sudah dihapus, tetapi daftar belum berhasil dimuat ulang. Coba muat ulang daftar.';
@@ -418,7 +433,7 @@ const $ = id => document.getElementById(id);
     }
     $('new-name').addEventListener('input', () => $('new-name').setCustomValidity(''));
     $('rename-name').addEventListener('input', () => $('rename-name').setCustomValidity(''));
-    $('search-input').addEventListener('input', renderSearch);
+    $('search-input').addEventListener('input', scheduleSearch);
     $('upload-name').addEventListener('input', () => $('upload-name').setCustomValidity(''));
     $('upload-input').addEventListener('change', event => { openUploadPreview(event.target.files[0]); event.target.value = ''; });
     if(boot.mode === 'workspace') {
@@ -467,5 +482,5 @@ const $ = id => document.getElementById(id);
     if(boot.mode === 'workspace') {
       $('auth-fields').innerHTML = loginFields.replaceAll('access-code', 'session-code');
       $('workspace-app').hidden = false; renderTree();
-      navigate(new URLSearchParams(location.search).get('view') === 'recent' ? 'recent' : boot.current || 'home', 'replace');
-    } else renderAccessPage();
+      initializeWorkspace().catch(error => notify(error.message));
+    } else { renderAccessPage(); decorateHeadings(document.querySelector('.public-document .prose')); scrollToHash(); }
