@@ -1,0 +1,11 @@
+  <dialog id="share-dialog" aria-labelledby="share-title" aria-describedby="share-caveat">
+    <div class="dialog-head"><h2 id="share-title">Bagikan file</h2><button class="icon-button" data-action="closeDialog" data-arg="share-dialog" aria-label="Tutup pengaturan berbagi"><svg><use href="#i-close"/></svg></button></div>
+    <div class="dialog-body">
+      <div class="share-file"><svg aria-hidden="true"><use href="#i-doc"/></svg><div><strong id="share-filename"></strong><small>Dokumen Markdown · akses hanya baca</small></div></div>
+      <div class="access-setting"><label for="share-access">Akses file</label><select id="share-access" data-change="setAccess" data-input-value="true"><option value="public">Publik</option><option value="private">Privat</option></select></div>
+      <p class="access-description" id="share-description" role="status"></p>
+      <label class="share-link-label" for="share-link">Link publik</label><input class="text-input share-link" id="share-link" readonly data-action="selectText">
+      <p class="share-caveat" id="share-caveat">Perubahan akses langsung berlaku. Link hanya menampilkan isi yang sudah disimpan.</p>
+    </div>
+    <div class="dialog-foot"><button class="small-button" data-action="previewPublicAccess">Pratinjau pengunjung</button><button class="small-button primary" id="copy-share" data-action="copyShareLink"><svg><use href="#i-share"/></svg>Salin link</button></div>
+  </dialog>

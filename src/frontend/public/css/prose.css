@@ -1,0 +1,42 @@
+.prose h4,
+.prose h5,
+.prose h6 {
+  margin: 22px 0 10px;
+}
+.prose img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+.prose table {
+  table-layout: auto;
+  display: block;
+  overflow: auto;
+  margin: 22px 0;
+}
+.prose th,
+.prose td {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  height: auto;
+}
+.prose th {
+  font-weight: 600;
+  color: var(--ink);
+}
+.prose a {
+  color: var(--accent);
+  text-underline-offset: 3px;
+}
+.prose .hljs-keyword,
+.prose .hljs-selector-tag,
+.prose .hljs-literal {
+  color: var(--accent);
+}
+.prose .hljs-string,
+.prose .hljs-attr {
+  color: var(--olive);
+}
+.prose .hljs-comment {
+  color: var(--muted);
+}

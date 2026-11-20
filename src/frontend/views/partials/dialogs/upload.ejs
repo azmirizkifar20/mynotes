@@ -1,0 +1,14 @@
+  <dialog id="upload-dialog" aria-labelledby="upload-title" aria-describedby="upload-description upload-draft" data-busy="saving" data-reset="pendingUpload">
+    <form id="upload-form" data-submit="confirmUpload" aria-busy="false">
+      <div class="dialog-head"><h2 id="upload-title">Tinjau file sebelum upload</h2><button type="button" class="icon-button" data-action="closeUploadDialog" aria-label="Tutup pratinjau upload"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+      <div class="dialog-body">
+        <p id="upload-description" class="upload-description">Periksa nama dan isi file. File baru akan disimpan sebagai privat setelah kamu klik Upload.</p>
+        <div class="upload-meta"><span>Folder tujuan</span><strong id="upload-target"></strong><small id="upload-size"></small></div>
+        <label class="field-label" for="upload-name">Nama file</label><input class="text-input" id="upload-name" required autocomplete="off" spellcheck="false" aria-describedby="upload-name-hint"><p class="edit-hint" id="upload-name-hint">Gunakan ekstensi .md. File dengan nama yang sama tidak akan ditimpa.</p>
+        <label class="field-label" for="upload-content">Isi file</label><textarea id="upload-content" class="upload-content" readonly spellcheck="false" aria-describedby="upload-status"></textarea><p id="upload-status" class="edit-hint" role="status"></p>
+        <p id="upload-draft" class="delete-warning" hidden>Setelah upload berhasil, kamu akan kembali ke folder tujuan. Perubahan dokumen yang belum disimpan akan dibuang. Pilih Batal untuk menyimpannya terlebih dahulu.</p>
+        <p id="upload-error" class="delete-error" role="alert"></p>
+      </div>
+      <div class="dialog-foot"><button type="button" class="small-button" data-action="closeUploadDialog">Batal</button><button id="confirm-upload" class="small-button primary" type="submit">Upload</button></div>
+    </form>
+  </dialog>

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="id">
+<%- include('partials/head') %>
+<body>
+  <%- include('partials/icons') %>
+  <div id="access-page" class="access-page" hidden></div>
+  <div class="app" id="workspace-app" hidden>
+    <button class="scrim" aria-label="Tutup navigasi" data-action="closeSidebar"></button>
+    <%- include('partials/sidebar') %>
+    <div class="workspace">
+      <%- include('partials/topbar') %>
+      <div class="page-layout"><main id="main" tabindex="-1"></main><aside class="outline" aria-label="Daftar isi" id="outline"></aside></div>
+    </div>
+  </div>
+  <%- include('partials/dialogs/search') %>
+  <%- include('partials/dialogs/create') %>
+  <%- include('partials/dialogs/share') %>
+  <%- include('partials/dialogs/visitor') %>
+  <%- include('partials/dialogs/manage') %>
+  <%- include('partials/dialogs/delete') %>
+  <div id="file-drop-zone" class="file-drop-zone" role="status" hidden><div class="file-drop-card"><svg aria-hidden="true"><use href="#i-upload"/></svg><strong>Lepaskan file .md di sini</strong><span id="file-drop-target"></span><small>Satu file, maksimal 5 MB. Tinjau file sebelum upload.</small></div></div>
+  <%- include('partials/dialogs/upload') %>
+  <%- include('partials/dialogs/auth') %>
+  <input id="upload-input" type="file" accept=".md,.markdown,text/markdown,text/plain" hidden>
+  <%- include('partials/dialogs/tool') %>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script id="bootstrap" type="application/json"><%- bootstrap %></script>
+  <% if (JSON.parse(bootstrap).mode === 'workspace') { %><script src="<%= basePath %>/static/editor/<%= editorVersion %>/dist/index.min.js" defer></script><% } %>
+  <script type="module" src="<%= basePath %>/static/v/<%= assetVersion %>/js/main.js"></script>
+  <noscript><p class="empty">Aktifkan JavaScript untuk membuka MD Previewer.</p></noscript>
+</body>
+</html>

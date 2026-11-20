@@ -1,0 +1,79 @@
+/* Warm neutrals separate navigation from the writing surface; terracotta marks the light workspace.
+   Inter follows the chosen typography; wide page margins give markdown room to breathe.
+   Direction: personal document workspace, Notion inspired, energy 1 / rhythm 2 / motion 1. */
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/inter-variable.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+:root {
+  color-scheme: light;
+  --paper: #fff;
+  --sidebar: #f7f7f5;
+  --surface: #fff;
+  --inset: #f7f7f4;
+  --ink: #34332f;
+  --muted: #69685f;
+  --line: #eae9e6;
+  --border: #deded8;
+  --hover: #efefec;
+  --selected: #eaeae6;
+  --accent: #a64d34;
+  --tint: #f5e9e3;
+  --olive: #727957;
+  --folder: #8c7655;
+  --favorite: #916025;
+  --callout: #f6f5f1;
+  --code-bg: #f2f1ed;
+  --quote-border: #c4bdaa;
+  --overlay: #25241f66;
+  --button-bg: #34332f;
+  --button-ink: #fff;
+  --button-hover: #504f48;
+  --toast-bg: #34332f;
+  --toast-ink: #fff;
+  --danger-bg: #b43932;
+  --danger-ink: #fff;
+  --danger-hover: #962f29;
+  --search-highlight: #fff0a8;
+  --search-highlight-ink: #5d4300;
+  --shadow: 0 16px 70px #0002;
+  --sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+/* Graphite uses neutral surfaces with the sand accent approved in the palette mockup. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #202123;
+  --sidebar: #191a1c;
+  --surface: #292b2e;
+  --inset: #1b1c1e;
+  --ink: #e7e6e3;
+  --muted: #afb0b3;
+  --line: #393c40;
+  --border: #7e8188;
+  --hover: #303236;
+  --selected: #3b3e43;
+  --accent: #d9b68b;
+  --tint: #38312a;
+  --olive: #d9b68b;
+  --folder: #afb0b3;
+  --favorite: #d9b68b;
+  --callout: #292b2e;
+  --code-bg: #2b2d30;
+  --quote-border: #7e8188;
+  --overlay: #0b0c0dcc;
+  --button-bg: #d9b68b;
+  --button-ink: #191a1c;
+  --button-hover: #e5c69f;
+  --toast-bg: #e7e6e3;
+  --toast-ink: #202123;
+  --danger-bg: #e6a09a;
+  --danger-ink: #2a1614;
+  --danger-hover: #f0b2ac;
+  --search-highlight: #66502b;
+  --search-highlight-ink: #fff0bb;
+  --shadow: 0 16px 70px #0006;
+}

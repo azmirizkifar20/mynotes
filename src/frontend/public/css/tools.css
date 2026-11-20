@@ -1,0 +1,94 @@
+.tool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tool-row > div:first-child {
+  min-width: 0;
+}
+.tool-row strong,
+.tool-row p,
+.tool-row small {
+  overflow-wrap: anywhere;
+}
+.tool-row small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.tool-row p {
+  margin: 5px 0;
+}
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.tool-actions .danger {
+  margin-right: 0;
+}
+.tool-editor {
+  min-height: 240px;
+  width: 100%;
+  margin: 10px 0 15px;
+  font-size: 13px;
+}
+.version-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 180px;
+  overflow: auto;
+  margin: 16px 0;
+}
+.search-snippet {
+  display: block;
+  white-space: normal;
+}
+.heading-link {
+  font-size: 16px;
+  color: var(--muted);
+  margin-left: 9px;
+  border-radius: 4px;
+  opacity: 0;
+}
+.prose :is(h1, h2, h3, h4, h5, h6):hover .heading-link,
+.heading-link:focus-visible {
+  opacity: 1;
+}
+#template-field {
+  margin-top: 16px;
+}
+#tool-body form > .field-label,
+.management-content form > .field-label {
+  margin-top: 16px;
+}
+@media (hover: none) {
+  .heading-link {
+    opacity: 1;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+@media (max-width: 760px) {
+  .tool-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .doc-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .tool-actions > .small-button {
+    min-height: 44px;
+  }
+  #manage-dialog .dialog-foot {
+    flex-wrap: wrap;
+  }
+}

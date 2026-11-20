@@ -1,0 +1,7 @@
+  <dialog id="manage-dialog" aria-labelledby="manage-title">
+    <form data-submit="renameItem">
+      <div class="dialog-head"><h2 id="manage-title">Kelola halaman</h2><button type="button" class="icon-button" data-action="closeDialog" data-arg="manage-dialog" aria-label="Tutup"><svg><use href="#i-close"/></svg></button></div>
+      <div class="dialog-body"><label class="field-label" for="rename-name">Nama</label><input class="text-input" id="rename-name" required maxlength="100" autocomplete="off"><p class="edit-hint">Link berbagi dan pengaturan akses tetap tersimpan saat nama berubah.</p></div>
+      <div class="dialog-foot"><button type="button" class="small-button danger" id="delete-item" data-action="deleteItem">Hapus</button><button type="button" class="small-button" data-action="openMove">Pindahkan</button><button type="button" class="small-button" data-action="closeDialog" data-arg="manage-dialog">Batal</button><button type="submit" class="small-button primary">Simpan nama</button></div>
+    </form>
+  </dialog>

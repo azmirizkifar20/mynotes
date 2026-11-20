@@ -162,17 +162,29 @@ Backup PostgreSQL dengan `pg_dump`, serta simpan `.env` secara privat. Backup `d
 
 | File | Fungsi |
 | --- | --- |
-| `server.js` | Auth/session, rendering, mount root dan prefix |
-| `workspace-routes.js` | API dan akses dokumen |
-| `database.js`, `db/schema.sql` | Transaksi dan penyimpanan workspace |
-| `document-path.js`, `document-sync.js` | Validasi path dan mirror filesystem |
-| `scripts/` | Setup DB, import server, sinkronisasi dan pemeriksaan terisolasi |
-| `views/layout.ejs` | Shell dan dialog |
-| `public/app.js`, `public/workspace-tools.js` | Navigasi dan fitur browser |
+| `server.js` | Entry point untuk npm dan PM2 |
+| `src/backend/app.js`, `start.js` | Susunan middleware/router dan startup/shutdown |
+| `src/backend/config/` | Konfigurasi environment dan path root project |
+| `src/backend/database/` | Pool PostgreSQL, transaksi, schema, inisialisasi dan audit |
+| `src/backend/middleware/` | Session, pemeriksaan autentikasi/origin dan penanganan error |
+| `src/backend/modules/` | Fitur auth, documents, workspace, templates dan activity |
+| `src/backend/modules/documents/` | Penyimpanan dokumen, path, mirror, Markdown, draft, riwayat, sampah dan router |
+| `src/backend/rendering/` | Rendering halaman dan helper HTTP |
+| `src/frontend/views/` | Shell EJS dan partial sidebar, topbar, ikon serta dialog |
+| `src/frontend/public/js/` | Entry `main.js`, core, components dan modul fitur browser |
+| `src/frontend/public/css/` | Entry `main.css` dan stylesheet sesuai bagian UI, dengan urutan cascade dipertahankan |
+| `src/frontend/public/fonts/`, `favicon.svg` | Aset Inter dan favicon |
+| `scripts/` | Operasional setup DB, import server dan sinkronisasi mirror |
+| `tests/` | Pemeriksaan terisolasi dan helper import modul frontend |
+| `mockups/` | Referensi mockup HTML |
+
+Backend tetap CommonJS; frontend memakai ES Modules native tanpa build step. `main.js` menghubungkan state, modul fitur dan event delegation melalui `data-action`, tanpa fungsi aplikasi di `window` atau handler HTML inline. CSS dan modul JS disajikan melalui `/static/v/<hash>/`; import relatif mewarisi versi tersebut agar cache browser tidak mencampur modul dari deployment berbeda. Mount root dan `/mynotes/` memakai struktur aset yang sama.
+
+`.env`, `docs/`, `uploads/` dan `.data/` tetap berada di root project. Pemindahan kode tidak mengubah nama tabel, URL API atau format data PostgreSQL.
 
 ## Kendala umum
 
-Pemeriksaan regresi terisolasi tersedia di `node scripts/check-sharing.cjs`. Script membuat database sementara dengan nama acak, memeriksa storage/konflik/privacy/prefix melalui aplikasi terpisah, lalu menghapus database sementara itu. Role memerlukan `CREATEDB`; script tidak memakai dokumen workspace aktif. Jalankan hanya ketika ingin melakukan pemeriksaan.
+Pemeriksaan regresi terisolasi tersedia di `node tests/check-sharing.cjs`. Script membuat database sementara dengan nama acak, memeriksa storage/konflik/privacy/prefix melalui aplikasi terpisah, lalu menghapus database sementara itu. Role memerlukan `CREATEDB`; script tidak memakai dokumen workspace aktif. Pemeriksaan dialog tersedia di `node tests/check-delete-dialog.cjs` dan `node tests/check-upload-dialog.cjs`; keduanya memakai modul frontend dengan mock DOM. Jalankan hanya ketika ingin melakukan pemeriksaan.
 
 - **Koneksi DB gagal:** cek Tailscale, host/port, credentials, serta hak role PostgreSQL.
 - **Workspace belum diimpor:** jalankan import satu kali dari snapshot server yang lengkap.

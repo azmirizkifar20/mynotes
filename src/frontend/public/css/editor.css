@@ -1,0 +1,88 @@
+.doc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 25px 0 30px;
+  border-bottom: 1px solid var(--line);
+  gap: 10px;
+}
+.doc-toolbar .tab {
+  margin-right: 15px;
+}
+.prose {
+  font-size: 15px;
+  line-height: 1.9;
+  overflow-wrap: anywhere;
+}
+.prose h1,
+.prose h2 {
+  font-size: 23px;
+  line-height: 1.9;
+  margin: 31px 0 12px;
+  letter-spacing: -0.5px;
+  font-weight: 650;
+}
+.prose h3 {
+  font-size: 18px;
+  margin: 24px 0 10px;
+}
+.prose p {
+  margin: 12px 0;
+}
+.prose ul {
+  padding-left: 22px;
+}
+.prose li {
+  padding: 3px 0;
+}
+.prose code {
+  font-size: 12px;
+  background: var(--code-bg);
+  color: var(--accent);
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+.prose pre {
+  padding: 20px;
+  background: var(--inset);
+  border-radius: 5px;
+  overflow: auto;
+  font:
+    12px/1.8 Consolas,
+    monospace;
+}
+.prose pre code {
+  color: var(--ink);
+  background: none;
+  padding: 0;
+}
+.prose blockquote {
+  margin: 20px 0;
+  border-left: 3px solid var(--quote-border);
+  padding: 8px 18px;
+  color: var(--muted);
+  background: var(--callout);
+}
+.editor {
+  width: 100%;
+  min-height: 410px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 20px;
+  background: var(--inset);
+  font:
+    13px/1.9 Consolas,
+    monospace;
+}
+.edit-hint {
+  margin: 12px 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.empty {
+  padding: 45px 15px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}

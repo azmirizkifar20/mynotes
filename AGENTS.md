@@ -14,29 +14,38 @@ Read these before changing behavior or answering implementation questions:
 ## Current Structure
 ```
 /var/www/html/md-previewer/
-├── AGENTS.md
-├── package.json
-├── server.js
-├── views/
-│   └── layout.ejs
-├── public/
-│   └── style.css
-├── docs/
-│   ├── README.md
-│   └── steering/
-│       ├── architecture.md
-│       ├── system-flow.md
-│       ├── tech-stack.md
-│       └── routing.md
+├── server.js                  # npm/PM2 entry
+├── src/
+│   ├── backend/
+│   │   ├── app.js             # Express composition, no listener
+│   │   ├── start.js           # DB/mirror readiness and listener
+│   │   ├── config/
+│   │   ├── database/          # connection, schema, initialization, audit
+│   │   ├── middleware/
+│   │   ├── modules/           # auth, documents, workspace, templates, activity
+│   │   └── rendering/
+│   └── frontend/
+│       ├── views/             # layout + partials/dialogs
+│       └── public/
+│           ├── js/            # main.js, core, components, features
+│           ├── css/           # main.css imports ordered stylesheets
+│           ├── fonts/
+│           └── favicon.svg
+├── scripts/                   # operational DB/mirror commands
+├── tests/                     # isolated checks, frontend module fixtures
+├── mockups/
+├── docs/                      # ignored DB mirror, only .gitkeep tracked
 └── nginx/
-    └── mdpreview.conf
 ```
 
 ## Conventions
 - All document content is stored in PostgreSQL and mirrored under `docs/`; direct mirror edits are overwritten. Never import local files automatically or serve docs as static files.
 - Directory browsing shows folders and `.md` files only.
 - URL paths map to active database entries and their mirrored paths under `docs/`.
-- `views/layout.ejs` is the shared shell for login gate, directory listing, markdown preview, and modals.
+- `src/frontend/views/layout.ejs` composes the shared shell and partials for login, directory listing, markdown preview and dialogs.
+- Backend uses CommonJS; frontend uses native ES Modules with explicit state/actions injection and delegated data attributes. No inline HTML event handlers or window application globals.
+- Asset URLs use `/static/v/<hash>/` so relative JS/CSS imports share the deployment version on both mounts.
+- `.env`, `docs/`, `uploads/` and `.data/` resolve from the project root via backend config/paths.js.
 - CSS is custom, responsive, and lightweight.
 - Dependencies stay minimal; there is no frontend build step.
 - Server listens on port 8026 and is proxied by nginx.

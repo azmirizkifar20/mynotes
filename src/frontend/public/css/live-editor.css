@@ -1,0 +1,65 @@
+#live-editor {
+  border: 0;
+  background: var(--paper);
+  color: var(--ink);
+  --border-color: var(--line);
+  --textarea-background-color: var(--paper);
+  --textarea-text-color: var(--ink);
+  --panel-background-color: var(--surface);
+  --toolbar-background-color: var(--inset);
+  --toolbar-icon-color: var(--muted);
+  --toolbar-icon-hover-color: var(--accent);
+  --heading-border-color: var(--line);
+  --blockquote-color: var(--muted);
+  --blockquote-border-color: var(--quote-border);
+  --blockquote-text-color: var(--muted);
+  --ir-heading-color: var(--accent);
+  --ir-title-color: var(--muted);
+  --ir-link-color: var(--accent);
+  --ir-bracket-color: var(--muted);
+  --ir-bi-color: var(--accent);
+}
+#live-editor[aria-busy="true"] {
+  pointer-events: none;
+}
+#live-editor .vditor-ir {
+  background: var(--paper);
+}
+#live-editor .vditor-reset {
+  padding: 26px 0 !important;
+  color: var(--ink);
+  background: var(--paper);
+  font: 15px/1.85 var(--sans);
+}
+#live-editor .vditor-reset h1,
+#live-editor .vditor-reset h2 {
+  border: 0;
+  padding-bottom: 0;
+}
+#live-editor .vditor-reset pre {
+  background: var(--code-bg);
+  color: var(--ink);
+}
+#live-editor .vditor-reset :not(pre) > code {
+  background: var(--code-bg);
+  color: var(--accent);
+}
+#live-editor .vditor-reset a {
+  color: var(--accent);
+}
+#live-editor .vditor-reset table tr {
+  background: var(--paper);
+}
+#live-editor .vditor-reset table tr:nth-child(2n) {
+  background: var(--inset);
+}
+#live-editor .vditor-reset td,
+#live-editor .vditor-reset th {
+  border-color: var(--line);
+}
+#live-editor [data-block] {
+  scroll-margin-top: 73px;
+}
+#live-editor .vditor-ir__node--expand .vditor-ir__marker {
+  color: var(--muted);
+}

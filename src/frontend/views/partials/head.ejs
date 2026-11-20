@@ -1,0 +1,17 @@
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>MD Previewer</title>
+  <link rel="icon" type="image/svg+xml" sizes="any" href="<%= basePath %>/static/favicon.svg">
+  <script>
+    (() => {
+      let preference = 'system';
+      try { const saved = localStorage.getItem('md-previewer-theme'); if (['system', 'light', 'dark'].includes(saved)) preference = saved; } catch {}
+      document.documentElement.dataset.theme = preference === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : preference;
+    })();
+  </script>
+  <link rel="preload" href="<%= basePath %>/static/fonts/inter-variable.ttf" as="font" type="font/ttf" crossorigin>
+  <% if (JSON.parse(bootstrap).mode === 'workspace') { %><link rel="stylesheet" href="<%= basePath %>/static/editor/<%= editorVersion %>/dist/index.css"><% } %>
+  <link rel="stylesheet" href="<%= basePath %>/static/v/<%= assetVersion %>/css/main.css">
+</head>

@@ -1,0 +1,23 @@
+    <aside class="sidebar" aria-label="Navigasi workspace">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">m.</span><div>MD Previewer<small>Personal workspace</small></div><button class="icon-button collapse" data-action="toggleSidebar" aria-label="Sembunyikan sidebar" title="Sembunyikan sidebar"><svg><use href="#i-panel"/></svg></button></div>
+      <div class="sidebar-scroll">
+      <button class="nav-item" data-action="openSearch"><svg><use href="#i-search"/></svg><span>Cari catatan</span><kbd>Ctrl K</kbd></button>
+      <button class="nav-item active" data-nav="home" data-action="navigate" data-arg="home"><svg><use href="#i-home"/></svg><span>Ruang kerja</span></button>
+      <button class="nav-item" data-nav="recent" data-action="navigate" data-arg="recent"><svg><use href="#i-clock"/></svg><span>Terakhir dibuka</span></button>
+      <button class="nav-item" id="import-preferences" data-action="importBrowserPreferences" hidden><svg><use href="#i-upload"/></svg><span>Impor favorit browser</span></button>
+      <div class="nav-section"><div class="section-label">Favorit</div><div id="favorites"></div></div>
+      <nav class="nav-section" aria-label="Folder dokumen">
+        <div class="section-label">Workspace <span>docs /</span></div>
+        <div id="folder-tree"></div>
+        <button class="nav-item" data-action="openCreate" data-arg="folder"><svg><use href="#i-plus"/></svg><span>Tambah folder</span></button>
+      </nav>
+      <nav class="nav-section" aria-label="Pengelolaan workspace">
+        <div class="section-label">Pengelolaan</div>
+        <button class="nav-item" data-nav="trash" data-action="openTrash"><svg><use href="#i-trash"/></svg><span>Sampah</span></button>
+        <button class="nav-item" data-nav="templates" data-action="openTemplates"><svg><use href="#i-doc"/></svg><span>Template</span></button>
+        <button class="nav-item" data-nav="activity" data-action="openActivity"><svg><use href="#i-clock"/></svg><span>Aktivitas</span></button>
+      </nav>
+      <div class="sidebar-bottom"><button class="nav-item" data-action="logout"><svg><use href="#i-lock"/></svg><span>Keluar</span></button></div>
+      </div>
+      <label class="theme-setting" for="theme-select"><svg aria-hidden="true"><use href="#i-theme"/></svg><span>Tampilan</span><select id="theme-select" data-change="setTheme" data-input-value="true"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>
+    </aside>
