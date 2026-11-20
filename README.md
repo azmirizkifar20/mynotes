@@ -5,7 +5,8 @@ Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak 
 ## Fitur
 
 - Navigasi folder dan breadcrumb, favorit, serta 50 dokumen terakhir dibuka.
-- Editor Markdown, syntax highlighting, daftar isi, dan link ke heading.
+- Edit langsung dengan render otomatis pada tab Dokumen, serta tab sumber Markdown yang tersinkron. Draft disimpan otomatis; Simpan atau Ctrl+S menerbitkan perubahan.
+- Syntax highlighting, daftar isi, dan link ke heading.
 - Pencarian judul, path, dan isi dokumen dengan PostgreSQL full-text search.
 - Buat folder/dokumen, rename, pindahkan, unduh, dan upload Markdown dengan konfirmasi nama/isi.
 - Akses publik/privat, URL path asli, serta kompatibilitas link lama `/share/:id`.
@@ -25,6 +26,7 @@ Login memakai satu kode akses bersama. Favorit, riwayat bacaan, tema, template, 
 - Tailscale aktif jika host DB menggunakan alamat jaringan Tailscale.
 
 Font Inter disertakan di `public/fonts/` dengan lisensi pada `OFL-Inter.txt`.
+Editor Vditor disajikan dari dependency npm di server yang sama, tanpa build frontend atau CDN pihak ketiga.
 
 ## Instalasi
 

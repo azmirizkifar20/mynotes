@@ -15,9 +15,9 @@ const $ = id => document.getElementById(id);
     const urlFor = page => appUrl(page.path.split('/').map(encodeURIComponent).join('/'));
     const dateLabel = value => value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : 'Workspace';
     function persistNavigation() { try { localStorage.setItem('md-previewer-recent', JSON.stringify(recent)); localStorage.setItem('md-previewer-favorites', JSON.stringify([...favorites])); } catch {} }
-    function isDirty() { return editing && $('markdown-editor') && $('markdown-editor').value !== (pages.find(p => p.id === current)?.body || ''); }
-    function canLeave() { if(saving || draftRequest) { notify('Tunggu hingga proses selesai.'); return false; } return !isDirty() || confirm('Tinggalkan editor? Hanya draft yang berhasil tersimpan yang dapat dipulihkan.'); }
-    function setBusy(value) { if(value) navigationSequence++; saving = value; if($('markdown-editor')) $('markdown-editor').readOnly = value; }
+    function isDirty() { return documentBuffer?.id === current && documentContent() !== (pages.find(p => p.id === current)?.body || ''); }
+    function canLeave() { if(saving || draftRequest || toolBusy) { notify('Tunggu hingga proses selesai.'); return false; } return !isDirty() || confirm('Tinggalkan editor? Hanya draft yang berhasil tersimpan yang dapat dipulihkan.'); }
+    function setBusy(value) { if(value) navigationSequence++; saving = value; syncEditorLock(); }
     async function api(endpoint, body) {
       const options = body instanceof FormData ? { method: 'POST', body } : body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
       const response = await fetch(appUrl('/api/' + endpoint), options);
@@ -107,12 +107,12 @@ const $ = id => document.getElementById(id);
     function breadcrumbTrail(id) {
       const trail = [];
       for(let page = pages.find(p => p.id === id); page; page = pages.find(p => p.id === page.parent)) trail.unshift(page);
-      return id === 'recent' ? [pages.find(p => p.id === 'home'), { id: 'recent', title: 'Terakhir dibuka' }] : trail;
+      return id === 'recent' || Object.hasOwn(managementPages, id) ? [pages.find(p => p.id === 'home'), { id, title: id === 'recent' ? 'Terakhir dibuka' : managementPages[id].title }] : trail;
     }
     function renderBreadcrumbs() {
       const trail = breadcrumbTrail(current), container = $('breadcrumb-path');
       container.innerHTML = trail.map((page, index) => {
-        const label = escape(page.id === 'home' ? 'docs' : page.id === 'recent' ? page.title : page.path.split('/').pop());
+        const label = escape(page.id === 'home' ? 'docs' : page.id === 'recent' || Object.hasOwn(managementPages, page.id) ? page.title : page.path.split('/').pop());
         const item = index === trail.length - 1 ? `<span aria-current="page">${label}</span>` : `<a href="${escape(urlFor(page))}" data-breadcrumb="${escape(page.id)}">${label}</a>`;
         return `<li>${index ? '<span class="slash" aria-hidden="true">/</span>' : ''}${item}</li>`;
       }).join('');
@@ -126,9 +126,9 @@ const $ = id => document.getElementById(id);
     function toggleFavorite() { if(current === 'recent') return notify('Buka halaman atau folder untuk menambah favorit.'); setFavorite(current, !favorites.has(current)); }
     async function navigate(id, historyMode = 'push', completingMutation = false) {
       if(!completingMutation && !canLeave()) return false;
-      const previousDraft = $('markdown-editor')?.value;
+      const previousDraft = documentContent();
       const page = pages.find(p => p.id === id);
-      if(!page && id !== 'recent') return false;
+      if(!page && id !== 'recent' && !Object.hasOwn(managementPages, id)) return false;
       navigationPending++;
       try {
       const sequence = ++navigationSequence;
@@ -136,22 +136,27 @@ const $ = id => document.getElementById(id);
         try {
           const data = await api('document', { filePath: page.path });
           if(sequence !== navigationSequence) return false;
-          if(isDirty() && $('markdown-editor').value !== previousDraft && !canLeave()) return false;
+          if(isDirty() && documentContent() !== previousDraft && !canLeave()) return false;
           page.body = data.content; page.html = data.html; page.modified = data.modified; page.revision = data.revision;
         } catch (error) { notify(error.message); return false; }
       }
+      destroyLiveEditor(); documentBuffer = null;
       current = id; filter = 'all'; editing = false; draftState = null; closeSidebar();
+      $('tool-dialog').close();
       if(page?.type === 'doc') { recent = [id,...recent.filter(p => p !== id)].slice(0,50); savePreference({ action: 'opened', id }); }
       renderBreadcrumbs();
-      $('save-state').textContent = page?.type === 'doc' ? 'Tersimpan di server' : 'Workspace pribadi';
-      $('manage-button').hidden = id === 'home' || id === 'recent';
+      $('save-state').textContent = page?.type === 'doc' ? '' : 'Workspace pribadi';
+      $('manage-button').hidden = id === 'home' || !page;
+      $('favorite-button').hidden = !page;
       document.querySelectorAll('[data-nav]').forEach(el => el.classList.toggle('active', el.dataset.nav === id));
-      renderFavorites(); syncFavorite(); expandCurrentFolder(); render(); window.scrollTo({top:0});
-      document.title = (page?.title || 'Terakhir dibuka') + ' · MD Previewer';
-      const url = id === 'recent' ? appUrl('/?view=recent') : urlFor(page);
+      renderFavorites(); syncFavorite(); expandCurrentFolder(); const rendering = render(); window.scrollTo({top:0});
+      document.title = (page?.title || (id === 'recent' ? 'Terakhir dibuka' : managementPages[id].title)) + ' · MD Previewer';
+      const url = !page ? appUrl('/?view=' + id) : urlFor(page);
       if(historyMode === 'replace') history.replaceState({id}, '', url);
       else if(historyMode === 'push' && location.pathname + location.search !== url) history.pushState({id}, '', url);
       activeUrl = url;
+      await rendering;
+      if(sequence !== navigationSequence) return false;
       if(page?.type === 'doc') { try { await loadDraft(page); } catch(error) { notify('Draft belum dapat dimuat: ' + error.message); } }
       return true;
       } finally { navigationPending--; }
@@ -160,6 +165,7 @@ const $ = id => document.getElementById(id);
     function render() {
       const page = pages.find(p => p.id === current);
       $('detail-share').hidden = page?.type !== 'doc';
+      if(Object.hasOwn(managementPages, current)) return renderManagementPage(current);
       if(page?.type === 'doc') return renderDoc(page);
       const isRecent = current === 'recent';
       const view = page || {title:'Terakhir dibuka',description:'Kembali ke dokumen yang baru saja kamu baca.',type:'folder'};
@@ -174,7 +180,7 @@ const $ = id => document.getElementById(id);
         </div><div class="library-actions"><button class="icon-button" onclick="openSearch()" aria-label="Cari dokumen" title="Cari dokumen">${icon('search')}</button><button class="small-button" onclick="openCreate('folder')">${icon('folder')}Folder</button><button class="small-button primary" onclick="openCreate('doc')">${icon('plus')}Baru</button></div></div>
         <div class="table-wrap"><table><thead><tr><th>Nama</th><th class="type-column">Jenis</th><th class="access-column">Akses</th><th class="action-column"><span class="sr-only">Aksi file</span></th></tr></thead><tbody id="entries"></tbody></table></div>
         <button class="add-row" onclick="openCreate('doc')">${icon('plus')}Tambah halaman baru</button>
-      </section><aside class="callout" id="note-section">${icon('book')}<div><strong>Catatan yang rapi, pikiran yang lebih lega.</strong>Kelompokkan halaman berdasarkan proyek. Pakai favorit untuk menyimpan dokumen yang sering kamu buka.</div></aside><footer class="page-footer"><span>MD Previewer · Ruang untuk catatan kerja.</span><span>Tersimpan di server</span></footer>`;
+      </section><aside class="callout" id="note-section">${icon('book')}<div><strong>Catatan yang rapi, pikiran yang lebih lega.</strong>Kelompokkan halaman berdasarkan proyek. Pakai favorit untuk menyimpan dokumen yang sering kamu buka.</div></aside><footer class="page-footer"><span>MD Previewer · Ruang untuk catatan kerja.</span></footer>`;
       renderEntries();
       $('outline').innerHTML = `<div class="outline-title">DI HALAMAN INI</div>${current === 'home' ? '<a href="#recent-section">Terakhir dibuka</a>' : ''}<a href="#documents-section">${isRecent ? 'Riwayat bacaan' : 'Isi workspace'}</a><a href="#note-section">Catatan kecil</a><div class="outline-help"><kbd>Ctrl</kbd> + <kbd>K</kbd> untuk cari<br><kbd>Esc</kbd> untuk tutup dialog</div>`;
     }
@@ -190,42 +196,43 @@ const $ = id => document.getElementById(id);
       </tr>`).join('') : '<tr><td colspan="4"><div class="empty">Belum ada item di sini.<br>Buat halaman atau folder untuk mulai menulis.</div></td></tr>';
     }
     function renderDoc(page) {
-      $('main').innerHTML = header(page) + `<div class="doc-toolbar"><div class="tabs"><button class="tab ${!editing ? 'selected' : ''}" onclick="setEditing(false)">${icon('book')}Baca</button><button class="tab ${editing ? 'selected' : ''}" onclick="setEditing(true)">${icon('code')}Markdown</button></div><div class="tool-actions"><button class="small-button" onclick="openHistory()">${icon('clock')}Riwayat</button><button class="small-button ${editing ? 'primary' : ''}" id="save-document" onclick="${editing ? 'saveDoc()' : 'downloadDoc()'}">${icon(editing ? 'check' : 'upload')}${editing ? 'Simpan' : 'Unduh .md'}</button></div></div>${editing ? `<label class="field-label" for="markdown-editor">Konten Markdown</label><textarea class="editor" id="markdown-editor" spellcheck="false">${escape(page.body || '')}</textarea><p class="edit-hint">Draft tersimpan otomatis dan tetap privat. Tekan Simpan atau Ctrl+S untuk memperbarui dokumen.</p>` : `<article class="prose">${page.html || ''}</article>`}<footer class="page-footer"><span>${escape(page.title)}.md · Versi ${page.revision}</span><span>${escape(dateLabel(page.modified))}</span></footer>`;
+      destroyLiveEditor();
+      if (documentBuffer?.id !== page.id) documentBuffer = { id: page.id, content: page.body || '' };
+      $('main').innerHTML = header(page) + `<div class="doc-toolbar"><div class="tabs"><button class="tab ${!editing ? 'selected' : ''}" onclick="setEditing(false)">${icon('book')}Dokumen</button><button class="tab ${editing ? 'selected' : ''}" onclick="setEditing(true)">${icon('code')}Markdown</button></div><div class="tool-actions"><button class="small-button" onclick="openHistory()">${icon('clock')}Riwayat</button><button class="small-button" onclick="downloadDoc()">${icon('upload')}Unduh .md</button><button class="small-button primary" id="save-document" onclick="saveDoc()" disabled>${icon('check')}Simpan</button></div></div>${editing ? `<label class="field-label" for="markdown-editor">Konten Markdown</label><textarea class="editor" id="markdown-editor" spellcheck="false">${escape(documentContent())}</textarea>` : `<div id="live-editor" aria-label="Konten dokumen, dapat diedit langsung" aria-busy="true"><article class="prose">${page.html || ''}</article></div>`}<p class="edit-hint">${editing ? 'Edit sumber Markdown.' : 'Klik teks untuk mengedit langsung. Format akan dirender saat kamu mengetik.'} Draft tersimpan otomatis dan tetap privat. Tekan Simpan atau Ctrl+S untuk memperbarui dokumen.</p><footer class="page-footer"><span>${escape(page.title)}.md · Versi ${page.revision}</span><span>${escape(dateLabel(page.modified))}</span></footer>`;
       $('outline').innerHTML = '<div class="outline-title">DI HALAMAN INI</div>';
       decorateHeadings(document.querySelector('#main .prose'), true);
       if(editing) {
         $('outline').insertAdjacentHTML('beforeend', '<span class="subtle">Mode edit Markdown</span>');
-        $('markdown-editor').addEventListener('input', scheduleDraft);
+        $('markdown-editor').addEventListener('input', event => changeDocumentContent(event.target.value));
+      } else {
+        mountLiveEditor(page);
       }
+      syncEditorLock();
       $('outline').insertAdjacentHTML('beforeend', '<div class="outline-help"><kbd>Ctrl</kbd> + <kbd>K</kbd> untuk cari</div>');
     }
     async function setEditing(value) {
-      if(value === editing || saving || navigationPending || (editing && !canLeave())) return;
+      if(value === editing || saving || navigationPending || draftRequest || toolBusy) return;
       const page = pages.find(p => p.id === current);
-      if(value && (draftState?.id !== page.id || !draftState.resolved || draftState.conflict)) {
+      documentContent();
+      if(draftState?.id !== page.id || !draftState.resolved || draftState.conflict) {
         try { await loadDraft(page); } catch(error) { return notify(error.message); }
         if(current !== page.id || !draftState?.resolved || draftState.conflict) return;
       }
-      if(!value) {
-        setBusy(true);
-        try { await flushDraft(); } catch { return; } finally { setBusy(false); }
-      }
       editing = value; renderDoc(pages.find(p => p.id === current));
-      $('save-state').textContent = 'Tersimpan di server';
-      if(editing) { $('markdown-editor').value = draftState.content; $('markdown-editor').focus(); }
+      if(editing) $('markdown-editor').focus();
     }
     async function saveDoc() {
-      if(!editing || saving) return;
-      const page = pages.find(p => p.id === current); const content = $('markdown-editor').value;
+      if(saving || !isDirty() || draftState?.conflict || !draftState?.resolved) return;
+      const page = pages.find(p => p.id === current); const content = documentContent();
       setBusy(true); $('save-document').disabled = true; $('save-state').textContent = 'Menyimpan…';
       try {
         await flushDraft();
         const data = await api('save', { filePath: page.path, content, revision: page.revision, draftToken: draftState?.token || undefined });
         page.body = content; page.html = data.html; page.modified = data.modified; page.revision = data.revision;
         draftState = { id: page.id, token: null, content, conflict: false, resolved: true };
-        editing = false; renderDoc(page); $('save-state').textContent = 'Tersimpan di server'; notify('Perubahan disimpan.');
+        renderDoc(page); $('save-state').textContent = ''; notify('Perubahan disimpan.');
       } catch (error) { $('save-state').textContent = 'Gagal menyimpan'; notify(error.message); }
-      finally { setBusy(false); if($('save-document')) $('save-document').disabled = false; }
+      finally { setBusy(false); }
     }
     function downloadDoc() {
       const page = pages.find(p => p.id === current);
@@ -465,7 +472,7 @@ const $ = id => document.getElementById(id);
       if(boot.mode !== 'workspace') return;
       if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); if(!document.querySelector('dialog[open]')) openSearch(); }
       if(event.key === 'Escape') { resetFileDrag(); closeSidebar(); }
-      if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && editing) { event.preventDefault(); if(!$('upload-dialog').open) saveDoc(); }
+      if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && pages.find(page => page.id === current)?.type === 'doc') { event.preventDefault(); if(!document.querySelector('dialog[open]')) saveDoc(); }
     });
     window.addEventListener('beforeunload', event => { if(isDirty() || saving) { event.preventDefault(); event.returnValue = ''; } });
     window.addEventListener('pageshow', event => { if(event.persisted) location.reload(); });
@@ -473,7 +480,7 @@ const $ = id => document.getElementById(id);
       if(boot.mode !== 'workspace') return;
       if(saving) { history.pushState({id: current}, '', activeUrl); notify('Tunggu hingga proses selesai.'); return; }
       let key; try { key = decodeURIComponent(location.pathname.slice(basePath.length)).replace(/\/$/, '') || '/'; } catch { location.reload(); return; }
-      const id = new URLSearchParams(location.search).get('view') === 'recent' ? 'recent' : pages.find(p => p.path === key)?.id;
+      const id = requestedView() || pages.find(p => p.path === key)?.id;
       if(!id) { if(canLeave()) location.reload(); else history.pushState({id: current}, '', activeUrl); return; }
       if(id !== current && !await navigate(id, 'none')) history.pushState({id: current}, '', activeUrl);
     });

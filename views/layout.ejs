@@ -16,7 +16,8 @@
     systemTheme.addEventListener('change', applyTheme);
   </script>
   <link rel="preload" href="<%= basePath %>/static/fonts/inter-variable.ttf" as="font" type="font/ttf" crossorigin>
-  <link rel="stylesheet" href="<%= basePath %>/static/style.css">
+  <% if (JSON.parse(bootstrap).mode === 'workspace') { %><link rel="stylesheet" href="<%= basePath %>/static/editor/<%= editorVersion %>/dist/index.css"><% } %>
+  <link rel="stylesheet" href="<%= basePath %>/static/style.css?v=<%= assetVersion %>">
 </head>
 <body>
   <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg"><defs>
@@ -53,9 +54,6 @@
       <button class="nav-item" onclick="openSearch()"><svg><use href="#i-search"/></svg><span>Cari catatan</span><kbd>Ctrl K</kbd></button>
       <button class="nav-item active" data-nav="home" onclick="navigate('home')"><svg><use href="#i-home"/></svg><span>Ruang kerja</span></button>
       <button class="nav-item" data-nav="recent" onclick="navigate('recent')"><svg><use href="#i-clock"/></svg><span>Terakhir dibuka</span></button>
-      <button class="nav-item" onclick="openTrash()"><svg><use href="#i-trash"/></svg><span>Sampah</span></button>
-      <button class="nav-item" onclick="openTemplates()"><svg><use href="#i-doc"/></svg><span>Template</span></button>
-      <button class="nav-item" onclick="openActivity()"><svg><use href="#i-clock"/></svg><span>Aktivitas</span></button>
       <button class="nav-item" id="import-preferences" onclick="importBrowserPreferences()" hidden><svg><use href="#i-upload"/></svg><span>Impor favorit browser</span></button>
       <div class="nav-section"><div class="section-label">Favorit</div><div id="favorites"></div></div>
       <nav class="nav-section" aria-label="Folder dokumen">
@@ -63,7 +61,13 @@
         <div id="folder-tree"></div>
         <button class="nav-item" onclick="openCreate('folder')"><svg><use href="#i-plus"/></svg><span>Tambah folder</span></button>
       </nav>
-      <div class="sidebar-bottom"><button class="nav-item" onclick="document.getElementById('upload-input').click()"><svg><use href="#i-upload"/></svg><span>Import Markdown</span></button><button class="nav-item" onclick="logout()"><svg><use href="#i-lock"/></svg><span>Keluar</span></button></div>
+      <nav class="nav-section" aria-label="Pengelolaan workspace">
+        <div class="section-label">Pengelolaan</div>
+        <button class="nav-item" data-nav="trash" onclick="openTrash()"><svg><use href="#i-trash"/></svg><span>Sampah</span></button>
+        <button class="nav-item" data-nav="templates" onclick="openTemplates()"><svg><use href="#i-doc"/></svg><span>Template</span></button>
+        <button class="nav-item" data-nav="activity" onclick="openActivity()"><svg><use href="#i-clock"/></svg><span>Aktivitas</span></button>
+      </nav>
+      <div class="sidebar-bottom"><button class="nav-item" onclick="logout()"><svg><use href="#i-lock"/></svg><span>Keluar</span></button></div>
       </div>
       <label class="theme-setting" for="theme-select"><svg aria-hidden="true"><use href="#i-theme"/></svg><span>Tampilan</span><select id="theme-select" onchange="setTheme(this.value)"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>
     </aside>
@@ -134,8 +138,10 @@
   <dialog id="tool-dialog" aria-labelledby="tool-title" oncancel="if(toolBusy) event.preventDefault()"><div class="dialog-head"><h2 id="tool-title"></h2><button type="button" class="icon-button" onclick="if(!toolBusy) document.getElementById('tool-dialog').close()" aria-label="Tutup dialog"><svg><use href="#i-close"/></svg></button></div><div class="dialog-body" id="tool-body"></div><p class="delete-error tool-error" id="tool-error" role="alert"></p></dialog>
   <div class="toast" id="toast" role="status" hidden></div>
   <script id="bootstrap" type="application/json"><%- bootstrap %></script>
-  <script src="<%= basePath %>/static/workspace-tools.js" defer></script>
-  <script src="<%= basePath %>/static/app.js" defer></script>
+  <% if (JSON.parse(bootstrap).mode === 'workspace') { %><script src="<%= basePath %>/static/editor/<%= editorVersion %>/dist/index.min.js" defer></script><% } %>
+  <script src="<%= basePath %>/static/live-editor.js?v=<%= assetVersion %>" defer></script>
+  <script src="<%= basePath %>/static/workspace-tools.js?v=<%= assetVersion %>" defer></script>
+  <script src="<%= basePath %>/static/app.js?v=<%= assetVersion %>" defer></script>
   <noscript><p class="empty">Aktifkan JavaScript untuk membuka MD Previewer.</p></noscript>
 </body>
 </html>

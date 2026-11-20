@@ -78,6 +78,10 @@ const sanitizeOptions = {
 // View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+const assetHash = require('node:crypto').createHash('sha256');
+for (const file of ['style.css', 'live-editor.js', 'workspace-tools.js', 'app.js']) assetHash.update(fs.readFileSync(path.join(__dirname, 'public', file)));
+app.locals.assetVersion = assetHash.digest('hex').slice(0, 12);
+app.locals.editorVersion = require('vditor/package.json').version;
 
 // Trust proxy (behind nginx)
 app.set('trust proxy', 1);
@@ -88,6 +92,7 @@ routes.use(morgan('combined', {
 }));
 
 // Static assets
+routes.use('/static/editor/' + app.locals.editorVersion + '/dist', express.static(path.join(path.dirname(require.resolve('vditor/package.json')), 'dist')));
 routes.use('/static', express.static(path.join(__dirname, 'public')));
 
 // Parse JSON bodies.
@@ -207,7 +212,7 @@ function renderPage(res, bootstrap, status = 200) {
   res.set('Cache-Control', 'no-store');
   res.set('X-Content-Type-Options', 'nosniff');
   res.set('Referrer-Policy', 'same-origin');
-  return res.status(status).render('layout', { bootstrap: JSON.stringify({ ...bootstrap, basePath: res.locals.basePath }).replace(/</g, '\\u003c') });
+  return res.status(status).render('layout', { bootstrap: JSON.stringify({ ...bootstrap, basePath: res.locals.basePath, editorVersion: app.locals.editorVersion }).replace(/</g, '\\u003c') });
 }
 
 // API: verify access code (rate limited)

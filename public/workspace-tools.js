@@ -1,5 +1,14 @@
 let draftState = null, draftTimer, draftRequest = null, toolBusy = false, searchSequence = 0, searchTimer;
 let availableTemplates = [], selectedVersion = null;
+const managementPages = {
+  trash: { title: 'Sampah', icon: 'trash', description: 'Pulihkan item yang dihapus atau hapus secara permanen. File di sini tidak dapat dibuka melalui link publik.' },
+  templates: { title: 'Template', icon: 'doc', description: 'Kelola template untuk membuat dokumen baru.' },
+  activity: { title: 'Aktivitas', icon: 'clock', description: 'Riwayat perubahan dan aktivitas di workspace.' }
+};
+function requestedView() {
+  const view = new URLSearchParams(location.search).get('view');
+  return view === 'recent' || Object.hasOwn(managementPages, view) ? view : null;
+}
 
 function applyPreferences(preferences = {}) {
   recent = (preferences.recent || []).filter(id => pages.some(page => page.id === id));
@@ -25,15 +34,17 @@ function tool(title, content) {
 }
 async function toolAction(work, after) {
   if (toolBusy) return;
-  toolBusy = true; $('tool-error').textContent = '';
-  $('tool-dialog').querySelectorAll('button,input,select,textarea').forEach(control => control.disabled = true);
+  const scope = $('tool-dialog').open ? $('tool-dialog') : $('management-content');
+  const errorElement = $(scope === $('tool-dialog') ? 'tool-error' : 'management-error');
+  toolBusy = true; errorElement.textContent = '';
+  scope.querySelectorAll('button,input,select,textarea').forEach(control => control.disabled = true);
   try {
     const result = await work();
     if (after) await after(result);
-  } catch (error) { $('tool-error').textContent = error.message; }
+  } catch (error) { errorElement.textContent = error.message; }
   finally {
     toolBusy = false;
-    $('tool-dialog').querySelectorAll('button,input,select,textarea').forEach(control => control.disabled = false);
+    scope.querySelectorAll('button,input,select,textarea').forEach(control => control.disabled = false);
     $('version-content')?.setAttribute('readonly', '');
   }
 }
@@ -41,17 +52,29 @@ async function updateAfterMutation(message) {
   $('tool-dialog').close(); notify(message);
   try {
     editing = false; draftState = null; await refreshWorkspace();
-    await navigate(pages.some(page => page.id === current) ? current : 'home', 'replace', true);
+    await navigate(Object.hasOwn(managementPages, current) || pages.some(page => page.id === current) ? current : 'home', 'replace', true);
   } catch { notify(message + ' Muat ulang halaman untuk memperbarui daftar.'); }
 }
-async function openTrash() {
-  if (!canLeave()) return;
-  tool('Sampah', '<p role="status">Memuat sampah…</p>');
+function openTrash() { return navigate('trash'); }
+function openTemplates() { return navigate('templates'); }
+function openActivity() { return navigate('activity'); }
+async function renderManagementPage(view) {
+  const page = managementPages[view], sequence = navigationSequence;
+  $('outline').innerHTML = '';
+  $('main').innerHTML = `<div class="page-icon">${icon(page.icon)}</div><p class="page-kicker">Pengelolaan</p><h1>${page.title}</h1><p class="lead">${page.description}</p><section class="management-content" id="management-content"><p role="status">Memuat…</p></section><p class="delete-error" id="management-error" role="alert"></p>`;
   try {
-    const data = await api('trash');
-    tool('Sampah', '<p class="edit-hint">File di sini tidak dapat dibuka melalui link publik. Pulihkan untuk mengembalikannya.</p>' +
-      (data.items.map(item => `<section class="tool-row"><div><strong>${escape(item.path.split('/').pop())}</strong><small>docs${escape(item.path)} · ${escape(dateLabel(item.deleted_at))}</small></div><div class="tool-actions"><button class="small-button" onclick="restoreTrashed('${item.id}')">Pulihkan</button><button class="small-button danger" onclick="confirmPurge('${item.id}')">Hapus permanen</button></div></section>`).join('') || '<p class="empty">Sampah kosong.</p>'));
-  } catch (error) { $('tool-error').textContent = error.message; }
+    const data = await api(view);
+    if (current !== view || sequence !== navigationSequence) return;
+    if (view === 'trash') $('management-content').innerHTML = data.items.map(item => `<section class="tool-row"><div><strong>${escape(item.path.split('/').pop())}</strong><small>docs${escape(item.path)} · ${escape(dateLabel(item.deleted_at))}</small></div><div class="tool-actions"><button class="small-button" onclick="restoreTrashed('${item.id}')">Pulihkan</button><button class="small-button danger" onclick="confirmPurge('${item.id}')">Hapus permanen</button></div></section>`).join('') || '<p class="empty">Sampah kosong.</p>';
+    else if (view === 'templates') {
+      availableTemplates = data.items;
+      $('management-content').innerHTML = '<button class="small-button primary" onclick="editTemplate()">Template baru</button>' + (data.items.map(item => `<section class="tool-row"><strong>${escape(item.name)}</strong><div class="tool-actions"><button class="small-button" onclick="useTemplate('${item.id}')">Gunakan</button><button class="small-button" onclick="editTemplate('${item.id}')">Edit</button><button class="small-button danger" onclick="confirmTemplateDelete('${item.id}')">Hapus</button></div></section>`).join('') || '<p class="empty">Belum ada template.</p>');
+    } else $('management-content').innerHTML = data.items.map(item => `<section class="tool-row"><div><strong>${escape(item.action)}</strong><p>${escape(item.detail)}</p><small>${escape(new Date(item.created_at).toLocaleString('id-ID'))}</small></div></section>`).join('') || '<p class="empty">Belum ada aktivitas.</p>';
+  } catch (error) {
+    if (current !== view || sequence !== navigationSequence) return;
+    $('management-content').innerHTML = `<button class="small-button" onclick="navigate('${view}','replace')">Coba lagi</button>`;
+    $('management-error').textContent = error.message;
+  }
 }
 function restoreTrashed(id) {
   toolAction(() => api('trash/restore', { id }), () => updateAfterMutation('Item berhasil dipulihkan.'));
@@ -61,13 +84,6 @@ function confirmPurge(id) {
 }
 function purgeTrashed(id) {
   toolAction(() => api('trash/purge', { id, confirm: true }), () => updateAfterMutation('Item dihapus permanen.'));
-}
-async function openActivity() {
-  tool('Aktivitas workspace', '<p role="status">Memuat aktivitas…</p>');
-  try {
-    const data = await api('activity');
-    tool('Aktivitas workspace', data.items.map(item => `<section class="tool-row"><div><strong>${escape(item.action)}</strong><p>${escape(item.detail)}</p><small>${escape(new Date(item.created_at).toLocaleString('id-ID'))}</small></div></section>`).join('') || '<p class="empty">Belum ada aktivitas.</p>');
-  } catch (error) { $('tool-error').textContent = error.message; }
 }
 async function openHistory() {
   const page = pages.find(page => page.id === current);
@@ -104,27 +120,21 @@ function moveDocument(event) {
   toolAction(() => api('move', { path: page.path, targetFolder }), () => updateAfterMutation('Item berhasil dipindahkan.'));
 }
 async function loadTemplates() { availableTemplates = (await api('templates')).items; return availableTemplates; }
-async function openTemplates() {
-  tool('Template dokumen', '<p role="status">Memuat template…</p>');
-  try {
-    await loadTemplates();
-    tool('Template dokumen', '<button class="small-button primary" onclick="editTemplate()">Template baru</button>' +
-      (availableTemplates.map(item => `<section class="tool-row"><strong>${escape(item.name)}</strong><div class="tool-actions"><button class="small-button" onclick="useTemplate('${item.id}')">Gunakan</button><button class="small-button" onclick="editTemplate('${item.id}')">Edit</button><button class="small-button danger" onclick="confirmTemplateDelete('${item.id}')">Hapus</button></div></section>`).join('') || '<p class="empty">Belum ada template.</p>'));
-  } catch (error) { $('tool-error').textContent = error.message; }
-}
 function editTemplate(id = '') {
   const item = availableTemplates.find(item => item.id === id);
-  tool(item ? 'Edit template' : 'Template baru', `<form onsubmit="saveTemplate(event,'${id}')"><label class="field-label" for="template-name">Nama template</label><input class="text-input" id="template-name" required maxlength="100" value="${escape(item?.name || '')}"><label class="field-label" for="template-content">Isi Markdown</label><textarea class="editor tool-editor" id="template-content" required>${escape(item?.content || '# Judul\n\n')}</textarea><button type="submit" class="small-button primary">Simpan template</button></form>`);
+  $('management-error').textContent = '';
+  $('management-content').innerHTML = `<h2>${item ? 'Edit template' : 'Template baru'}</h2><form onsubmit="saveTemplate(event,'${id}')"><label class="field-label" for="template-name">Nama template</label><input class="text-input" id="template-name" required maxlength="100" value="${escape(item?.name || '')}"><label class="field-label" for="template-content">Isi Markdown</label><textarea class="editor tool-editor" id="template-content" required>${escape(item?.content || '# Judul\n\n')}</textarea><div class="tool-actions"><button type="button" class="small-button" onclick="openTemplates()">Batal</button><button type="submit" class="small-button primary">Simpan template</button></div></form>`;
+  $('template-name').focus();
 }
 function saveTemplate(event, id) {
   event.preventDefault();
   const body = { id: id || undefined, name: $('template-name').value, content: $('template-content').value };
-  toolAction(() => api('templates/save', body), openTemplates);
+  toolAction(() => api('templates/save', body), () => updateAfterMutation('Template berhasil disimpan.'));
 }
 function confirmTemplateDelete(id) {
   tool('Hapus template?', '<p>Dokumen yang sudah dibuat dari template ini tetap tersimpan.</p><div class="tool-actions"><button class="small-button" onclick="openTemplates()">Batal</button><button class="small-button destructive" onclick="deleteTemplate(\'' + id + '\')">Hapus template</button></div>');
 }
-function deleteTemplate(id) { toolAction(() => api('templates/delete', { id, confirm: true }), openTemplates); }
+function deleteTemplate(id) { toolAction(() => api('templates/delete', { id, confirm: true }), () => updateAfterMutation('Template dihapus.')); }
 async function prepareTemplatePicker() {
   const select = $('new-template');
   select.innerHTML = '<option value="">Halaman kosong</option>'; select.disabled = true;
@@ -145,6 +155,13 @@ function useTemplate(id) {
 function documentInitialContent(name) {
   return availableTemplates.find(item => item.id === $('new-template').value)?.content || '# ' + name.replace(/\.md$/i, '') + '\n\n';
 }
+function highlightSearch(value, query) {
+  const terms = [...new Set([query.trim(), ...(query.match(/[\p{L}\p{N}]+/gu) || [])])]
+    .filter(Boolean).sort((a, b) => b.length - a.length);
+  if (!terms.length) return escape(value);
+  const pattern = new RegExp('(' + terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'giu');
+  return String(value).split(pattern).map((part, index) => index % 2 ? '<mark>' + escape(part) + '</mark>' : escape(part)).join('');
+}
 async function renderFullSearch() {
   const text = $('search-input').value.trim(), sequence = ++searchSequence;
   if (!text) { $('search-results').innerHTML = '<p class="empty">Cari judul, path, atau isi dokumen.</p>'; return; }
@@ -152,7 +169,7 @@ async function renderFullSearch() {
   try {
     const data = await api('search?q=' + encodeURIComponent(text));
     if (sequence !== searchSequence) return;
-    $('search-results').innerHTML = data.items.map(item => `<button class="search-result" onclick="document.getElementById('search-dialog').close();navigate('${item.id}')">${icon(item.kind === 'folder' ? 'folder' : 'doc')}<span>${escape(item.path.split('/').pop())}<small>docs${escape(item.path)}</small><small class="search-snippet">${escape(item.snippet)}</small></span></button>`).join('') || '<p class="empty">Tidak ada hasil yang cocok.</p>';
+    $('search-results').innerHTML = data.items.map(item => `<button class="search-result" onclick="document.getElementById('search-dialog').close();navigate('${item.id}')">${icon(item.kind === 'folder' ? 'folder' : 'doc')}<span>${highlightSearch(item.path.split('/').pop(), text)}<small>${highlightSearch('docs' + item.path, text)}</small><small class="search-snippet">${highlightSearch(item.snippet, text)}</small></span></button>`).join('') || '<p class="empty">Tidak ada hasil yang cocok.</p>';
   } catch (error) { if (sequence === searchSequence) $('search-results').innerHTML = '<p class="empty" role="alert">' + escape(error.message) + '</p>'; }
 }
 function scheduleSearch() { clearTimeout(searchTimer); ++searchSequence; searchTimer = setTimeout(renderFullSearch, 250); }
@@ -166,13 +183,16 @@ async function loadDraft(page) {
     const stale = data.draft.base_revision !== page.revision;
     tool('Draft belum disimpan', `<p>${stale ? 'Dokumen sudah berubah sejak draft ini dibuat. Salin atau unduh draft sebelum menggabungkannya dengan versi terbaru.' : 'Ada draft dari sesi sebelumnya. Pulihkan untuk melanjutkan tulisan.'}</p><textarea class="editor tool-editor" id="recovery-content" readonly>${escape(data.draft.content)}</textarea><div class="tool-actions"><button class="small-button" onclick="copyDraft()">Salin draft</button><button class="small-button" onclick="downloadDraft()">Unduh draft</button><button class="small-button danger" onclick="discardDraft()">Buang draft</button>${stale ? '' : '<button class="small-button primary" onclick="recoverDraft()">Lanjutkan draft</button>'}</div>`);
   }
+  syncEditorLock();
 }
 function recoverDraft() {
   const page = pages.find(page => page.id === current);
   if (!page || draftState?.id !== page.id) return;
   const content = draftState.content;
   draftState.resolved = true;
-  $('tool-dialog').close(); editing = true; renderDoc(page); $('markdown-editor').value = content; $('markdown-editor').focus();
+  documentBuffer = { id: page.id, content };
+  $('tool-dialog').close(); renderDoc(page);
+  if (editing) $('markdown-editor').focus();
   $('save-state').textContent = 'Draft dipulihkan';
 }
 async function copyDraft() {
@@ -185,26 +205,26 @@ function downloadDraft() {
 }
 function discardDraft() {
   const page = pages.find(page => page.id === current), token = draftState?.token;
-  toolAction(() => api('draft/discard', { filePath: page.path, token }), () => { draftState = { id: page.id, token: null, content: page.body, conflict: false, resolved: true }; $('tool-dialog').close(); });
+  toolAction(() => api('draft/discard', { filePath: page.path, token }), () => { draftState = { id: page.id, token: null, content: page.body, conflict: false, resolved: true }; documentBuffer = { id: page.id, content: page.body }; $('tool-dialog').close(); renderDoc(page); });
 }
 function scheduleDraft() {
   clearTimeout(draftTimer);
-  $('save-state').textContent = isDirty() ? 'Draft menunggu disimpan…' : 'Tersimpan di server';
+  $('save-state').textContent = isDirty() ? 'Draft menunggu disimpan…' : '';
   draftTimer = setTimeout(() => flushDraft().catch(() => {}), 1000);
 }
 async function flushDraft() {
   clearTimeout(draftTimer);
   if (draftRequest) { await draftRequest; return flushDraft(); }
-  const page = pages.find(page => page.id === current), editor = $('markdown-editor');
-  if (!editing || !editor || !page || !isDirty()) return;
+  const page = pages.find(page => page.id === current);
+  if (documentBuffer?.id !== current || !page || (!isDirty() && !draftState?.token)) return;
   if (draftState?.id !== page.id || draftState.conflict || !draftState.resolved) throw new Error('Periksa draft atau versi dokumen sebelum melanjutkan.');
-  const state = draftState, content = editor.value;
+  const state = draftState, content = documentContent();
   if (content === state.content) return;
   draftRequest = api('draft', { filePath: page.path, content, revision: page.revision, token: state.token }).then(data => {
     state.token = data.token; state.content = content;
-    if (draftState === state) $('save-state').textContent = 'Draft tersimpan · belum dipublikasikan';
+    if (draftState === state) $('save-state').textContent = isDirty() ? 'Draft tersimpan · belum dipublikasikan' : '';
   }).catch(error => {
-    if (error.status === 409) state.conflict = true;
+    if (error.status === 409) { state.conflict = true; syncEditorLock(); }
     $('save-state').textContent = 'Draft belum tersimpan'; notify(error.message); throw error;
   }).finally(() => { draftRequest = null; });
   await draftRequest;
@@ -226,7 +246,11 @@ function decorateHeadings(container, withOutline = false) {
 }
 function scrollToHash() {
   if (!location.hash) return;
-  try { document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView(); } catch {}
+  try {
+    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (target) target.scrollIntoView();
+    else [...$('outline').querySelectorAll('a')].find(link => link.getAttribute('href') === location.hash)?.click();
+  } catch {}
 }
 function oldPreferencePath(id) {
   if (id === 'home') return '/';
@@ -245,10 +269,10 @@ async function initializeWorkspace() {
   applyPreferences(boot.preferences);
   $('import-preferences').hidden = Boolean(boot.preferences?.preferences_imported) || ![...readPreference('md-previewer-favorites'), ...readPreference('md-previewer-recent')].length;
   const initialHash = location.hash;
-  await navigate(new URLSearchParams(location.search).get('view') === 'recent' ? 'recent' : boot.current || 'home', 'replace');
+  await navigate(requestedView() || boot.current || 'home', 'replace');
   if (initialHash) { history.replaceState(history.state, '', location.pathname + location.search + initialHash); scrollToHash(); }
   setInterval(async () => {
-    const blocked = () => document.hidden || saving || editing || navigationPending || draftRequest || toolBusy || document.querySelector('dialog[open]');
+    const blocked = () => document.hidden || saving || editing || isDirty() || $('live-editor')?.contains(document.activeElement) || navigationPending || draftRequest || toolBusy || document.querySelector('dialog[open]');
     if (blocked()) return;
     const sequence = navigationSequence, viewed = current;
     try {
@@ -266,10 +290,11 @@ async function initializeWorkspace() {
       }
       pages = next;
       applyPreferences(data.preferences); renderTree();
+      if (Object.hasOwn(managementPages, current)) return;
       if (current === 'recent') render();
       else if (!page) await navigate('home', 'replace');
       else if (changed) {
-        draftState = null; renderBreadcrumbs(); render();
+        draftState = null; documentBuffer = null; renderBreadcrumbs(); render();
         history.replaceState({ id: current }, '', urlFor(page)); activeUrl = urlFor(page);
         await loadDraft(page);
       }
