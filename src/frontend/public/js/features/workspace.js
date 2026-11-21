@@ -7,7 +7,10 @@ export function createFeature({ state, actions }) {
   }
 
   function header(page) {
-    return `<div class="page-icon">${actions.icon(page.type === "doc" ? "doc" : "book")}</div><p class="page-kicker">${page.type === "doc" ? actions.escape(state.pages.find((p) => p.id === page.parent)?.title || "Workspace") : "Personal workspace"}</p><h1>${actions.escape(page.title)}</h1><p class="lead">${actions.escape(page.description || "Sebuah ruang baru untuk catatanmu.")}</p><div class="page-meta">${page.type === "doc" ? `<button class="access-meta ${page.visibility === "public" ? "public-access" : ""}" id="file-access" data-action="openShare" data-arg="${page.id}" aria-label="Atur akses file">${actions.accessLabel(page)}</button>` : `<span>${actions.icon("lock")}Workspace pribadi</span>`}<span>${actions.icon(page.type === "doc" ? "doc" : "folder")}${page.type === "doc" ? "Dokumen Markdown" : "Koleksi dokumen"}</span><span>${actions.escape(actions.dateLabel(page.modified))}</span></div>`;
+    const title = page.type === "doc"
+      ? `<h1 id="document-title"><button type="button" class="document-title-button" id="document-title-button" data-action="editDocumentName" title="Ganti nama file" aria-label="Ganti nama file: ${actions.escape(page.title)}">${actions.escape(page.title)}</button></h1><form id="document-rename-form" data-submit="renameItem" data-arg="${page.id}" hidden><label class="field-label" for="document-name">Nama file</label><input class="text-input" id="document-name" required maxlength="100" autocomplete="off" aria-describedby="document-name-hint"><p class="edit-hint" id="document-name-hint">Nama hanya berubah setelah disimpan. URL file mengikuti nama baru.</p><div class="tool-actions"><button type="submit" class="small-button primary">Simpan nama</button><button type="button" class="small-button" data-action="cancelDocumentRename">Batal</button></div></form>`
+      : `<h1>${actions.escape(page.title)}</h1>`;
+    return `<div class="page-icon">${actions.icon(page.type === "doc" ? "doc" : "book")}</div><p class="page-kicker">${page.type === "doc" ? actions.escape(state.pages.find((p) => p.id === page.parent)?.title || "Workspace") : "Personal workspace"}</p>${title}<p class="lead">${actions.escape(page.description || "Sebuah ruang baru untuk catatanmu.")}</p><div class="page-meta">${page.type === "doc" ? `<button class="access-meta ${page.visibility === "public" ? "public-access" : ""}" id="file-access" data-action="openShare" data-arg="${page.id}" aria-label="Atur akses file">${actions.accessLabel(page)}</button>` : `<span>${actions.icon("lock")}Workspace pribadi</span>`}<span>${actions.icon(page.type === "doc" ? "doc" : "folder")}${page.type === "doc" ? "Dokumen Markdown" : "Koleksi dokumen"}</span><span>${actions.escape(actions.dateLabel(page.modified))}</span></div>`;
   }
 
   function render() {
@@ -51,6 +54,11 @@ export function createFeature({ state, actions }) {
     renderEntries();
     actions.$("outline").innerHTML =
       `<div class="outline-title">DI HALAMAN INI</div>${state.current === "home" ? '<a href="#recent-section">Terakhir dibuka</a>' : ""}<a href="#documents-section">${isRecent ? "Riwayat bacaan" : "Isi workspace"}</a><a href="#note-section">Catatan kecil</a><div class="outline-help"><kbd>Ctrl</kbd> + <kbd>K</kbd> untuk cari<br><kbd>Esc</kbd> untuk tutup dialog</div>`;
+    actions.trackOutline(
+      [...actions.$("outline").querySelectorAll("a")].map((link) =>
+        document.getElementById(link.getAttribute("href").slice(1)),
+      ),
+    );
   }
 
   function setFilter(value) {

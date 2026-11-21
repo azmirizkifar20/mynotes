@@ -11,11 +11,12 @@ module.exports = session({
   secret: env.sessionSecret,
   resave: false,
   saveUninitialized: false,
+  rolling: true,
   name: "mdprev.sid",
   cookie: {
     httpOnly: true,
     secure: env.production || "auto",
     sameSite: "strict",
-    maxAge: 30 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   },
 });

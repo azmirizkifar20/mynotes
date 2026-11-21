@@ -1,14 +1,14 @@
 const app = require("./app");
 const db = require("./database");
 const mirror = require("./modules/documents/mirror");
-const { port: PORT } = require("./config/env");
+const { port: PORT, host: HOST } = require("./config/env");
 async function start() {
   await db.initialize();
   await db.ready();
   await mirror.sync();
   mirror.start();
-  const server = app.listen(PORT, () =>
-    console.log("MD Previewer ready on port " + PORT),
+  const server = app.listen(PORT, HOST, () =>
+    console.log("MD Previewer ready on " + HOST + ":" + PORT),
   );
   async function stop() {
     server.close(async () => {

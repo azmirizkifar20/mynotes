@@ -1,4 +1,5 @@
 export function createFeature({ state, actions }) {
+  let lastSaveError = null;
   async function loadDraft(page) {
     clearTimeout(state.draftTimer);
     const sequence = state.navigationSequence;
@@ -31,7 +32,7 @@ export function createFeature({ state, actions }) {
     actions.$("tool-dialog").close();
     actions.renderDoc(page);
     if (state.editing) actions.$("markdown-editor").focus();
-    actions.$("save-state").textContent = "Draft dipulihkan";
+    scheduleDraft();
   }
 
   async function copyDraft() {
@@ -78,11 +79,20 @@ export function createFeature({ state, actions }) {
     );
   }
 
+  function showSaveState(message) {
+    for (const id of ["save-state", "document-save-state"]) {
+      const element = actions.$(id);
+      if (element) element.textContent = message;
+    }
+  }
+
   function scheduleDraft() {
     clearTimeout(state.draftTimer);
-    actions.$("save-state").textContent = actions.isDirty()
-      ? "Draft menunggu disimpan…"
-      : "";
+    showSaveState(
+      state.draftRequest ? "Menyimpan…" : actions.isDirty()
+        ? "Menunggu disimpan…"
+        : "Semua perubahan tersimpan",
+    );
     state.draftTimer = setTimeout(() => flushDraft().catch(() => {}), 1000);
   }
 
@@ -107,34 +117,59 @@ export function createFeature({ state, actions }) {
       throw new Error("Periksa draft atau versi dokumen sebelum melanjutkan.");
     const draft = state.draftState,
       content = actions.documentContent();
-    if (content === draft.content) return;
-    state.draftRequest = actions
-      .api("draft", {
+    showSaveState("Menyimpan…");
+    state.draftRequest = (async () => {
+      if (content !== draft.content) {
+        const data = await actions.api("draft", {
+          filePath: page.path,
+          content,
+          revision: page.revision,
+          token: draft.token,
+        });
+        draft.token = data.token;
+        draft.content = content;
+      }
+      const data = await actions.api("save", {
         filePath: page.path,
         content,
         revision: page.revision,
-        token: draft.token,
-      })
-      .then((data) => {
-        draft.token = data.token;
-        draft.content = content;
-        if (state.draftState === draft)
-          actions.$("save-state").textContent = actions.isDirty()
-            ? "Draft tersimpan · belum dipublikasikan"
-            : "";
-      })
+        draftToken: draft.token || undefined,
+      });
+      page.body = content;
+      page.html = data.html;
+      page.modified = data.modified;
+      page.revision = data.revision;
+      draft.token = null;
+      lastSaveError = null;
+      const revision = actions.$("document-revision");
+      const modified = actions.$("document-modified");
+      if (revision) revision.textContent = `${page.title}.md · Versi ${page.revision}`;
+      if (modified) modified.textContent = actions.dateLabel(page.modified);
+      showSaveState(actions.isDirty() ? "Menunggu disimpan…" : "Semua perubahan tersimpan");
+      if (actions.isDirty()) scheduleDraft();
+    })()
       .catch((error) => {
         if (error.status === 409) {
           draft.conflict = true;
           actions.syncEditorLock();
         }
-        actions.$("save-state").textContent = "Draft belum tersimpan";
-        actions.notify(error.message);
+        clearTimeout(state.draftTimer);
+        showSaveState(
+          error.status === 409
+            ? "Konflik perubahan · salin tulisan sebelum memuat ulang"
+            : "Belum tersimpan · tulisan tetap ada di editor",
+        );
+        if (!error.status || error.status >= 500)
+          state.draftTimer = setTimeout(() => flushDraft().catch(() => {}), 5000);
+        if (lastSaveError !== error.message) actions.notify(error.message);
+        lastSaveError = error.message;
         throw error;
       })
       .finally(() => {
         state.draftRequest = null;
+        actions.syncDocumentSave();
       });
+    actions.syncDocumentSave();
     await state.draftRequest;
   }
   return {

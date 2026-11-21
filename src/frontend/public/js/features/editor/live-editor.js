@@ -24,6 +24,7 @@ export function createFeature({ state, actions }) {
     if (button)
       button.disabled =
         state.saving ||
+        Boolean(state.draftRequest) ||
         !actions.isDirty() ||
         !state.draftState?.resolved ||
         state.draftState.conflict;
@@ -43,6 +44,7 @@ export function createFeature({ state, actions }) {
   }
 
   function destroyLiveEditor() {
+    actions.trackOutline([]);
     state.liveEditorGeneration++;
     if (state.liveEditorReady) state.liveEditor.destroy();
     state.liveEditor = null;
@@ -73,7 +75,7 @@ export function createFeature({ state, actions }) {
             ? "dark"
             : "classic",
         cache: { enable: false },
-        toolbar: [],
+        toolbar: ["outdent", "indent"],
         toolbarConfig: { hide: true },
         minHeight: 250,
         height: "auto",
@@ -116,11 +118,52 @@ export function createFeature({ state, actions }) {
       state.liveEditor = instance;
       element.addEventListener("keydown", (event) => {
         if (
+          generation !== state.liveEditorGeneration ||
+          !state.liveEditorReady ||
+          state.saving ||
+          state.draftState?.id !== state.current ||
+          !state.draftState.resolved ||
+          state.draftState.conflict
+        )
+          return;
+        if (
           (event.ctrlKey || event.metaKey) &&
           ["b", "i", "z", "y"].includes(event.key.toLowerCase())
         )
           state.liveEditorTouched = true;
-      });
+        if (
+          event.key !== "Tab" ||
+          event.ctrlKey || event.metaKey || event.altKey || event.isComposing
+        )
+          return;
+        const selection = document.getSelection();
+        if (!selection?.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        const start = range.startContainer.nodeType === Node.ELEMENT_NODE
+          ? range.startContainer
+          : range.startContainer.parentElement;
+        const editor = element.querySelector('.vditor-ir [contenteditable="true"]');
+        const item = start?.closest("li");
+        if (
+          !editor || !item || !editor.contains(item) ||
+          !editor.contains(event.target) || !event.target.isContentEditable ||
+          !editor.contains(range.endContainer) ||
+          start.closest("table, .vditor-ir__marker--pre")
+        )
+          return;
+        const command = element.querySelector(
+          `button[data-type="${event.shiftKey ? "outdent" : "indent"}"]`,
+        );
+        if (!command || command.disabled || command.classList.contains("vditor-menu--disabled"))
+          return;
+        event.preventDefault();
+        event.stopPropagation();
+        state.liveEditorTouched = true;
+        command.dispatchEvent(new Event(
+          navigator.userAgent.includes("iPhone") ? "touchstart" : "click",
+          { bubbles: true, cancelable: true },
+        ));
+      }, true);
       for (const event of ["input", "change"])
         element.addEventListener(event, () => {
           if (
@@ -149,35 +192,27 @@ export function createFeature({ state, actions }) {
     actions.$("outline").innerHTML =
       '<div class="outline-title">DI HALAMAN INI</div>';
     const slugs = new Set();
-    actions
+    const headings = actions
       .$("live-editor")
-      .querySelectorAll("h1,h2,h3,h4,h5,h6")
-      .forEach((heading) => {
-        const text = heading.textContent.replace(/^#+\s*/, "");
-        const base =
-          text
-            .normalize("NFKD")
-            .toLowerCase()
-            .replace(/[^\p{L}\p{N}]+/gu, "-")
-            .replace(/^-|-$/g, "") || "section";
-        let slug = base,
-          count = 1;
-        while (slugs.has(slug)) slug = base + "-" + count++;
-        slugs.add(slug);
-        const link = document.createElement("a");
-        link.href = "#" + slug;
-        link.textContent = text;
-        link.addEventListener("click", (event) => {
-          event.preventDefault();
-          heading.scrollIntoView();
-          history.replaceState(
-            history.state,
-            "",
-            location.pathname + location.search + "#" + slug,
-          );
-        });
-        actions.$("outline").append(link);
-      });
+      .querySelectorAll("h1,h2,h3,h4,h5,h6");
+    headings.forEach((heading) => {
+      const text = heading.textContent.replace(/^#+\s*/, "");
+      const base =
+        text
+          .normalize("NFKD")
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}]+/gu, "-")
+          .replace(/^-|-$/g, "") || "section";
+      let slug = base,
+        count = 1;
+      while (slugs.has(slug)) slug = base + "-" + count++;
+      slugs.add(slug);
+      const link = document.createElement("a");
+      link.href = "#" + slug;
+      link.textContent = text;
+      actions.$("outline").append(link);
+    });
+    actions.trackOutline(headings);
   }
   return {
     documentContent,

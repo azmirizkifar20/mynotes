@@ -25,21 +25,61 @@ export function createFeature({ state, actions }) {
     actions.$("manage-dialog").showModal();
   }
 
-  async function renameItem(event) {
+  function clearNameValidity(event) {
+    event.target.setCustomValidity("");
+  }
+
+  function renameKeydown(event) {
+    if (event.key === "Escape" && !event.isComposing) {
+      event.preventDefault();
+      event.stopPropagation();
+      cancelDocumentRename();
+    }
+  }
+
+  function editDocumentName() {
+    const page = state.pages.find((p) => p.id === state.current);
+    if (page?.type !== "doc" || state.saving || state.navigationPending || state.toolBusy)
+      return;
+    const input = actions.$("document-name");
+    input.value = page.title;
+    input.setCustomValidity("");
+    input.addEventListener("input", clearNameValidity);
+    actions.$("document-rename-form").addEventListener("keydown", renameKeydown);
+    actions.$("document-title").hidden = true;
+    actions.$("document-rename-form").hidden = false;
+    input.focus();
+    input.select();
+  }
+
+  function cancelDocumentRename() {
+    if (state.saving) return;
+    actions.$("document-rename-form").hidden = true;
+    actions.$("document-title").hidden = false;
+    actions.$("document-title-button").focus();
+  }
+
+  async function renameItem(event, id = state.manageId) {
     event.preventDefault();
-    const name = actions.$("rename-name").value.trim();
+    if (state.saving || state.navigationPending || state.toolBusy) return;
+    const inline = event.target.id === "document-rename-form";
+    const input = actions.$(inline ? "document-name" : "rename-name");
+    const name = input.value.trim();
     if (!actions.validName(name)) {
-      actions.$("rename-name").setCustomValidity("Nama tidak valid.");
-      actions.$("rename-name").reportValidity();
+      input.setCustomValidity("Nama tidak valid.");
+      input.reportValidity();
       return;
     }
-    if (!actions.canLeave()) return;
-    const page = state.pages.find((p) => p.id === state.manageId),
+    if (!inline && !actions.canLeave()) return;
+    const page = state.pages.find((p) => p.id === id),
       oldPages = state.pages;
-    const submit = event.submitter;
-    submit.disabled = true;
+    if (!page || (inline && (page.type !== "doc" || id !== state.current))) return;
+    if (inline && name === page.title) return cancelDocumentRename();
+    const controls = [...event.target.elements];
+    controls.forEach((control) => { control.disabled = true; });
     actions.setBusy(true);
     try {
+      if (inline) await actions.flushDraft();
       const result = await actions.api("rename", {
         path: page.path,
         newName: name,
@@ -66,13 +106,14 @@ export function createFeature({ state, actions }) {
         true,
       );
       actions.notify(
-        "Nama diperbarui. Pengaturan akses dan link berbagi tetap tersimpan.",
+        "Nama diperbarui. URL mengikuti nama baru; pengaturan akses tetap tersimpan.",
       );
+      if (inline) actions.$("document-title-button")?.focus();
     } catch (error) {
       actions.notify(error.message);
     } finally {
       actions.setBusy(false);
-      submit.disabled = false;
+      controls.forEach((control) => { control.disabled = false; });
     }
   }
 
@@ -249,6 +290,8 @@ export function createFeature({ state, actions }) {
     createDocument,
     openCreate,
     openManage,
+    editDocumentName,
+    cancelDocumentRename,
     renameItem,
     deleteItem,
     closeDeleteDialog,

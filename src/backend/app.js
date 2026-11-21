@@ -10,7 +10,7 @@ const { documentData } = require("./modules/documents/markdown");
 const app = express();
 app.set("view engine", "ejs");
 app.set("views", paths.views);
-app.set("trust proxy", 1);
+app.set("trust proxy", "loopback");
 function hashAssets(directory, hash) {
   for (const name of fs.readdirSync(directory).sort()) {
     const filename = path.join(directory, name);

@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Task board · MD Previewer · Mockup</title>
+  <link rel="icon" href="../src/frontend/public/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../src/frontend/public/css/tokens.css">
+  <style>
+    /* Existing Inter/Graphite workspace, energy 1 / rhythm 2 / motion 1.
+       Neutral columns group work; small colored dots distinguish editable statuses.
+       Only dialogs are elevated. Cards stay flat, with whitespace for scanning titles. */
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.55 var(--sans); }
+    button, input, textarea, select { font: inherit; color: inherit; }
+    button, select { cursor: pointer; }
+    button { background: none; border: 0; }
+    button:hover { background: var(--hover); }
+    button:disabled { cursor: default; opacity: .4; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+    .shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100dvh; }
+    .sidebar { height: 100dvh; position: sticky; top: 0; background: var(--sidebar); border-right: 1px solid var(--line); padding: 20px 12px 12px; display: flex; flex-direction: column; }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 28px; font-size: 16px; font-weight: 650; letter-spacing: -.3px; }
+    .mark { display: grid; place-items: center; width: 30px; height: 32px; border-radius: 5px; background: var(--tint); color: var(--accent); font-size: 23px; }
+    .brand small { display: block; font-size: 11px; font-weight: 400; letter-spacing: 0; color: var(--muted); }
+    .side-content { flex: 1; overflow: auto; }
+    .side-context { padding: 8px 11px; display: flex; align-items: center; gap: 10px; color: var(--muted); }
+    .section-label { color: var(--muted); font-size: 11px; font-weight: 600; margin: 30px 11px 9px; }
+    .nav-current { display: flex; align-items: center; gap: 10px; padding: 8px 11px; border-radius: 5px; background: var(--selected); color: var(--ink); text-decoration: none; font-weight: 550; }
+    .nav-current small { margin-left: auto; color: var(--muted); font-size: 11px; font-weight: 400; }
+    .side-note { margin: 22px 11px; padding-top: 17px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+    .theme-row { border-top: 1px solid var(--line); display: flex; align-items: center; gap: 10px; padding: 15px 8px 2px; font-size: 12px; }
+    .theme-row select { margin-left: auto; width: auto; padding: 6px; background: var(--paper); }
+    main { min-width: 0; }
+    .topbar { min-height: 57px; padding: 10px 34px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; position: sticky; top: 0; background: var(--paper); z-index: 2; }
+    .breadcrumb { display: flex; gap: 13px; align-items: center; font-size: 12px; color: var(--muted); }
+    .breadcrumb strong { color: var(--ink); font-weight: 500; }
+    .topbar .demo { margin-left: auto; font-size: 11px; color: var(--accent); background: var(--tint); padding: 3px 7px; border-radius: 3px; }
+    .reset { color: var(--muted); font-size: 11px; padding: 5px 7px; border-radius: 4px; }
+    .page-heading { padding: 32px 38px 26px; }
+    .page-icon { width: 35px; height: 35px; color: var(--olive); margin-bottom: 12px; }
+    .eyebrow { font-size: 11px; color: var(--muted); margin: 0 0 4px; }
+    h1 { font-size: clamp(28px, 3vw, 38px); line-height: 1.18; letter-spacing: -1.3px; margin: 0 0 12px; font-weight: 700; }
+    .lead { margin: 0; color: var(--muted); font-size: 14px; }
+    .heading-meta { display: flex; gap: 17px; align-items: center; margin-top: 21px; font-size: 11px; color: var(--muted); }
+    .heading-meta span { display: inline-flex; align-items: center; gap: 6px; }
+    .heading-meta svg { width: 13px; height: 13px; }
+    .toolbar { margin: 0 38px; border-block: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 9px; padding: 11px 0; }
+    .view-label { align-self: stretch; display: flex; align-items: center; gap: 7px; padding: 0 4px; font-weight: 600; position: relative; }
+    .view-label::after { content: ''; position: absolute; left: 0; right: 0; bottom: -12px; height: 2px; background: var(--ink); }
+    .task-count { color: var(--muted); font-size: 11px; margin: 0 auto 0 7px; white-space: nowrap; }
+    .search { display: flex; align-items: center; gap: 7px; width: 175px; border: 1px solid var(--line); border-radius: 4px; padding: 6px 9px; }
+    .search svg { color: var(--muted); width: 15px; height: 15px; }
+    .search input { width: 100%; border: 0; padding: 0; background: none; outline-offset: 5px; font-size: 12px; min-width: 0; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 34px; padding: 7px 11px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; background: var(--paper); white-space: nowrap; }
+    .btn svg { width: 15px; height: 15px; }
+    .primary { color: var(--button-ink); background: var(--button-bg); border-color: var(--button-bg); }
+    .primary:hover { background: var(--button-hover); }
+    .danger { color: var(--danger-ink); background: var(--danger-bg); border-color: var(--danger-bg); }
+    .danger:hover { background: var(--danger-hover); }
+    .text-danger { color: var(--danger-bg); }
+    .icon-btn { width: 30px; height: 30px; display: inline-grid; place-items: center; border-radius: 4px; padding: 0; color: var(--muted); flex-shrink: 0; }
+    .icon-btn svg { width: 16px; height: 16px; }
+    .board-wrap { padding: 23px 38px 14px; }
+    .board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(225px, 1fr); gap: 18px; align-items: start; overflow-x: auto; padding: 2px 2px 18px; min-height: 385px; scrollbar-width: thin; }
+    .column { min-width: 0; border-radius: 5px; background: var(--inset); border: 1px solid transparent; }
+    .column.drag-over { border-color: var(--accent); background: var(--tint); }
+    .column-head { display: flex; align-items: center; gap: 7px; padding: 10px 10px 8px; }
+    .status-chip { display: inline-flex; gap: 7px; align-items: center; min-width: 0; font-size: 11px; font-weight: 550; }
+    .status-chip .name { overflow-wrap: anywhere; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; background: var(--tone); }
+    [data-tone="neutral"] { --tone: #82817b; }
+    [data-tone="blue"] { --tone: #527b99; }
+    [data-tone="amber"] { --tone: #a77a32; }
+    [data-tone="green"] { --tone: #668566; }
+    [data-tone="red"] { --tone: #b46759; }
+    [data-theme="dark"] [data-tone="neutral"] { --tone: #a9a8a3; }
+    [data-theme="dark"] [data-tone="blue"] { --tone: #8daec9; }
+    [data-theme="dark"] [data-tone="amber"] { --tone: #d8b07a; }
+    [data-theme="dark"] [data-tone="green"] { --tone: #9bb99a; }
+    [data-theme="dark"] [data-tone="red"] { --tone: #d79a8d; }
+    .column-count { color: var(--muted); font-size: 11px; margin-right: auto; }
+    .cards { padding: 0 8px; display: grid; gap: 8px; min-height: 24px; }
+    .card { border: 1px solid var(--line); border-radius: 5px; background: var(--paper); min-width: 0; }
+    .card:hover { border-color: var(--border); }
+    .card.dragging { opacity: .35; }
+    .card > button { display: block; width: 100%; text-align: left; padding: 13px; border-radius: 4px; }
+    .card-title { margin: 0; font-size: 13px; font-weight: 550; line-height: 1.65; overflow-wrap: anywhere; }
+    .card-copy { font-size: 12px; line-height: 1.65; color: var(--muted); margin: 7px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+    .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; color: var(--muted); font-size: 11px; margin-top: 16px; }
+    .priority { display: inline-flex; gap: 4px; align-items: center; }
+    .priority svg { width: 11px; height: 11px; }
+    .priority-high { color: var(--accent); }
+    .task-code { margin-left: auto; color: var(--muted); font-size: 10px; }
+    .date { display: inline-flex; gap: 4px; align-items: center; }
+    .date svg { width: 11px; height: 11px; }
+    .add-in-column { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; width: calc(100% - 16px); margin: 7px 8px 8px; border-radius: 4px; padding: 7px 5px; text-align: left; }
+    .add-in-column svg { width: 14px; height: 14px; }
+    .empty-column { margin: 0; padding: 17px 12px; font-size: 11px; color: var(--muted); border: 1px dashed var(--border); border-radius: 4px; text-align: center; }
+    .board-note { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; color: var(--muted); font-size: 11px; margin: 0 40px 25px; }
+    .board-note p { margin: 0; }
+    .mobile-reset { display: none; }
+    .no-results { padding: 24px 12px; margin: 0 38px 15px; border: 1px dashed var(--border); border-radius: 5px; text-align: center; color: var(--muted); }
+    .no-results button { display: block; margin: 10px auto 0; }
+    input:not([type="search"]), textarea, select { width: 100%; background: var(--paper); border: 1px solid var(--border); border-radius: 4px; padding: 9px 10px; }
+    input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+    label { display: block; font-size: 12px; font-weight: 550; margin-bottom: 6px; }
+    textarea { resize: vertical; min-height: 180px; line-height: 1.75; }
+    dialog { margin: auto; padding: 0; width: min(650px, calc(100% - 32px)); max-height: calc(100dvh - 32px); border: 1px solid var(--line); border-radius: 7px; background: var(--paper); color: var(--ink); box-shadow: var(--shadow); }
+    dialog::backdrop { background: var(--overlay); }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 24px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; font-size: 17px; letter-spacing: -.4px; }
+    .dialog-body { padding: 22px 24px; overflow: auto; }
+    .dialog-hint { font-size: 12px; color: var(--muted); margin: 0 0 22px; }
+    .dialog-foot { border-top: 1px solid var(--line); padding: 16px 24px; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+    .dialog-foot .delete-task { margin-right: auto; }
+    .drawer { margin: 0 0 0 auto; height: 100dvh; max-height: 100dvh; width: min(490px, 100%); border-radius: 0; border-block: 0; }
+    .drawer form { min-height: 100%; display: flex; flex-direction: column; }
+    .drawer .dialog-body { flex: 1; overflow: visible; }
+    .drawer .dialog-foot { position: sticky; bottom: 0; background: var(--paper); }
+    .field { margin-bottom: 23px; }
+    .task-title-input { font-size: 22px; font-weight: 600; line-height: 1.4; letter-spacing: -.5px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field-row .field { min-width: 0; }
+    .task-id { font-size: 11px; color: var(--muted); margin: 0 0 23px; }
+    .status-editor-list { display: grid; gap: 9px; }
+    .status-editor-row { display: grid; grid-template-columns: minmax(120px, 1fr) 105px auto; gap: 8px; align-items: center; }
+    .status-editor-row input, .status-editor-row select { font-size: 12px; }
+    .row-actions { display: flex; gap: 2px; }
+    .row-actions .icon-btn { width: 28px; }
+    .status-legend { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; padding: 0 0 10px; }
+    .add-status { margin-top: 16px; }
+    .small-note { font-size: 11px; color: var(--muted); margin-top: 18px; margin-bottom: 0; }
+    .confirm-dialog { width: min(420px, calc(100% - 32px)); }
+    .confirm-dialog p { margin: 0 0 18px; font-size: 13px; overflow-wrap: anywhere; }
+    .confirm-dialog .dialog-body p:last-child { margin-bottom: 0; }
+    .toast { position: fixed; bottom: 22px; left: calc(50% + 124px); transform: translateX(-50%); background: var(--toast-bg); color: var(--toast-ink); border-radius: 5px; padding: 10px 15px; box-shadow: var(--shadow); max-width: calc(100% - 32px); width: max-content; font-size: 12px; z-index: 5; }
+    .mobile-theme, .mobile-demo { display: none; }
+    @media (min-width: 1600px) { .page-heading { padding-top: 40px; } .board { grid-auto-columns: minmax(265px, 1fr); } .card > button { padding: 16px; } }
+    @media (max-width: 1100px) { .shell { grid-template-columns: 210px minmax(0, 1fr); } .toolbar { gap: 8px; } .task-count { min-width: calc(100% - 95px); } .search { flex: 1; } .toast { left: calc(50% + 105px); } }
+    @media (max-width: 760px) {
+      .shell { display: block; } .sidebar { display: none; } .topbar { padding: 10px 20px; flex-wrap: wrap; } .topbar .reset { display: none; }
+      .page-heading { padding: 25px 20px 23px; } .page-icon { width: 30px; height: 30px; margin-bottom: 11px; }
+      .toolbar { margin: 0 20px; } .toolbar > .btn { flex: 1; } .toolbar .search { flex-basis: 100%; width: auto; order: 3; }
+      .view-label::after { display: none; } .task-count { min-width: 0; margin-right: 0; } .view-label { margin-right: auto; }
+      .toolbar > .btn { flex: 0 1 auto; } .toolbar .manage { margin-left: auto; }
+      .board-wrap { padding: 19px 20px 8px; } .board { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-columns: auto; gap: 16px; overflow: visible; }
+      .board-note { margin: 0 22px 24px; } .board-note .drag-hint { display: none; } .no-results { margin: 0 20px 16px; }
+      .mobile-theme { display: block; width: 80px; padding: 5px; font-size: 11px; margin-left: auto; } .topbar .demo { display: none; }
+      .mobile-demo { display: inline; }
+      .status-editor-row { grid-template-columns: minmax(0, 1fr) 95px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+      .row-actions { grid-column: 1 / -1; justify-content: flex-end; } .dialog-head, .dialog-body, .dialog-foot { padding: 18px 20px; }
+      button:not(.card-open), select { min-height: 44px; } .icon-btn, .row-actions .icon-btn { width: 44px; }
+      .column-head { padding-left: 12px; } .column-head .icon-btn { width: 44px; } .toast { left: 50%; }
+      .mobile-reset { display: block; padding-left: 0; }
+    }
+    @media (max-width: 510px) {
+      .board { grid-template-columns: minmax(0, 1fr); gap: 21px; } .card > button { padding: 15px; } .card-title { font-size: 13px; }
+      .card-copy { font-size: 12px; } .card-meta { font-size: 11px; margin-top: 14px; } .toolbar .manage { margin-left: 0; }
+      .toolbar > .btn { flex: 1; order: 4; } .search { order: 3; } .heading-meta { gap: 12px; } .breadcrumb { gap: 8px; }
+      .column-head .status-chip { font-size: 12px; } .add-in-column { font-size: 12px; } .field-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    }
+    @media (prefers-reduced-motion: no-preference) { .card { transition: border-color .12s, opacity .12s; } }
+  </style>
+</head>
+<body>
+  <svg aria-hidden="true" style="display:none">
+    <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M6 7v4M12 7v7M18 7v2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2" fill="var(--paper)"/><circle cx="16" cy="12" r="2" fill="var(--paper)"/><circle cx="10" cy="18" r="2" fill="var(--paper)"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v12H3z"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v11h-7v-7h-4v7H3z"/></symbol>
+    <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 11h18"/></symbol>
+    <symbol id="i-priority" viewBox="0 0 24 24"><path d="M5 20v-5M12 20V9M19 20V4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 10 6 6 6-6"/></symbol>
+  </svg>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Konteks workspace contoh">
+      <div class="brand"><span class="mark" aria-hidden="true">m.</span><div>MD Previewer<small>Personal workspace</small></div></div>
+      <div class="side-content">
+        <div class="side-context"><svg><use href="#i-home"/></svg>Ruang kerja</div>
+        <div class="section-label">Workspace</div>
+        <div class="side-context"><svg><use href="#i-folder"/></svg>Dokumen</div>
+        <a class="nav-current" href="#board" aria-current="page"><svg><use href="#i-board"/></svg>Task board<small>Draft</small></a>
+        <div class="side-note">Navigasi sidebar ini ilustrasi penempatan menu baru. Coba seluruh alur task lewat papan di kanan.</div>
+      </div>
+      <label class="theme-row"><svg aria-hidden="true"><use href="#i-theme"/></svg>Tampilan<select class="theme-select" aria-label="Tema tampilan"><option value="light">Terang</option><option value="dark">Graphite</option><option value="system">Sistem</option></select></label>
+    </aside>
+    <main id="board">
+      <header class="topbar"><div class="breadcrumb"><span>Workspace</span><span>/</span><strong>Task board</strong></div><span class="demo">Mockup interaktif</span><button class="reset" data-action="reset">Reset contoh</button><select class="theme-select mobile-theme" aria-label="Tema tampilan"><option value="light">Terang</option><option value="dark">Graphite</option><option value="system">Sistem</option></select></header>
+      <section class="page-heading" aria-labelledby="page-title">
+        <svg class="page-icon" aria-hidden="true"><use href="#i-board"/></svg>
+        <p class="eyebrow">Personal workspace<span class="mobile-demo"> · Mockup interaktif</span></p>
+        <h1 id="page-title">Task board</h1>
+        <p class="lead">Dari catatan jadi tindakan. Satu papan untuk pekerjaanmu.</p>
+        <div class="heading-meta"><span><svg aria-hidden="true"><use href="#i-lock"/></svg>Workspace pribadi</span><span id="board-summary"></span></div>
+      </section>
+      <div class="toolbar" aria-label="Kontrol task board">
+        <span class="view-label"><svg aria-hidden="true"><use href="#i-board"/></svg>Papan</span><span class="task-count" id="task-count"></span>
+        <label class="search"><svg aria-hidden="true"><use href="#i-search"/></svg><input type="search" id="search" placeholder="Cari task…" aria-label="Cari judul atau deskripsi task"></label>
+        <button class="btn manage" data-action="statuses"><svg aria-hidden="true"><use href="#i-settings"/></svg>Kelola status</button>
+        <button class="btn primary" data-action="new"><svg aria-hidden="true"><use href="#i-plus"/></svg>Tambah task</button>
+      </div>
+      <div class="board-wrap"><div class="board" id="columns" aria-label="Papan task menurut status"></div></div>
+      <div class="no-results" id="no-results" hidden>Tidak ada task yang cocok.<button class="btn" data-action="clearSearch">Hapus pencarian</button></div>
+      <div class="board-note"><p class="drag-hint">Seret kartu untuk mengubah status, atau klik kartu untuk mengedit.</p><p id="storage-note">Data contoh. Perubahan hanya disimpan di browser ini.</p><button class="reset mobile-reset" data-action="reset">Reset contoh</button></div>
+    </main>
+  </div>
+
+  <dialog id="task-dialog" class="drawer" aria-labelledby="task-dialog-title">
+    <form id="task-form">
+      <div class="dialog-head"><h2 id="task-dialog-title">Task baru</h2><button type="button" class="icon-btn" data-action="closeTask" aria-label="Tutup editor task"><svg><use href="#i-close"/></svg></button></div>
+      <div class="dialog-body">
+        <p class="task-id" id="task-id">Task baru · Belum disimpan</p>
+        <div class="field"><label for="task-title">Judul task</label><input id="task-title" class="task-title-input" name="title" required maxlength="120" placeholder="Apa yang perlu dikerjakan?" autocomplete="off"></div>
+        <div class="field-row">
+          <div class="field"><label for="task-status">Status</label><select id="task-status" name="status"></select></div>
+          <div class="field"><label for="task-priority">Prioritas</label><select id="task-priority" name="priority"><option value="normal">Normal</option><option value="high">Tinggi</option><option value="low">Rendah</option></select></div>
+        </div>
+        <div class="field"><label for="task-due">Tenggat <span style="font-weight:400;color:var(--muted)">(opsional)</span></label><input id="task-due" type="date" name="due" max="9999-12-31"></div>
+        <div class="field"><label for="task-description">Deskripsi</label><textarea id="task-description" name="description" maxlength="3000" placeholder="Tambahkan konteks atau langkah pengerjaan…"></textarea></div>
+        <p class="small-note">Perubahan task diterapkan saat kamu menekan Simpan.</p>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn text-danger delete-task" data-action="deleteTask" id="delete-task"><svg aria-hidden="true"><use href="#i-trash"/></svg>Hapus</button><button type="button" class="btn" data-action="closeTask">Batal</button><button type="submit" class="btn primary">Simpan task</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="status-dialog" aria-labelledby="status-dialog-title">
+    <form id="status-form">
+      <div class="dialog-head"><h2 id="status-dialog-title">Kelola status</h2><button type="button" class="icon-btn" data-action="closeStatuses" aria-label="Tutup pengaturan status"><svg><use href="#i-close"/></svg></button></div>
+      <div class="dialog-body">
+        <p class="dialog-hint">Sesuaikan alur kerja papan ini. Urutan di bawah mengikuti urutan kolom, dari kiri ke kanan.</p>
+        <div class="status-legend"><span>Nama & warna status</span><span>Urutan / hapus</span></div>
+        <div class="status-editor-list" id="status-rows"></div>
+        <button type="button" class="btn add-status" data-action="addStatus"><svg aria-hidden="true"><use href="#i-plus"/></svg>Tambah status</button>
+        <p class="small-note">Saat menghapus status yang berisi task, pilih status tujuan. Task tidak ikut dihapus. Semua perubahan diterapkan saat disimpan.</p>
+      </div>
+      <div class="dialog-foot"><button type="button" class="btn" data-action="closeStatuses">Batal</button><button type="submit" class="btn primary">Simpan status</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title">
+    <form id="confirm-form">
+      <div class="dialog-head"><h2 id="confirm-title"></h2><button type="button" class="icon-btn" data-action="cancelConfirm" aria-label="Batalkan"><svg><use href="#i-close"/></svg></button></div>
+      <div class="dialog-body"><p id="confirm-copy"></p><div id="move-field" hidden><label for="move-target">Pindahkan task ke</label><select id="move-target"></select></div></div>
+      <div class="dialog-foot"><button type="button" class="btn" data-action="cancelConfirm" autofocus>Batal</button><button type="submit" class="btn danger" id="confirm-submit">Hapus</button></div>
+    </form>
+  </dialog>
+  <div class="toast" role="status" aria-live="polite" id="toast" hidden></div>
+  <noscript><p>Aktifkan JavaScript untuk mencoba mockup task board.</p></noscript>
+
+  <script type="module">
+    const $ = (id) => document.getElementById(id);
+    const storageKey = 'md-previewer-task-board-mockup-v1';
+    const themeKey = 'md-previewer-task-board-mockup-theme';
+    const tones = { neutral: 'Abu-abu', blue: 'Biru', amber: 'Amber', green: 'Hijau', red: 'Merah' };
+    const priorities = { low: 'Rendah', normal: 'Normal', high: 'Tinggi' };
+    const sample = {
+      statuses: [
+        { id: 'ideas', name: 'Ide', tone: 'neutral' },
+        { id: 'ready', name: 'Siap dikerjakan', tone: 'blue' },
+        { id: 'doing', name: 'Dikerjakan', tone: 'amber' },
+        { id: 'done', name: 'Selesai', tone: 'green' },
+      ],
+      tasks: [
+        { id: 1, title: 'Kumpulkan ide untuk catatan mingguan', description: 'Simpan hal-hal yang ingin ditulis sebelum lupa.', status: 'ideas', priority: 'low', due: '' },
+        { id: 2, title: 'Susun template catatan proyek', description: 'Ringkasan, keputusan, dan tindak lanjut dalam satu dokumen.', status: 'ideas', priority: 'normal', due: '' },
+        { id: 3, title: 'Rapikan dokumentasi API', description: 'Lengkapi contoh request dan response untuk endpoint baru.', status: 'ready', priority: 'high', due: '2026-11-25' },
+        { id: 4, title: 'Tulis ringkasan rapat', description: 'Pindahkan keputusan dan action item dari catatan rapat.', status: 'ready', priority: 'normal', due: '2026-11-24' },
+        { id: 5, title: 'Review alur task board', description: 'Coba tambah task, pindah status, dan edit detail langsung dari kartu.', status: 'doing', priority: 'high', due: '2026-11-23' },
+        { id: 6, title: 'Perbarui panduan onboarding', description: 'Pastikan langkah setup lokal mudah diikuti.', status: 'doing', priority: 'normal', due: '' },
+        { id: 7, title: 'Arsipkan catatan sprint lalu', description: '', status: 'done', priority: 'low', due: '' },
+        { id: 8, title: 'Siapkan outline dokumentasi', description: 'Struktur awal dokumentasi sudah siap untuk diisi.', status: 'done', priority: 'normal', due: '' },
+      ],
+      nextId: 9,
+    };
+    let board = structuredClone(sample), editingId = null, statusDraft = null, draggingId = null, confirmAction = null, toastTimer;
+    let storageAvailable = true, preference = 'light';
+    const esc = (text) => String(text).replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    const icon = (name) => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const code = (id) => `T-${String(id).padStart(3, '0')}`;
+    function isBoard(value) {
+      if (!value || !Array.isArray(value.statuses) || !value.statuses.length || !Array.isArray(value.tasks)) return false;
+      const ids = new Set(value.statuses.map((s) => s?.id));
+      const names = value.statuses.map((s) => s?.name?.trim().toLocaleLowerCase());
+      return ids.size === value.statuses.length && new Set(names).size === names.length &&
+        value.statuses.every((s) => typeof s.id === 'string' && s.id.length > 0 && typeof s.name === 'string' && s.name.trim().length > 0 && s.name.length <= 32 && Object.hasOwn(tones, s.tone)) &&
+        value.tasks.every((t) => Number.isSafeInteger(t?.id) && t.id > 0 && typeof t.title === 'string' && t.title.trim().length > 0 && t.title.length <= 120 && typeof t.description === 'string' && t.description.length <= 3000 && ids.has(t.status) && Object.hasOwn(priorities, t.priority) && typeof t.due === 'string' && (!t.due || (/^\d{4}-\d{2}-\d{2}$/.test(t.due) && !Number.isNaN(Date.parse(t.due))))) &&
+        new Set(value.tasks.map((t) => t.id)).size === value.tasks.length && Number.isSafeInteger(value.nextId) && value.nextId > Math.max(0, ...value.tasks.map((t) => t.id));
+    }
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) { const parsed = JSON.parse(saved); if (isBoard(parsed)) board = parsed; else throw Error('Invalid saved mockup'); }
+      const savedTheme = localStorage.getItem(themeKey);
+      if (['light', 'dark', 'system'].includes(savedTheme)) preference = savedTheme;
+    } catch { storageAvailable = false; }
+    const media = matchMedia('(prefers-color-scheme: dark)');
+    function setTheme() {
+      document.documentElement.dataset.theme = preference === 'system' ? (media.matches ? 'dark' : 'light') : preference;
+      document.querySelectorAll('.theme-select').forEach((select) => { select.value = preference; });
+    }
+    setTheme(); media.addEventListener('change', setTheme);
+    function notify(message) {
+      clearTimeout(toastTimer); $('toast').textContent = message; $('toast').hidden = false;
+      toastTimer = setTimeout(() => { $('toast').hidden = true; }, 3500);
+    }
+    function save(message) {
+      try { localStorage.setItem(storageKey, JSON.stringify(board)); storageAvailable = true; } catch { storageAvailable = false; }
+      render(); notify(message + (storageAvailable ? '' : ' Hanya tersimpan selama halaman ini terbuka.'));
+    }
+    function render() {
+      const query = $('search').value.trim().toLocaleLowerCase();
+      const visible = board.tasks.filter((task) => `${task.title} ${task.description}`.toLocaleLowerCase().includes(query));
+      $('board-summary').textContent = `${board.statuses.length} status · ${board.tasks.length} task`;
+      $('task-count').textContent = query ? `${visible.length} dari ${board.tasks.length} task` : `${board.tasks.length} task`;
+      $('no-results').hidden = !query || visible.length > 0;
+      $('storage-note').textContent = storageAvailable ? 'Data contoh. Perubahan hanya disimpan di browser ini.' : 'Data contoh. Penyimpanan browser tidak tersedia; perubahan hilang saat halaman ditutup.';
+      $('columns').innerHTML = board.statuses.map((status) => {
+        const tasks = visible.filter((task) => task.status === status.id);
+        return `<section class="column" data-status="${esc(status.id)}" aria-label="${esc(status.name)}">
+          <div class="column-head"><span class="status-chip" data-tone="${status.tone}"><i class="dot" aria-hidden="true"></i><span class="name">${esc(status.name)}</span></span><span class="column-count">${tasks.length}</span><button class="icon-btn" data-action="new" data-id="${esc(status.id)}" aria-label="Tambah task di ${esc(status.name)}">${icon('plus')}</button></div>
+          <div class="cards">${tasks.length ? tasks.map((task) => `<article class="card" draggable="true" data-task-id="${task.id}"><button class="card-open" data-action="edit" data-id="${task.id}" aria-label="Edit ${esc(task.title)}"><h2 class="card-title">${esc(task.title)}</h2>${task.description ? `<p class="card-copy">${esc(task.description)}</p>` : ''}<div class="card-meta"><span class="priority priority-${task.priority}">${icon('priority')}${priorities[task.priority]}</span>${task.due ? `<span class="date">${icon('calendar')}${esc(new Intl.DateTimeFormat('id', { day: 'numeric', month: 'short' }).format(new Date(task.due + 'T12:00:00')))}</span>` : ''}<span class="task-code">${code(task.id)}</span></div></button></article>`).join('') : `<p class="empty-column">${query ? 'Tidak ada hasil di status ini' : 'Belum ada task di sini'}</p>`}</div>
+          <button class="add-in-column" data-action="new" data-id="${esc(status.id)}">${icon('plus')}Tambah task</button>
+        </section>`;
+      }).join('');
+    }
+    function openTask(id, status) {
+      const task = id ? board.tasks.find((item) => item.id === Number(id)) : null;
+      if (id && !task) return;
+      editingId = task?.id ?? null;
+      $('task-form').reset(); $('task-title').setCustomValidity('');
+      $('task-dialog-title').textContent = task ? 'Detail task' : 'Task baru';
+      $('task-id').textContent = task ? `${code(task.id)} · Data contoh` : 'Task baru · Belum disimpan';
+      $('task-status').innerHTML = board.statuses.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+      $('task-title').value = task?.title ?? ''; $('task-description').value = task?.description ?? '';
+      $('task-priority').value = task?.priority ?? 'normal'; $('task-due').value = task?.due ?? '';
+      $('task-status').value = task?.status ?? status ?? board.statuses[0].id;
+      $('delete-task').hidden = !task; $('task-dialog').showModal(); $('task-title').focus();
+    }
+    function renderStatusRows() {
+      $('status-rows').innerHTML = statusDraft.statuses.map((status, index) => `<div class="status-editor-row" data-status-id="${esc(status.id)}">
+        <input aria-label="Nama status ${index + 1}" data-status-field="name" value="${esc(status.name)}" maxlength="32" required placeholder="Nama status">
+        <select aria-label="Warna status ${index + 1}" data-status-field="tone">${Object.entries(tones).map(([key, name]) => `<option value="${key}" ${status.tone === key ? 'selected' : ''}>${name}</option>`).join('')}</select>
+        <div class="row-actions"><button type="button" class="icon-btn" data-action="statusUp" data-id="${esc(status.id)}" ${index === 0 ? 'disabled' : ''} aria-label="Geser ${esc(status.name)} ke kiri">${icon('up')}</button><button type="button" class="icon-btn" data-action="statusDown" data-id="${esc(status.id)}" ${index === statusDraft.statuses.length - 1 ? 'disabled' : ''} aria-label="Geser ${esc(status.name)} ke kanan">${icon('down')}</button><button type="button" class="icon-btn" data-action="deleteStatus" data-id="${esc(status.id)}" ${statusDraft.statuses.length === 1 ? 'disabled' : ''} aria-label="Hapus status ${esc(status.name)}">${icon('trash')}</button></div>
+      </div>`).join('');
+    }
+    function askConfirm(title, message, label, action, destinations = []) {
+      $('confirm-title').textContent = title; $('confirm-copy').textContent = message; $('confirm-submit').textContent = label;
+      $('move-field').hidden = destinations.length === 0;
+      $('move-target').innerHTML = destinations.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+      confirmAction = action; $('confirm-dialog').showModal();
+    }
+    function reorderStatus(id, offset) {
+      const index = statusDraft.statuses.findIndex((s) => s.id === id), target = index + offset;
+      if (index < 0 || target < 0 || target >= statusDraft.statuses.length) return;
+      [statusDraft.statuses[index], statusDraft.statuses[target]] = [statusDraft.statuses[target], statusDraft.statuses[index]];
+      renderStatusRows();
+      const row = Array.from($('status-rows').children).find((node) => node.dataset.statusId === id);
+      (row?.querySelector(`[data-action="${offset < 0 ? 'statusUp' : 'statusDown'}"]:not(:disabled)`) ?? row?.querySelector('input'))?.focus();
+    }
+    const actions = {
+      new: (id) => openTask(null, id), edit: (id) => openTask(id),
+      closeTask: () => $('task-dialog').close(),
+      statuses: () => { statusDraft = structuredClone(board); renderStatusRows(); $('status-dialog').showModal(); },
+      closeStatuses: () => $('status-dialog').close(),
+      addStatus: () => { statusDraft.statuses.push({ id: crypto.randomUUID(), name: '', tone: 'neutral' }); renderStatusRows(); $('status-rows').lastElementChild.querySelector('input').focus(); },
+      statusUp: (id) => reorderStatus(id, -1), statusDown: (id) => reorderStatus(id, 1),
+      deleteStatus: (id) => {
+        if (statusDraft.statuses.length <= 1) return;
+        const status = statusDraft.statuses.find((s) => s.id === id), count = statusDraft.tasks.filter((t) => t.status === id).length;
+        askConfirm('Hapus status?', count ? `${count} task di “${status.name || 'Tanpa nama'}” akan dipindahkan ke status yang kamu pilih.` : `Status “${status.name || 'Tanpa nama'}” tidak berisi task. Hapus dari papan?`, count ? 'Pindahkan & hapus' : 'Hapus status', (target) => {
+          statusDraft.tasks.forEach((task) => { if (task.status === id) task.status = target; });
+          statusDraft.statuses = statusDraft.statuses.filter((s) => s.id !== id); renderStatusRows();
+        }, count ? statusDraft.statuses.filter((s) => s.id !== id) : []);
+      },
+      deleteTask: () => {
+        const task = board.tasks.find((t) => t.id === editingId);
+        if (!task) return;
+        askConfirm('Hapus task?', `“${task.title}” akan dihapus dari papan contoh. Tindakan ini tidak bisa dibatalkan.`, 'Hapus task', () => {
+          board.tasks = board.tasks.filter((t) => t.id !== editingId); $('task-dialog').close(); save('Task dihapus.');
+        });
+      },
+      cancelConfirm: () => { $('confirm-dialog').close(); confirmAction = null; },
+      clearSearch: () => { $('search').value = ''; render(); $('search').focus(); },
+      reset: () => askConfirm('Reset data contoh?', 'Semua perubahan pada mockup ini akan diganti dengan data contoh awal.', 'Reset contoh', () => { board = structuredClone(sample); $('search').value = ''; save('Data contoh dipulihkan.'); }),
+    };
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (button && !button.disabled) actions[button.dataset.action]?.(button.dataset.id);
+    });
+    document.addEventListener('input', (event) => {
+      if (event.target.id === 'search') render();
+      if (event.target.id === 'task-title') event.target.setCustomValidity('');
+      if (event.target.dataset.statusField) {
+        const status = statusDraft.statuses.find((s) => s.id === event.target.closest('[data-status-id]').dataset.statusId);
+        status[event.target.dataset.statusField] = event.target.value;
+        $('status-rows').querySelectorAll('input').forEach((input) => input.setCustomValidity(''));
+      }
+    });
+    document.addEventListener('change', (event) => {
+      if (event.target.matches('.theme-select')) { preference = event.target.value; setTheme(); try { localStorage.setItem(themeKey, preference); } catch {} }
+    });
+    $('task-form').addEventListener('submit', (event) => {
+      event.preventDefault(); const title = $('task-title').value.trim();
+      if (!title) { $('task-title').setCustomValidity('Tulis judul task terlebih dahulu.'); $('task-title').reportValidity(); return; }
+      const task = { id: editingId ?? board.nextId, title, description: $('task-description').value.trim(), status: $('task-status').value, priority: $('task-priority').value, due: $('task-due').value };
+      if (editingId) board.tasks[board.tasks.findIndex((t) => t.id === editingId)] = task;
+      else { board.tasks.push(task); board.nextId++; }
+      $('task-dialog').close(); save(editingId ? 'Perubahan task disimpan.' : 'Task ditambahkan.');
+    });
+    $('status-form').addEventListener('submit', (event) => {
+      event.preventDefault(); const names = new Set();
+      const inputs = $('status-rows').querySelectorAll('input');
+      for (let i = 0; i < statusDraft.statuses.length; i++) {
+        const status = statusDraft.statuses[i], name = status.name.trim(), key = name.toLocaleLowerCase();
+        if (!name || names.has(key)) { inputs[i].setCustomValidity(!name ? 'Tulis nama status.' : 'Nama status harus berbeda.'); inputs[i].reportValidity(); return; }
+        names.add(key); status.name = name;
+      }
+      board = statusDraft; $('status-dialog').close(); save('Pengaturan status disimpan.');
+    });
+    $('confirm-form').addEventListener('submit', (event) => {
+      event.preventDefault(); const action = confirmAction; confirmAction = null; $('confirm-dialog').close(); action?.($('move-target').value);
+    });
+    $('columns').addEventListener('dragstart', (event) => {
+      const card = event.target.closest('[data-task-id]'); if (!card) return;
+      draggingId = Number(card.dataset.taskId); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', String(draggingId)); card.classList.add('dragging');
+    });
+    $('columns').addEventListener('dragover', (event) => {
+      const column = event.target.closest('[data-status]'); if (!column || !draggingId) return;
+      event.preventDefault(); event.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.drag-over').forEach((node) => node.classList.remove('drag-over')); column.classList.add('drag-over');
+    });
+    $('columns').addEventListener('drop', (event) => {
+      const column = event.target.closest('[data-status]'); if (!column || !draggingId) return;
+      event.preventDefault(); const task = board.tasks.find((t) => t.id === draggingId);
+      if (task && task.status !== column.dataset.status) { task.status = column.dataset.status; save(`Task dipindahkan ke ${board.statuses.find((s) => s.id === task.status).name}.`); }
+      draggingId = null; document.querySelectorAll('.drag-over, .dragging').forEach((node) => node.classList.remove('drag-over', 'dragging'));
+    });
+    document.addEventListener('dragend', () => { draggingId = null; document.querySelectorAll('.drag-over, .dragging').forEach((node) => node.classList.remove('drag-over', 'dragging')); });
+    render();
+  </script>
+</body>
+</html>

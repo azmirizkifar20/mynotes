@@ -2,6 +2,10 @@ import { readPreference } from "./state.js";
 
 export function createFeature({ state, actions }) {
   function canLeave() {
+    if (actions.$("document-rename-form")?.hidden === false) {
+      actions.notify("Simpan atau batalkan perubahan nama terlebih dahulu.");
+      return false;
+    }
     if (state.saving || state.draftRequest || state.toolBusy) {
       actions.notify("Tunggu hingga proses selesai.");
       return false;
@@ -130,6 +134,7 @@ export function createFeature({ state, actions }) {
         state.navigationPending ||
         state.draftRequest ||
         state.toolBusy ||
+        actions.$("document-rename-form")?.hidden === false ||
         document.querySelector("dialog[open]");
       if (blocked()) return;
       const sequence = state.navigationSequence,

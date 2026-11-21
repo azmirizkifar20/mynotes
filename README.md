@@ -5,13 +5,15 @@ Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak 
 ## Fitur
 
 - Navigasi folder dan breadcrumb, favorit, serta 50 dokumen terakhir dibuka.
-- Edit langsung dengan render otomatis pada tab Dokumen, serta tab sumber Markdown yang tersinkron. Draft disimpan otomatis; Simpan atau Ctrl+S menerbitkan perubahan.
+- Edit langsung dengan render otomatis pada tab Dokumen, serta tab sumber Markdown yang tersinkron. Di dalam list pada tab Dokumen, Tab membuat item menjadi sublist dan Shift+Tab mengembalikannya satu tingkat. Perubahan otomatis disimpan ke dokumen sekitar 1–2 detik setelah berhenti mengetik; Simpan atau Ctrl+S tetap bisa digunakan untuk langsung menyimpan. File publik otomatis ikut diperbarui.
 - Syntax highlighting, daftar isi, dan link ke heading.
+- Dokumen publik untuk guest memiliki daftar isi dari heading dokumen dengan penanda aktif saat klik/scroll. Sidebar tetap terlihat di desktop; pada layar kecil, daftar isi pindah ke atas dokumen. Dokumen tanpa heading memakai lebar baca penuh tanpa sidebar kosong.
 - Pencarian judul, path, dan isi dokumen dengan PostgreSQL full-text search.
 - Buat folder/dokumen, rename, pindahkan, unduh, dan upload Markdown dengan konfirmasi nama/isi.
+- Klik judul file pada halaman dokumen untuk mengganti nama, lalu klik **Simpan nama**. Nama tidak mengikuti autosave isi dokumen; **Batal** atau Escape membatalkan. Klik di luar kolom tidak menyimpan. Rename mengubah URL path file; pengaturan akses dan link lama `/share/:id` tetap tersimpan.
 - Akses publik/privat, URL path asli, serta kompatibilitas link lama `/share/:id`.
 - Sampah dengan pemulihan dan hapus permanen, riwayat versi dengan preview/pemulihan.
-- Autosave draft privat dengan deteksi konflik antarperangkat dan dialog pemulihan.
+- Autosave dokumen dengan status penyimpanan, draft pemulihan, dan deteksi konflik antarperangkat.
 - Template dokumen yang bisa dibuat, diedit, dan digunakan kembali.
 - Aktivitas workspace dan session login tersimpan di PostgreSQL.
 
@@ -41,11 +43,12 @@ Di PowerShell, gunakan `Copy-Item .env.example .env`. Isi `.env`:
 
 ```dotenv
 PORT=8026
+HOST=127.0.0.1
 JSON_BODY_LIMIT=5mb
 ACCESS_CODE_HASH='<bcrypt hash kode akses>'
 PASSKEY_AUTH_URL=https://itsazmi.com/mynotes
 PASSKEY_APP_URLS=https://itsazmi.com/mynotes,https://mdpreview.azmirf.my.id,https://mdpreview.azmirf.my.id/mynotes,http://localhost:8027,http://localhost:8027/mynotes
-SESSION_SECRET='<secret acak yang tetap>'
+SESSION_SECRET='<secret acak minimal 32 byte yang tetap>'
 DB_HOST=<host PostgreSQL>
 DB_PORT=5432
 DB_USER=<role PostgreSQL>
@@ -62,6 +65,8 @@ npm run db:setup
 ```
 
 Perintah setup mengecek koneksi dan hak schema/tabel, serta membuat database bila belum tersedia. Tidak mengimpor dokumen. Jangan masukkan `.env`, `.data/`, atau isi `docs/` ke Git.
+
+`SESSION_SECRET` wajib tersedia untuk seluruh mode; aplikasi menolak startup jika kosong, hanya spasi, atau kurang dari 32 byte UTF-8. Panjang bukan jaminan keacakan: gunakan generator di atas. Secret yang sudah kuat tidak perlu diganti; menggantinya akan membuat cookie login lama tidak berlaku.
 
 ### Migrasi pertama dari server
 
@@ -95,6 +100,8 @@ npm run dev
 
 Nodemon mengabaikan `docs/`, `.data/`, dan `uploads/` agar sinkronisasi tidak memicu restart berulang. Setelah database sudah diimpor, salinan aplikasi lain cukup memakai lima credentials DB yang sama dan menjalankan aplikasi.
 
+Listener default hanya `127.0.0.1`. `HOST` dapat diubah bila memang memerlukan interface lain; akses langsung jaringan harus dibatasi firewall. Di balik nginx setempat, pertahankan `HOST=127.0.0.1`. Aplikasi hanya mempercayai forwarded headers dari peer loopback, sesuai contoh nginx yang meneruskan ke loopback.
+
 ## Penyimpanan dan sinkronisasi
 
 **PostgreSQL adalah sumber utama isi dokumen dan metadata.** `docs/` merupakan salinan untuk akses filesystem lokal, diperbarui saat startup, setelah perubahan lokal, dan setiap sekitar 5 detik. Browser yang sedang membaca memuat perubahan perangkat lain setiap sekitar 15 detik; editor aktif tidak ditimpa otomatis.
@@ -114,7 +121,7 @@ Aplikasi menolak startup bila DB belum diimpor atau tidak tersedia. Kegagalan mi
 - Menu Bagikan menghasilkan path asli, misalnya `/proyek/catatan.md`. URL mengikuti domain/prefix yang dibuka.
 - File privat meminta login. File di sampah tidak dapat dibuka melalui URL publik atau share ID lama.
 - Move/rename mempertahankan ID, favorit, akses, dan riwayat. URL path berubah; link `/share/:id` tetap berlaku selama file publik.
-- Simpan memerlukan revisi dan token draft yang cocok. Konflik mempertahankan tulisan di editor; salin/unduh sebelum memuat ulang.
+- Autosave dan Simpan memakai alur yang sama: tulis draft, lalu simpan dokumen dengan revisi dan token draft yang cocok. Riwayat versi ikut diperbarui. Konflik menghentikan autosave dan mempertahankan tulisan di editor; salin/unduh sebelum memuat ulang. Tunggu status **Semua perubahan tersimpan** sebelum menutup halaman. Kegagalan jaringan/server dicoba ulang setelah 5 detik; login ulang melanjutkan penyimpanan tulisan yang tertunda.
 - Draft bukan versi publik. Saat pemulihan draft belum diselesaikan, editor meminta pemulihan atau pembuangan secara eksplisit. Draft dari revisi lama dapat disalin/diunduh untuk digabungkan.
 - Pemulihan riwayat membuat revisi baru. Selesaikan draft yang masih tersimpan sebelum memulihkan versi.
 - Dialog riwayat menampilkan 100 versi terbaru; versi lebih lama tetap disimpan di DB.
@@ -162,7 +169,7 @@ pm2 restart md-previewer
 pm2 save
 ```
 
-Gunakan `NODE_ENV=production` di balik HTTPS proxy. Pertahankan `SESSION_SECRET` agar session PostgreSQL tetap dapat dipakai setelah restart. Session berlaku 30 menit; domain/prefix berbeda memiliki cookie login masing-masing.
+Gunakan `NODE_ENV=production` di balik HTTPS proxy. Pertahankan `SESSION_SECRET` agar session PostgreSQL tetap dapat dipakai setelah restart. Cookie dan session berlaku 7 hari dan diperpanjang pada setiap request session (rolling session); polling workspace setiap 15 detik juga memperbaruinya selama halaman terbuka dan terhubung. Setelah tidak ada request selama 7 hari, login kembali diperlukan. Session lama menyimpan durasi sebelumnya; keluar lalu masuk sekali untuk mendapatkan durasi 7 hari. Verifikasi perubahan passkey tetap dibatasi 5 menit sejak autentikasi. Domain/prefix berbeda memiliki cookie login masing-masing.
 
 ## Nginx dan Cloudflare Tunnel
 
@@ -182,6 +189,8 @@ Letakkan rule ini sebelum rule `itsazmi.com` tanpa path. Samakan batas body ngin
 ## Backup
 
 Backup PostgreSQL dengan `pg_dump`, serta simpan `.env` secara privat. Backup `docs/` saja tidak mencakup akses privat, draft, sampah, riwayat, atau session. Database menyimpan semuanya, termasuk isi yang sudah dipindahkan ke sampah. Lindungi backup dengan hak akses terbatas. Jadwal dan retensi backup mengikuti pengelolaan server.
+
+Gunakan `pg_dump --format=custom --no-owner --no-privileges` dengan client yang versinya minimal sama dengan PostgreSQL server. Simpan dump dan `.env` dengan izin `0600` di direktori `0700`. Verifikasi dengan `pg_restore --exit-on-error --no-owner --no-privileges` ke database kosong yang terpisah; jangan arahkan restore ke database aktif. Periksa tabel/jumlah entri dan simpan checksum dump. Backup pada disk server yang sama masih perlu salinan di lokasi terpisah.
 
 ## Struktur kode
 
@@ -210,6 +219,8 @@ Backend tetap CommonJS; frontend memakai ES Modules native tanpa build step. `ma
 ## Kendala umum
 
 Pemeriksaan regresi terisolasi tersedia di `node tests/check-sharing.cjs`. Script membuat database sementara dengan nama acak, memeriksa storage/konflik/privacy/prefix dan konsumsi challenge/handoff melalui aplikasi terpisah, lalu menghapus database sementara itu. Role memerlukan `CREATEDB`; script tidak memakai dokumen workspace aktif. Pemeriksaan konfigurasi passkey tersedia di `node tests/check-passkey.cjs`. Pemeriksaan dialog tersedia di `node tests/check-delete-dialog.cjs` dan `node tests/check-upload-dialog.cjs`; keduanya memakai modul frontend dengan mock DOM. Script tidak menggantikan verifikasi passkey memakai perangkat nyata. Jalankan hanya ketika ingin melakukan pemeriksaan.
+
+`tests/check-runtime-config.cjs` memeriksa penolakan secret lemah, listener dan trust proxy. `tests/check-passkey-flow.cjs` memakai authenticator software ES256 untuk pendaftaran, signature, origin/RP ID, UV, counter, bridge, expiry/replay, step-up dan recovery. Tes flow menulis credential dummy ke DB fixture: jalankan **hanya** pada container disposable tanpa jaringan eksternal, tanpa `.env` aktual, dengan PostgreSQL loopback di namespace yang sama. Guard mengharuskan `MDPREVIEW_TEST_ISOLATED=1`, `DB_HOST=127.0.0.1`, `DB_USER=fixture`, dan `DB_NAME=postgres`; flag ini bukan pengganti isolasi OS. Jangan gunakan credentials/database bersama. Mount source, dependencies dan toolchain read-only; sediakan scratch untuk DB/temp/log, environment aman serta batas resource dan waktu. Tes software tidak memeriksa prompt biometrik, sinkronisasi password manager atau interaksi popup browser nyata.
 
 - **Koneksi DB gagal:** cek Tailscale, host/port, credentials, serta hak role PostgreSQL.
 - **Workspace belum diimpor:** jalankan import satu kali dari snapshot server yang lengkap.

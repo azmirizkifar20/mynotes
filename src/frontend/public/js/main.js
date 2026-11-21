@@ -117,7 +117,14 @@ if (state.boot.mode === "workspace") {
   actions.initializeWorkspace().catch((error) => actions.notify(error.message));
 } else {
   actions.renderAccessPage();
-  actions.decorateHeadings(document.querySelector(".public-document .prose"));
+  const outline = actions.$("public-outline");
+  if (outline) {
+    const count = actions.decorateHeadings(
+      document.querySelector(".public-document .prose"), true, outline,
+    );
+    outline.hidden = count === 0;
+    outline.parentElement.classList.toggle("has-outline", count > 0);
+  }
   actions.scrollToHash();
 }
 if (state.boot.mode === "workspace" || state.boot.mode === "login")

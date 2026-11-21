@@ -58,10 +58,12 @@ async function main() {
     actions.highlightSearch("gimmick and request", "gimmick_request"),
     "<mark>gimmick</mark> and <mark>request</mark>",
   );
+  const highlighted = actions.highlightSearch('<img onerror="boom"> a+b', "a+b");
   assert.equal(
-    actions.highlightSearch('<img onerror="boom"> a+b', "a+b"),
-    "&lt;img onerror=&quot;boom&quot;&gt; <mark>a+b</mark>",
+    highlighted.replace(/<\/?mark>/g, ""),
+    "&lt;img onerror=&quot;boom&quot;&gt; a+b",
   );
+  assert.ok(highlighted.includes("<mark>a+b</mark>"));
   const managementNodes = Object.fromEntries(
     [
       "main",
@@ -313,7 +315,7 @@ async function main() {
     method: "POST",
     baseUrl: "",
     sessionID: randomUUID(),
-    session: {},
+    session: { cookie: { path: "/" } },
     body: {},
     get: (name) => (name === "host" ? new URL(base).host : base),
   };
@@ -328,11 +330,16 @@ async function main() {
     ),
     (error) => error.status === 400,
   );
+  await assert.rejects(authStore.consumeChallenge(request, "registration"));
+  await assert.rejects(authStore.consumeChallenge({ ...request, baseUrl: "/mynotes" }, "authentication"));
   await authStore.consumeChallenge(request, "authentication");
   await assert.rejects(
     authStore.consumeChallenge(request, "authentication"),
     (error) => error.status === 400,
   );
+  const expired = await authStore.challenge(request, "authentication", { challenge: randomUUID() });
+  await db.query("UPDATE mdpreview.auth_challenges SET expires_at=now()-interval '1 second' WHERE id=$1", [expired.challengeId]);
+  await assert.rejects(authStore.consumeChallenge({ ...request, body: { challengeId: expired.challengeId } }, "authentication"));
   const bridgeService = require("../src/backend/modules/auth/passkeys");
   request.baseUrl = "/mynotes";
   const bridge = await bridgeService.startBridge(request);
@@ -356,6 +363,7 @@ async function main() {
     ...request, body: { token: bridge.token, completion: authStore.hash(randomUUID()) },
   }));
   await assert.rejects(bridgeService.claimBridge({ ...request, sessionID: randomUUID() }));
+  await assert.rejects(bridgeService.claimBridge({ ...request, baseUrl: "" }));
   assert.equal(await bridgeService.claimBridge(request), passkeyId);
   await assert.rejects(
     bridgeService.claimBridge(request),
@@ -401,6 +409,16 @@ async function main() {
     assert.doesNotMatch(privatePage, /Private secret/);
     assert.equal((await fetch(base + prefix + "/share/" + share)).status, 404);
     assert.equal((await fetch(base + prefix + "/api/workspace")).status, 401);
+    for (const endpoint of ["search?q=secret", "trash", "templates", "activity", "passkeys"])
+      assert.equal((await fetch(base + prefix + "/api/" + endpoint)).status, 401);
+    for (const endpoint of ["raw", "document", "history", "history/preview", "draft/read", "share", "save", "delete"])
+      assert.equal((await fetch(base + prefix + "/api/" + endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filePath: "/Private.md" }),
+      })).status, 401);
+    assert.equal((await fetch(base + prefix + "/media?document=%2FPrivate.md&file=%2Fimage.png")).status, 404);
+    assert.equal((await fetch(base + prefix + "/media?document=%2FPublic.md&file=%2Fimage.png")).status, 200);
     const login = await fetch(base + prefix + "/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -482,6 +500,54 @@ async function main() {
       search.items.find((item) => item.path === "/Search.md").snippet,
       /gimmick_request/,
     );
+    const publicEntry = await db.get("/Public.md");
+    const publicLink = base + prefix + "/share/" + publicEntry.share_id;
+    assert.equal((await fetch(publicLink)).status, 200);
+    await db.query(
+      "INSERT INTO mdpreview.drafts(entry_id,content,base_revision,token) VALUES($1,$2,$3,$4) ON CONFLICT(entry_id) DO UPDATE SET content=excluded.content,token=excluded.token",
+      [publicEntry.id, "Unpublished draft secret", publicEntry.revision, randomUUID()],
+    );
+    assert.doesNotMatch(await (await fetch(base + prefix + "/Public.md")).text(), /Unpublished draft secret/);
+    const setVisibility = async (visibility) => {
+      const response = await fetch(base + prefix + "/api/share", {
+        method: "POST",
+        headers: { Cookie: cookie, Origin: base, "Content-Type": "application/json" },
+        body: JSON.stringify({ filePath: "/Public.md", visibility }),
+      });
+      assert.equal(response.status, 200);
+    };
+    await setVisibility("private");
+    assert.equal((await fetch(publicLink)).status, 404);
+    assert.equal((await fetch(base + prefix + "/media?document=%2FPublic.md&file=%2Fimage.png")).status, 404);
+    const hiddenPage = await (await fetch(base + prefix + "/Public.md")).text();
+    assert.match(hiddenPage, /"mode":"login"/);
+    assert.doesNotMatch(hiddenPage, /"content":"# Public/);
+    await setVisibility("public");
+    assert.equal((await fetch(publicLink)).status, 200);
+    assert.equal((await fetch(base + prefix + "/api/passkeys/delete", {
+      method: "POST",
+      headers: { Cookie: cookie, Origin: base, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: passkeyId, confirm: true }),
+    })).status, 409, "The final credential must not be removed");
+    await db.query("UPDATE mdpreview.sessions SET sess=jsonb_set(sess::jsonb,'{authAt}',$2::jsonb) WHERE sid=$1", [sid, JSON.stringify(Date.now() - 6 * 60 * 1000)]);
+    assert.equal((await fetch(base + prefix + "/api/passkeys/rename", {
+      method: "POST",
+      headers: { Cookie: cookie, Origin: base, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: passkeyId, name: "Must require verification" }),
+    })).status, 403);
+    if (prefix === "/mynotes") {
+      await db.query(
+        "INSERT INTO mdpreview.passkeys(id,rp_id,public_key,name,device_type,backed_up) VALUES($1,'localhost',$2,'Spare fixture','singleDevice',false)",
+        [randomUUID().replace(/-/g, ""), Buffer.from([1])],
+      );
+      await db.query("UPDATE mdpreview.sessions SET sess=jsonb_set(sess::jsonb,'{authAt}',$2::jsonb) WHERE sid=$1", [sid, JSON.stringify(Date.now())]);
+      assert.equal((await fetch(base + prefix + "/api/passkeys/delete", {
+        method: "POST",
+        headers: { Cookie: cookie, Origin: base, "Content-Type": "application/json" },
+        body: JSON.stringify({ id: passkeyId, confirm: true }),
+      })).status, 200);
+      assert.equal((await fetch(base + prefix + "/api/workspace", { headers: { Cookie: cookie } })).status, 401);
+    }
   }
   console.log("Isolated PostgreSQL workspace checks passed.");
 }

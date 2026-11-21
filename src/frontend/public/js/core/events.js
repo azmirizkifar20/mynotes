@@ -52,6 +52,8 @@ export function bindActions({ state, actions }) {
       "previewPublicAccess",
       "copyShareLink",
       "renameItem",
+      "editDocumentName",
+      "cancelDocumentRename",
       "openMove",
       "confirmDelete",
       "closeDeleteDialog",

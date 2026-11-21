@@ -29,10 +29,52 @@
   border: 0;
   gap: 9px;
 }
-.public-document {
+.public-layout {
   max-width: 870px;
   padding: 65px 40px;
   margin: auto;
+}
+.public-layout.has-outline {
+  display: grid;
+  grid-template-columns: minmax(0, 790px) 180px;
+  gap: 48px;
+  max-width: 1150px;
+}
+.public-document {
+  min-width: 0;
+}
+.public-layout.has-outline .public-document {
+  grid-column: 1;
+  grid-row: 1;
+}
+.public-outline {
+  display: block;
+  grid-column: 2;
+  grid-row: 1;
+  top: 24px;
+  padding-top: 0;
+  margin-top: 112px;
+  max-height: calc(100dvh - 48px);
+  overflow-wrap: anywhere;
+}
+.public-outline[hidden] {
+  display: none;
+}
+@media (max-width: 900px) {
+  .public-layout.has-outline {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+  .public-outline {
+    grid-column: 1;
+    grid-row: 1;
+    position: static;
+    margin-top: 0;
+    max-height: 220px;
+  }
+  .public-layout.has-outline .public-document {
+    grid-row: 2;
+  }
 }
 .login-page {
   max-width: 560px;
@@ -79,7 +121,7 @@ dialog {
   .public-topbar .theme-setting > span {
     display: none;
   }
-  .public-document {
+  .public-layout {
     padding: 35px 23px;
   }
   .login-page {
