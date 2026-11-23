@@ -7,6 +7,23 @@ async function initialize() {
     await client.query(
       fs.readFileSync(path.join(__dirname, "schema.sql"), "utf8"),
     );
+    if ((await client.query(
+      "INSERT INTO mdpreview.task_board(id) VALUES(1) ON CONFLICT DO NOTHING RETURNING id",
+    )).rowCount) {
+      for (const [position, [name, tone]] of [
+        ["Ide", "neutral"], ["Siap dikerjakan", "blue"],
+        ["Dikerjakan", "amber"], ["Selesai", "green"],
+      ].entries()) {
+        await client.query(
+          "INSERT INTO mdpreview.task_statuses(id,name,tone,position,completed) VALUES($1,$2,$3,$4,$5)",
+          [randomUUID(), name, tone, position, position === 3],
+        );
+      }
+    }
+    if ((await client.query("INSERT INTO mdpreview.settings(key,value) VALUES('task_archive_seeded','true') ON CONFLICT DO NOTHING RETURNING key")).rowCount) {
+      if ((await client.query("UPDATE mdpreview.task_statuses SET completed=true WHERE lower(btrim(name))='selesai' AND NOT completed")).rowCount)
+        await client.query("UPDATE mdpreview.task_board SET revision=revision+1 WHERE id=1");
+    }
     const templates = [
       [
         "Catatan meeting",

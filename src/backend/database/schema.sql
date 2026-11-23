@@ -85,3 +85,28 @@ CREATE TABLE IF NOT EXISTS mdpreview.auth_bridges (
 );
 CREATE INDEX IF NOT EXISTS auth_bridges_expiry ON mdpreview.auth_bridges(expires_at);
 ALTER TABLE mdpreview.auth_bridges ADD COLUMN IF NOT EXISTS completion_hash text;
+
+CREATE TABLE IF NOT EXISTS mdpreview.task_board (
+  id smallint PRIMARY KEY CHECK(id = 1),
+  revision integer NOT NULL DEFAULT 1 CHECK(revision > 0)
+);
+CREATE TABLE IF NOT EXISTS mdpreview.task_statuses (
+  id uuid PRIMARY KEY,
+  name text NOT NULL CHECK(length(btrim(name)) BETWEEN 1 AND 32),
+  tone text NOT NULL CHECK(tone IN ('neutral','blue','amber','green','red')),
+  position integer NOT NULL CHECK(position >= 0)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS task_status_name ON mdpreview.task_statuses(lower(name));
+CREATE TABLE IF NOT EXISTS mdpreview.tasks (
+  id uuid PRIMARY KEY,
+  number bigint GENERATED ALWAYS AS IDENTITY UNIQUE,
+  title text NOT NULL CHECK(length(btrim(title)) BETWEEN 1 AND 120),
+  description text NOT NULL DEFAULT '' CHECK(length(description) <= 3000),
+  status_id uuid NOT NULL REFERENCES mdpreview.task_statuses(id) ON DELETE RESTRICT,
+  priority text NOT NULL DEFAULT 'normal' CHECK(priority IN ('low','normal','high')),
+  due date,
+  modified timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS tasks_status ON mdpreview.tasks(status_id);
+ALTER TABLE mdpreview.task_statuses ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false;
+ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS archived_at timestamptz;

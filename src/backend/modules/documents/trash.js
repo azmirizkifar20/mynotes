@@ -4,10 +4,16 @@ const { transaction, fail } = require("../../database/connection");
 const { audit } = require("../../database/audit");
 const { get } = require("./service");
 const { parentPath, validPath } = require("./paths");
-async function trash(key, force, ip) {
+const { deletionImpact } = require("../task-board/mentions");
+async function trash(key, force, ip, mentionToken) {
   if (!validPath(key) || key === "/") throw fail(400, "Path tidak valid.");
+  if (mentionToken !== undefined && (typeof mentionToken !== "string" || !/^[a-f0-9]{64}$/.test(mentionToken)))
+    throw fail(400, "Konfirmasi referensi dokumen tidak valid.");
   return transaction(async (client) => {
     const row = await get(key, client);
+    const impact = await deletionImpact(client, row.path);
+    if (impact && mentionToken !== impact.token)
+      throw fail(409, "Dokumen disebut di task board. Konfirmasi dampaknya sebelum menghapus.", { mentionImpact: impact });
     if (
       row.kind === "folder" &&
       !force &&

@@ -1,0 +1,47 @@
+<dialog id="board-task-dialog" class="tb-drawer" aria-labelledby="board-task-title" data-busy="toolBusy">
+  <form id="board-task-form" data-submit="saveBoardTask">
+    <div class="dialog-head"><h2 id="board-task-title">Task baru</h2><button type="button" class="icon-button" data-action="closeTaskBoardDialog" data-arg="board-task-dialog" aria-label="Tutup editor task"><svg><use href="#i-close"/></svg></button></div>
+    <div class="dialog-body">
+      <p class="tb-task-code" id="board-task-code"></p>
+      <div class="tb-field"><label for="board-task-name">Judul task</label><input id="board-task-name" class="text-input tb-title-input" required maxlength="120" autocomplete="off" placeholder="Apa yang perlu dikerjakan?"></div>
+      <div class="tb-field-row">
+        <div class="tb-field"><label for="board-task-status">Status</label><select id="board-task-status" class="text-input"></select></div>
+        <div class="tb-field"><label for="board-task-priority">Prioritas</label><select id="board-task-priority" class="text-input"><option value="normal">Normal</option><option value="high">Tinggi</option><option value="low">Rendah</option></select></div>
+      </div>
+      <div class="tb-field"><label for="board-task-due">Tenggat <span class="subtle">(opsional)</span></label><input id="board-task-due" type="date" class="text-input" min="0001-01-01" max="9999-12-31"></div>
+      <div class="tb-field tb-description-field">
+        <label id="board-description-label">Deskripsi</label>
+        <textarea id="board-task-description" hidden maxlength="3000"></textarea>
+        <div id="board-task-description-editor" class="text-input tb-description-editor" contenteditable="true" role="combobox" aria-labelledby="board-description-label" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="board-mention-menu" aria-describedby="board-mention-hint board-description-error" data-placeholder="Tambahkan konteks atau langkah pengerjaan…"></div>
+        <div id="board-mention-menu" class="tb-mention-menu" role="listbox" aria-label="Dokumen untuk disebut" hidden></div>
+        <p id="board-mention-hint" class="tb-hint">Ketik @ untuk menyebut dokumen. Klik mention untuk membuka di tab baru.</p>
+        <p id="board-description-error" class="delete-error" role="alert"></p>
+      </div>
+      <p class="tb-hint" id="board-task-hint">Perubahan task diterapkan saat kamu menekan Simpan.</p>
+      <p class="delete-error" id="board-task-error" role="alert"></p>
+      <button type="button" class="small-button" id="board-task-reload" data-action="reloadTaskBoard" hidden>Muat ulang status papan</button>
+    </div>
+    <div class="tb-dialog-foot"><button type="button" class="small-button danger tb-delete-task" id="board-task-delete" data-action="confirmBoardTaskDelete"><svg aria-hidden="true"><use href="#i-trash"/></svg>Hapus</button><button type="button" class="small-button" id="board-task-archive" data-action="confirmBoardTaskArchive" hidden>Arsipkan</button><button type="button" class="small-button primary" id="board-task-restore" data-action="confirmBoardTaskArchive" hidden>Pulihkan</button><button type="button" class="small-button" data-action="closeTaskBoardDialog" data-arg="board-task-dialog">Tutup</button><button type="submit" class="small-button primary" id="board-task-save">Simpan task</button></div>
+  </form>
+</dialog>
+<dialog id="board-status-dialog" class="tb-status-dialog" aria-labelledby="board-status-title" data-busy="toolBusy">
+  <form id="board-status-form" data-submit="saveBoardStatuses">
+    <div class="dialog-head"><h2 id="board-status-title">Kelola status</h2><button type="button" class="icon-button" data-action="closeTaskBoardDialog" data-arg="board-status-dialog" aria-label="Tutup pengaturan status"><svg><use href="#i-close"/></svg></button></div>
+    <div class="dialog-body">
+      <p class="tb-hint">Sesuaikan alur kerja papan ini. Urutan di bawah mengikuti urutan kolom, dari kiri ke kanan. Centang Selesai agar task pada status tersebut bisa diarsipkan secara manual.</p>
+      <div id="board-status-rows" class="tb-status-rows"></div>
+      <button type="button" class="small-button tb-add-status" data-action="addBoardStatus"><svg aria-hidden="true"><use href="#i-plus"/></svg>Tambah status</button>
+      <p class="tb-hint">Saat menghapus status yang berisi task, pilih status tujuan. Task tidak ikut dihapus. Semua perubahan diterapkan saat disimpan.</p>
+      <p class="delete-error" id="board-status-error" role="alert"></p>
+      <button type="button" class="small-button" id="board-status-reload" data-action="reloadTaskBoard" hidden>Muat ulang papan & pengaturan status</button>
+    </div>
+    <div class="tb-dialog-foot"><button type="button" class="small-button" data-action="closeTaskBoardDialog" data-arg="board-status-dialog">Batal</button><button type="submit" class="small-button primary">Simpan status</button></div>
+  </form>
+</dialog>
+<dialog id="board-confirm-dialog" class="tb-confirm-dialog" aria-labelledby="board-confirm-title" data-busy="toolBusy">
+  <form data-submit="confirmBoardAction">
+    <div class="dialog-head"><h2 id="board-confirm-title"></h2><button type="button" class="icon-button" data-action="closeTaskBoardDialog" data-arg="board-confirm-dialog" aria-label="Batalkan"><svg><use href="#i-close"/></svg></button></div>
+    <div class="dialog-body"><p id="board-confirm-copy"></p><div id="board-move-field" hidden><label for="board-move-target">Pindahkan task ke</label><select id="board-move-target" class="text-input"></select></div><p class="delete-error" id="board-confirm-error" role="alert"></p><button type="button" class="small-button" id="board-confirm-reload" data-action="reloadTaskBoard" hidden>Muat ulang papan</button></div>
+    <div class="tb-dialog-foot"><button type="button" class="small-button" data-action="closeTaskBoardDialog" data-arg="board-confirm-dialog" autofocus>Batal</button><button type="submit" class="small-button destructive" id="board-confirm-submit">Hapus</button></div>
+  </form>
+</dialog>

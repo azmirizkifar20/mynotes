@@ -2,6 +2,10 @@ import { readPreference } from "./state.js";
 
 export function createFeature({ state, actions }) {
   function canLeave() {
+    if (actions.taskBoardDialogOpen?.()) {
+      actions.notify("Simpan atau tutup pengaturan task board terlebih dahulu.");
+      return false;
+    }
     if (actions.$("document-rename-form")?.hidden === false) {
       actions.notify("Simpan atau batalkan perubahan nama terlebih dahulu.");
       return false;
@@ -178,6 +182,10 @@ export function createFeature({ state, actions }) {
         state.pages = next;
         actions.applyPreferences(data.preferences);
         actions.renderTree();
+        if (state.current === "tasks") {
+          await actions.refreshTaskBoard();
+          return;
+        }
         if (Object.hasOwn(state.managementPages, state.current)) return;
         if (state.current === "recent") actions.render();
         else if (!page) await navigate("home", "replace");

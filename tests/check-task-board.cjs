@@ -1,0 +1,215 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { randomUUID } = require("node:crypto");
+assert.equal(process.env.MDPREVIEW_TEST_ISOLATED, "1", "Use only the disposable fixture database");
+assert.equal(process.env.DB_HOST, "127.0.0.1");
+assert.equal(process.env.DB_USER, "fixture");
+assert.equal(process.env.DB_NAME, "postgres");
+assert.equal(fs.existsSync(path.join(__dirname, "../.env")), false, "Do not load the shared workspace credentials");
+const db = require("../src/backend/database");
+const service = require("../src/backend/modules/task-board/service");
+const statusError = (status) => (error) => error.status === status;
+let server;
+
+async function main() {
+  await db.initialize();
+  let board = await service.list();
+  assert.equal(board.statuses.length, 4); assert.equal(board.tasks.length, 0);
+  assert.equal(board.statuses.filter((status) => status.completed).length, 1);
+  assert.equal(board.statuses.find((status) => status.completed).name, 'Selesai');
+  const seededIds = board.statuses.map((status) => status.id);
+  await db.query("ALTER TABLE mdpreview.task_statuses DROP COLUMN completed; ALTER TABLE mdpreview.tasks DROP COLUMN archived_at; DELETE FROM mdpreview.settings WHERE key='task_archive_seeded'");
+  await db.initialize(); board = await service.list();
+  assert.deepEqual(board.statuses.map((status) => status.id), seededIds, 'Additive migration keeps old status IDs');
+  assert.equal(board.statuses.filter((status) => status.completed).length, 1, 'Existing Selesai is marked once');
+  const first = board.statuses[0].id, second = board.statuses[1].id;
+  const documentId = randomUUID(), hiddenId = randomUUID(), folderId = randomUUID();
+  await db.query("INSERT INTO mdpreview.entries(id,path,kind,visibility) VALUES($1,'/','folder','private')", [randomUUID()]);
+  await db.query("INSERT INTO mdpreview.entries(id,path,kind,content,visibility) VALUES($1,'/mention-fixture.md','doc',$2,'private'),($3,'/steering/mention-fixture.md','doc',$2,'private'),($4,'/mention-folder','folder',NULL,'private')", [documentId, Buffer.from('fixture'), hiddenId, folderId]);
+  assert((await service.suggestDocuments('mention-fixture')).some((item) => item.id === documentId));
+  assert(!(await service.suggestDocuments('mention')).some((item) => item.id === hiddenId || item.id === folderId));
+  await assert.rejects(service.suggestDocuments(['bad']), statusError(400));
+  await assert.rejects(service.suggestDocuments('x\0'), statusError(400));
+  const task = { title: '  Example <script>safe</script>  ', description: "Context", statusId: first, priority: "high", due: "2026-12-03" };
+  for (const value of [null, {}, { ...task, title: " " }, { ...task, title: "a".repeat(121) }, { ...task, description: "a".repeat(3001) }, { ...task, id: null }, { ...task, title: "x\0" }, { ...task, statusId: "bad" }, { ...task, priority: "urgent" }, { ...task, due: "2026-02-30" }, { ...task, due: "2026-99-01" }, { ...task, due: null }])
+    await assert.rejects(service.saveTask({ ...value, revision: board.revision }), statusError(400));
+  assert(service.validDate("2024-02-29")); assert(!service.validDate("2025-02-29")); assert(!service.validDate("0000-01-01"));
+  await assert.rejects(service.saveTask({ ...task, revision: 0 }), statusError(400));
+  await assert.rejects(service.saveTask({ ...task, revision: board.revision, statusId: randomUUID() }), statusError(409));
+  assert.equal((await service.list()).revision, board.revision, "Failed writes roll revision back");
+  let result = await service.saveTask({ ...task, revision: board.revision }, "127.0.0.1");
+  const taskId = result.taskId; board = result.board;
+  assert.equal(board.tasks[0].title, task.title.trim()); assert.equal(board.tasks[0].due, task.due);
+  const mention = `@[mention-fixture.md](doc:${documentId})`;
+  result = await service.saveTask({ ...task, id: taskId, description: 'Read ' + mention, revision: board.revision }); board = result.board;
+  assert.equal(board.documents.find((item) => item.id === documentId).path, '/mention-fixture.md');
+  await db.query("UPDATE mdpreview.entries SET path='/renamed-fixture.md' WHERE id=$1", [documentId]);
+  assert.equal((await service.list()).documents.find((item) => item.id === documentId).path, '/renamed-fixture.md', 'Mentions resolve stable document ID after rename/move');
+  assert.equal(await service.mentionedDocument(documentId), '/renamed-fixture.md');
+  await assert.rejects(service.mentionedDocument(hiddenId), statusError(404));
+  await assert.rejects(service.mentionedDocument(folderId), statusError(404));
+  await assert.rejects(service.mentionedDocument('not-an-id'), statusError(400));
+  await db.query("UPDATE mdpreview.entries SET deleted_at=now() WHERE id=$1", [documentId]);
+  assert(!(await service.list()).documents.some((item) => item.id === documentId), 'Deleted mention exposes no active link');
+  await assert.rejects(service.mentionedDocument(documentId), statusError(404));
+  assert.equal((await service.list()).tasks[0].description, 'Read ' + mention, 'Missing reference retains task text');
+  await db.query("UPDATE mdpreview.entries SET deleted_at=NULL WHERE id=$1", [documentId]);
+  board = await service.list();
+  await assert.rejects(service.archiveTask({ id: taskId, revision: board.revision, confirm: true }), statusError(409));
+  assert.equal((await service.list()).revision, board.revision);
+  const completed = board.statuses.find((status) => status.completed);
+  result = await service.saveStatuses({ statuses: board.statuses.map((status) => ({ ...status, name: status.id === completed.id ? 'Done' : status.name })), moves: {}, revision: board.revision }); board = result.board;
+  assert(board.statuses.find((status) => status.id === completed.id).completed, 'Completion survives rename');
+  result = await service.saveStatuses({ statuses: board.statuses.map(({ completed, ...status }) => status), moves: {}, revision: board.revision }); board = result.board;
+  assert(board.statuses.find((status) => status.id === completed.id).completed, 'Old client payload preserves completion');
+  await assert.rejects(service.saveStatuses({ statuses: board.statuses.map((status) => ({ ...status, completed: 'true' })), moves: {}, revision: board.revision }), statusError(400));
+  result = await service.saveTask({ ...task, id: taskId, description: 'Read ' + mention, statusId: completed.id, revision: board.revision }); board = result.board;
+  await assert.rejects(service.archiveTask({ id: taskId, revision: board.revision }), statusError(400));
+  await assert.rejects(service.archiveTask({ id: randomUUID(), revision: board.revision, confirm: true }), statusError(404));
+  result = await service.archiveTask({ id: taskId, revision: board.revision, confirm: true }); board = result.board;
+  assert(board.tasks.find((item) => item.id === taskId).archivedAt);
+  assert.equal(board.tasks.find((item) => item.id === taskId).description, 'Read ' + mention);
+  assert(board.documents.some((item) => item.id === documentId));
+  await assert.rejects(service.saveTask({ ...task, id: taskId, revision: board.revision }), statusError(409));
+  await assert.rejects(service.archiveTask({ id: taskId, revision: board.revision, confirm: true }), statusError(409));
+  await assert.rejects(service.restoreTask({ id: taskId, revision: board.revision - 1, confirm: true }), statusError(409));
+  await assert.rejects(db.trash('/renamed-fixture.md', true), (error) => error.mentionImpact?.taskCount === 1);
+  await db.initialize(); assert.deepEqual(await service.list(), board, 'Archive survives idempotent initialization');
+  result = await service.saveStatuses({ statuses: board.statuses.map((status) => ({ ...status, name: status.id === completed.id ? 'Selesai' : status.name, completed: false })), moves: {}, revision: board.revision }); board = result.board;
+  await db.initialize(); assert.deepEqual(await service.list(), board, 'User completion choices are never re-seeded');
+  assert(board.tasks.find((item) => item.id === taskId).archivedAt, 'Changing completed status does not unarchive tasks');
+  const archivedAt = board.tasks.find((item) => item.id === taskId).archivedAt;
+  result = await service.saveStatuses({ statuses: board.statuses.map((status) => status.id === completed.id ? { ...status, id: randomUUID(), name: 'Closed' } : status), moves: { [completed.id]: first }, revision: board.revision }); board = result.board;
+  assert.equal(board.tasks.find((item) => item.id === taskId).statusId, first, 'Status removal migrates archived tasks too');
+  assert.deepEqual(board.tasks.find((item) => item.id === taskId).archivedAt, archivedAt);
+  result = await service.restoreTask({ id: taskId, revision: board.revision, confirm: true }); board = result.board;
+  assert.equal(board.tasks.find((item) => item.id === taskId).archivedAt, null);
+  await assert.rejects(service.restoreTask({ id: taskId, revision: board.revision, confirm: true }), statusError(409));
+  assert((await db.query("SELECT 1 FROM mdpreview.audit WHERE action='TASK_ARCHIVE'")).rowCount);
+  assert((await db.query("SELECT 1 FROM mdpreview.audit WHERE action='TASK_UNARCHIVE'")).rowCount);
+  let impact;
+  await assert.rejects(db.trash('/renamed-fixture.md', true), (error) => {
+    impact = error.mentionImpact;
+    return error.status === 409 && impact?.taskCount === 1 && impact?.documentCount === 1;
+  });
+  assert.equal((await db.get('/renamed-fixture.md')).id, documentId, 'Force cannot bypass mention acknowledgment');
+  assert.match(impact.token, /^[a-f0-9]{64}$/);
+  let extra = await service.saveTask({ ...task, description: mention, revision: board.revision }); board = extra.board;
+  await assert.rejects(db.trash('/renamed-fixture.md', true, undefined, impact.token), (error) => {
+    impact = error.mentionImpact;
+    return error.status === 409 && impact?.taskCount === 2;
+  });
+  await assert.rejects(db.trash('/renamed-fixture.md', true, undefined, 123), statusError(400));
+  await db.trash('/renamed-fixture.md', true, undefined, impact.token);
+  await assert.rejects(db.get('/renamed-fixture.md'), statusError(404));
+  assert(!(await service.list()).documents.some((doc) => doc.id === documentId));
+  assert((await service.list()).tasks.some((item) => item.id === taskId && item.description.includes(mention)), 'Trash never rewrites task text');
+  const group = (await db.query('SELECT trash_id FROM mdpreview.entries WHERE id=$1', [documentId])).rows[0].trash_id;
+  await db.restoreTrash(group, false);
+  assert((await service.list()).documents.some((doc) => doc.id === documentId), 'Restore reconnects mention UUID');
+  await db.query("UPDATE mdpreview.entries SET path='/mention-folder/child.md' WHERE id=$1", [documentId]);
+  await assert.rejects(db.trash('/mention-folder', true), (error) => {
+    impact = error.mentionImpact;
+    return error.status === 409 && impact?.documentCount === 1 && impact?.taskCount === 2;
+  });
+  await db.trash('/mention-folder', true, undefined, impact.token);
+  await assert.rejects(db.get('/mention-folder/child.md'), statusError(404));
+  const folderGroup = (await db.query('SELECT trash_id FROM mdpreview.entries WHERE id=$1', [folderId])).rows[0].trash_id;
+  await db.restoreTrash(folderGroup, false);
+  assert.equal(await service.mentionedDocument(documentId), '/mention-folder/child.md');
+  await db.query("UPDATE mdpreview.entries SET path='/renamed-fixture.md' WHERE id=$1", [documentId]);
+  await db.trash('/mention-folder', false);
+  await assert.rejects(db.get('/mention-folder'), statusError(404));
+  result = await service.removeTask({ id: extra.taskId, revision: board.revision, confirm: true }); board = result.board;
+  await db.initialize(); assert.deepEqual(await service.list(), board, "Startup does not reseed or overwrite tasks");
+  await assert.rejects(service.saveTask({ ...task, revision: board.revision - 1 }), statusError(409));
+  result = await service.saveTask({ ...task, id: taskId, title: "Edited", statusId: second, due: "", revision: board.revision }); board = result.board;
+  assert.equal(board.tasks[0].id, taskId); assert.equal(board.tasks[0].statusId, second); assert.equal(board.tasks[0].due, "");
+  await assert.rejects(service.saveTask({ ...task, id: randomUUID(), revision: board.revision }), statusError(404));
+  for (const statuses of [[], [{ ...board.statuses[0], name: " " }], [board.statuses[0], { ...board.statuses[1], name: " ide " }], [{ ...board.statuses[0], tone: "purple" }], [board.statuses[0], board.statuses[0]]])
+    await assert.rejects(service.saveStatuses({ revision: board.revision, statuses, moves: {} }), statusError(400));
+  const added = { id: randomUUID(), name: "Review", tone: "red" };
+  result = await service.saveStatuses({ revision: board.revision, statuses: [added, ...board.statuses], moves: {} }); board = result.board;
+  assert.equal(board.statuses[0].id, added.id); assert.equal(board.tasks.length, 1);
+  const swapped = board.statuses.map((s) => ({ ...s }));
+  [swapped[0].name, swapped[1].name] = [swapped[1].name, swapped[0].name];
+  result = await service.saveStatuses({ revision: board.revision, statuses: swapped, moves: {} }); board = result.board;
+  assert.equal(board.statuses[1].name, "Review", "Unique name swap succeeds atomically");
+  const retained = board.statuses.filter((s) => s.id !== second);
+  const beforeInvalid = await service.list();
+  await assert.rejects(service.saveStatuses({ revision: board.revision, statuses: retained, moves: {} }), statusError(400));
+  assert.deepEqual(await service.list(), beforeInvalid, "Missing destination rolls names/order/tasks/revision back");
+  await assert.rejects(service.saveStatuses({ revision: board.revision, statuses: retained, moves: { [second]: randomUUID() } }), statusError(400));
+  result = await service.saveStatuses({ revision: board.revision, statuses: retained.reverse(), moves: { [second]: added.id } }); board = result.board;
+  assert.equal(board.tasks[0].statusId, added.id); assert.equal(board.tasks.length, 1); assert.equal(board.statuses.length, 4);
+  const concurrent = await Promise.allSettled([
+    service.saveTask({ ...task, statusId: added.id, revision: board.revision }),
+    service.saveTask({ ...task, statusId: added.id, revision: board.revision }),
+  ]);
+  assert.equal(concurrent.filter((r) => r.status === "fulfilled").length, 1);
+  assert.equal(concurrent.find((r) => r.status === "rejected").reason.status, 409);
+  board = await service.list();
+  await assert.rejects(service.removeTask({ id: taskId, revision: board.revision, confirm: false }), statusError(400));
+  await assert.rejects(service.removeTask({ id: randomUUID(), revision: board.revision, confirm: true }), statusError(404));
+  result = await service.removeTask({ id: taskId, revision: board.revision, confirm: true }); board = result.board;
+  assert.equal(board.tasks.length, 1); assert(!board.tasks.some((t) => t.id === taskId));
+  const emptyStatus = board.statuses.find((s) => !board.tasks.some((t) => t.statusId === s.id));
+  result = await service.saveStatuses({ revision: board.revision, statuses: board.statuses.filter((s) => s.id !== emptyStatus.id), moves: {} }); board = result.board;
+  assert(!board.statuses.some((s) => s.id === emptyStatus.id), "An empty status can be removed without a destination");
+  assert((await db.query("SELECT 1 FROM mdpreview.audit WHERE action='TASK_CREATE'")).rowCount);
+  assert((await db.query("SELECT 1 FROM mdpreview.audit WHERE action='TASK_STATUSES_SAVE'")).rowCount);
+
+  const express = require("express"), app = express();
+  const routes = express.Router();
+  app.use("/mynotes", routes); app.use(routes); routes.use(express.json());
+  routes.use("/api", require("../src/backend/middleware/origin"));
+  routes.use((req, res, next) => { req.session = { authenticated: req.get("X-Fixture-Auth") === "1" }; next(); });
+  const api = express.Router(); api.use(require("../src/backend/middleware/require-auth"));
+  require("../src/backend/modules/task-board/routes")(api);
+  require("../src/backend/modules/documents/routes")(api, { upload: { single: () => (req, res, next) => next() } });
+  routes.use("/api", api);
+  routes.use(require("../src/backend/middleware/error-handler"));
+  server = app.listen(0, "127.0.0.1"); await new Promise((resolve) => server.once("listening", resolve));
+  const url = "http://127.0.0.1:" + server.address().port;
+  for (const prefix of ["", "/mynotes"]) {
+    const deleteRequest = { method: 'POST', headers: { 'X-Fixture-Auth': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ path: '/renamed-fixture.md', force: true }) };
+    // Reuse a real task mention to exercise the delete route and error payload without deleting it.
+    const remaining = board.tasks[0];
+    result = await service.saveTask({ ...remaining, description: mention, revision: board.revision }); board = result.board;
+    result = await service.saveStatuses({ statuses: board.statuses.map((status) => ({ ...status, completed: status.id === remaining.statusId })), moves: {}, revision: board.revision }); board = result.board;
+    for (const action of ['archive', 'restore']) {
+      const response = await fetch(url + prefix + '/api/task-board/tasks/' + action, { method: 'POST', headers: deleteRequest.headers, body: JSON.stringify({ id: remaining.id, revision: board.revision, confirm: true }) });
+      assert.equal(response.status, 200);
+      board = (await response.json()).board;
+      assert.equal(Boolean(board.tasks.find((item) => item.id === remaining.id).archivedAt), action === 'archive');
+    }
+    const guarded = await fetch(url + prefix + '/api/delete', deleteRequest);
+    assert.equal(guarded.status, 409);
+    assert.equal((await guarded.json()).mentionImpact.taskCount, 1);
+    assert.equal((await db.get('/renamed-fixture.md')).id, documentId);
+    const guestDelete = await fetch(url + prefix + '/api/delete', { ...deleteRequest, headers: { 'Content-Type': 'application/json' } });
+    assert.equal(guestDelete.status, 401); assert.equal(guestDelete.headers.get('cache-control'), 'no-store');
+    const crossOriginDelete = await fetch(url + prefix + '/api/delete', { ...deleteRequest, headers: { ...deleteRequest.headers, Origin: 'https://other.invalid' } });
+    assert.equal(crossOriginDelete.status, 403);
+    for (const [route, method] of [["", "GET"], ["/documents?q=mention", "GET"], ["/documents/" + documentId + "/open", "GET"], ["/tasks/save", "POST"], ["/tasks/delete", "POST"], ["/tasks/archive", "POST"], ["/tasks/restore", "POST"], ["/statuses/save", "POST"]]) {
+      const response = await fetch(url + prefix + "/api/task-board" + route, { method });
+      assert.equal(response.status, 401); assert.equal(response.headers.get("cache-control"), "no-store");
+    }
+    const denied = await fetch(url + prefix + "/api/task-board/tasks/save", { method: "POST", headers: { "X-Fixture-Auth": "1", Origin: "https://other.invalid" } });
+    assert.equal(denied.status, 403);
+    for (const route of ['archive', 'restore']) {
+      const response = await fetch(url + prefix + '/api/task-board/tasks/' + route, { method: 'POST', headers: { 'X-Fixture-Auth': '1', Origin: 'https://other.invalid' } });
+      assert.equal(response.status, 403);
+    }
+    const allowed = await fetch(url + prefix + "/api/task-board", { headers: { "X-Fixture-Auth": "1" } });
+    assert.deepEqual((await allowed.json()).board.tasks.map((t) => t.id), board.tasks.map((t) => t.id));
+    const suggestions = await fetch(url + prefix + '/api/task-board/documents?q=renamed', { headers: { 'X-Fixture-Auth': '1' } });
+    assert.equal((await suggestions.json()).items[0].id, documentId);
+    const redirect = await fetch(url + prefix + '/api/task-board/documents/' + documentId + '/open', { headers: { 'X-Fixture-Auth': '1' }, redirect: 'manual' });
+    assert.equal(redirect.status, 302); assert.equal(redirect.headers.get('location'), prefix + '/renamed-fixture.md');
+    assert.equal(redirect.headers.get('cache-control'), 'no-store');
+  }
+  console.log("Task board PostgreSQL CRUD, validation, status migration/rollback/name swaps, CAS concurrency, seed idempotence, atomic audit, auth/origin and both mounts passed.");
+}
+main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(async () => { if (server) await new Promise((resolve) => server.close(resolve)); await db.pool.end(); });

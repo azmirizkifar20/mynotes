@@ -23,6 +23,7 @@
   <%- include('partials/dialogs/auth') %>
   <input id="upload-input" type="file" accept=".md,.markdown,text/markdown,text/plain" hidden>
   <%- include('partials/dialogs/tool') %>
+  <%- include('partials/dialogs/task-board') %>
   <div class="toast" id="toast" role="status" hidden></div>
   <script id="bootstrap" type="application/json"><%- bootstrap %></script>
   <% if (JSON.parse(bootstrap).mode === 'workspace') { %><script src="<%= basePath %>/static/editor/<%= editorVersion %>/dist/index.min.js" defer></script><% } %>

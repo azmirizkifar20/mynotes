@@ -1,10 +1,11 @@
-  <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-description delete-draft" data-busy="saving" data-reset="deletion">
+  <dialog id="delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-description delete-draft delete-mentions" data-busy="saving" data-reset="deletion">
     <form id="delete-form" data-submit="confirmDelete" aria-busy="false">
       <div class="dialog-head"><h2 id="delete-title">Hapus file?</h2><button type="button" class="icon-button" data-action="closeDeleteDialog" aria-label="Tutup konfirmasi hapus"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
       <div class="dialog-body">
-        <p id="delete-description">Item ini akan dihapus permanen.</p>
+        <p id="delete-description">Item ini akan dipindahkan ke Sampah.</p>
         <div class="delete-target"><svg aria-hidden="true"><use href="#i-trash"/></svg><div><strong id="delete-filename"></strong><small id="delete-path"></small></div></div>
         <p class="delete-warning" id="delete-draft" hidden>Perubahan yang belum disimpan di editor juga akan dibuang.</p>
+        <p class="delete-warning" id="delete-mentions" role="status" hidden></p>
         <p class="delete-warning">Item dapat dipulihkan melalui menu Sampah.</p>
         <p class="delete-error" id="delete-error" role="alert"></p>
       </div>

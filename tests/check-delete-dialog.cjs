@@ -10,6 +10,7 @@ function setup() {
     "delete-filename",
     "delete-path",
     "delete-draft",
+    "delete-mentions",
     "delete-error",
     "confirm-delete",
     "cancel-delete",
@@ -88,7 +89,14 @@ function setup() {
 }
 
 async function main() {
-  modules = await loadFrontend({ documents: "features/documents.js" });
+  modules = await loadFrontend({ documents: "features/documents.js", api: "core/api.js" });
+  const originalFetch = global.fetch;
+  const impact = { token: 'a'.repeat(64), taskCount: 1, documentCount: 1, taskTitles: ['Task'] };
+  try {
+    global.fetch = async () => ({ ok: false, status: 409, json: async () => ({ success: false, mentionImpact: impact }) });
+    const { api } = modules.api.createFeature({ state: {}, actions: { appUrl: (value) => value } });
+    await assert.rejects(api('delete', { path: '/notes.md' }), (error) => error.status === 409 && error.mentionImpact === impact);
+  } finally { global.fetch = originalFetch; }
   let check = setup();
   check.context.deleteItem("home");
   assert(!check.ui["delete-dialog"].open);
@@ -98,6 +106,7 @@ async function main() {
   assert.equal(check.ui["delete-filename"].textContent, "notes.md");
   assert.equal(check.ui["delete-path"].textContent, "docs/notes.md");
   assert.equal(check.ui["delete-draft"].hidden, false);
+  assert.equal(check.ui["delete-mentions"].hidden, true);
   check.context.closeDeleteDialog();
   assert(!check.ui["delete-dialog"].open);
   assert.equal(check.calls.length, 0);
@@ -159,6 +168,45 @@ async function main() {
 
   check = setup();
   check.context.deleteItem();
+  check.context.api = async (endpoint, body) => {
+    check.calls.push({ endpoint, ...body });
+    if (!body.mentionToken) throw Object.assign(new Error('Mention confirmation required'), {
+      mentionImpact: { token: 'a'.repeat(64), taskCount: 2, documentCount: 1, taskTitles: ['First task', '<unsafe title>'] },
+    });
+  };
+  await check.submit();
+  assert(check.ui['delete-dialog'].open && !check.context.deletion.removed);
+  assert.equal(check.context.deletion.mentionToken, 'a'.repeat(64));
+  assert.equal(check.ui['delete-mentions'].hidden, false);
+  assert(check.ui['delete-mentions'].textContent.includes('2 task'));
+  assert(check.ui['delete-mentions'].textContent.includes('<unsafe title>'));
+  assert.equal(check.ui['confirm-delete'].textContent, 'Tetap hapus file');
+  await check.submit();
+  assert.equal(check.calls[1].mentionToken, 'a'.repeat(64));
+  assert(!check.ui['delete-dialog'].open);
+
+  check = setup();
+  check.context.deleteItem('folder');
+  check.context.api = async (endpoint, body) => {
+    check.calls.push({ endpoint, ...body });
+    throw Object.assign(new Error('References changed'), {
+      mentionImpact: { token: (body.mentionToken ? 'b' : 'a').repeat(64), taskCount: body.mentionToken ? 3 : 2, documentCount: 1, taskTitles: ['Related task'] },
+    });
+  };
+  await check.submit();
+  assert(check.context.deletion.force);
+  assert.equal(check.ui['confirm-delete'].textContent, 'Tetap hapus folder & isinya');
+  await check.submit();
+  assert(check.ui['delete-dialog'].open && !check.context.deletion.removed);
+  assert.equal(check.context.deletion.mentionToken, 'b'.repeat(64));
+  assert(check.ui['delete-mentions'].textContent.includes('3 task'));
+  check.context.closeDeleteDialog();
+  check.context.deleteItem('folder');
+  assert.equal(check.context.deletion.mentionToken, undefined, 'Cancel discards acknowledgment');
+  assert(check.ui['delete-mentions'].hidden);
+
+  check = setup();
+  check.context.deleteItem();
   const refresh = check.context.refreshWorkspace;
   check.context.refreshWorkspace = async () => {
     throw new Error("Refresh failed");
@@ -171,7 +219,7 @@ async function main() {
   assert.equal(check.calls.length, 1);
   assert(!check.ui["delete-dialog"].open);
   console.log(
-    "PASS: delete dialog, cancel, draft warning, busy guard, folder confirmation, error and refresh retry.",
+    "PASS: delete dialog, cancel, draft warning, busy guard, folder/mention confirmation, stale acknowledgment, error and refresh retry.",
   );
 }
 main().catch((error) => {

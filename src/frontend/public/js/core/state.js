@@ -55,11 +55,17 @@ export function createState(boot) {
     draftTimer: null,
     draftRequest: null,
     toolBusy: false,
+    taskBoardDirty: false,
     searchSequence: 0,
     searchTimer: null,
     availableTemplates: [],
     selectedVersion: null,
     managementPages: {
+      tasks: {
+        title: "Task board",
+        icon: "board",
+        description: "Dari catatan jadi tindakan. Satu papan untuk pekerjaanmu.",
+      },
       passkeys: {
         title: "Keamanan",
         icon: "lock",

@@ -22,6 +22,7 @@ export function createFeature({ state, actions }) {
       const error = new Error(result.message || "Request gagal. Coba lagi.");
       error.status = response.status;
       error.requiresConfirm = result.requiresConfirm;
+      error.mentionImpact = result.mentionImpact;
       error.conflict = result.conflict;
       throw error;
     }

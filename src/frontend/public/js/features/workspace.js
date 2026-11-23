@@ -14,6 +14,8 @@ export function createFeature({ state, actions }) {
   }
 
   function render() {
+    actions.$("main").parentElement.classList.toggle("task-board-layout", state.current === "tasks");
+    actions.$("outline").hidden = state.current === "tasks";
     const page = state.pages.find((p) => p.id === state.current);
     actions.$("detail-share").hidden = page?.type !== "doc";
     if (Object.hasOwn(state.managementPages, state.current))

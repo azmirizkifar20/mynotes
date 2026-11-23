@@ -16,8 +16,27 @@ Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak 
 - Autosave dokumen dengan status penyimpanan, draft pemulihan, dan deteksi konflik antarperangkat.
 - Template dokumen yang bisa dibuat, diedit, dan digunakan kembali.
 - Aktivitas workspace dan session login tersimpan di PostgreSQL.
+- Task board pribadi: tambah/edit/hapus task, drag & drop antarstatus, pencarian, prioritas, dan tenggat opsional. Kelola nama, warna, serta urutan status; task dipindahkan ke status tujuan saat statusnya dihapus.
 
 Login memakai passkey dengan pusat autentikasi di `https://itsazmi.com/mynotes` (RP ID `itsazmi.com`). Domain lama dan lokal membuka pusat login melalui popup, kemudian menerima session masing-masing melalui handoff sekali pakai. Favorit, riwayat bacaan, tema, template, dan draft menjadi milik **workspace bersama**, belum per akun. Favorit/riwayat browser lama dapat diimpor sekali lewat sidebar setelah login. Pengunjung publik hanya mendapat dokumen yang dibuka; tema pengunjung disimpan pada browsernya.
+
+### Task board
+
+Buka **Task board** di sidebar atau `/?view=tasks` (`/mynotes/?view=tasks` pada domain utama). Papan hanya tersedia setelah login dan dipakai bersama oleh semua perangkat pada workspace ini. Tidak ada link publik untuk papan.
+
+Task dan status disimpan di PostgreSQL, bukan `docs/` atau localStorage. Startup membuat tabel `mdpreview.task_board`, `mdpreview.task_statuses`, dan `mdpreview.tasks` beserta empat status awal; tidak menambahkan task contoh. Backup PostgreSQL lengkap juga mencakup data papan.
+
+Di deskripsi task, ketik `@` lalu nama file untuk memilih dokumen dari suggestion (nama dan path ditampilkan). Gunakan panah atas/bawah dan Enter/Tab, atau klik hasilnya; Escape menutup suggestion. Mention bisa diklik dari editor maupun kartu dan membuka dokumen di tab baru, sehingga form task yang belum disimpan tetap terbuka. Referensi memakai ID dokumen: rename/pindah file tetap tersambung, sedangkan dokumen yang dihapus ditandai tidak tersedia. Dokumen privat tetap memerlukan login. Folder `steering`/`superpowers` tidak masuk suggestion. Mention disimpan bersama deskripsi ketika menekan **Simpan task**, tanpa tabel baru.
+
+Hapus file melalui daftar file atau menu detail. Jika file, termasuk isi folder yang dihapus, disebut di task board, dialog menampilkan jumlah dokumen/task terdampak dan meminta konfirmasi lagi. Server mengecek ulang referensi saat penghapusan; perubahan referensi dari perangkat lain memerlukan konfirmasi baru. File masuk ke **Sampah**, task dan teks mention tetap disimpan, tetapi tautannya tidak tersedia. Memulihkan file mengaktifkan kembali referensinya; menghapus permanen dari Sampah membuat referensi tersebut tidak bisa dipulihkan.
+
+Klik kartu untuk mengedit lalu **Simpan task**. Status bisa diubah lewat drag & drop desktop atau pilihan Status pada editor, termasuk pada HP. **Kelola status** mendukung 1–50 status dengan nama berbeda, warna, dan urutan kolom. Menghapus status yang berisi task wajib memilih tujuan pemindahan; task tetap tersimpan. Penghapusan task bersifat permanen dan memakai konfirmasi.
+
+Task yang sudah selesai dapat diarsipkan secara manual. Di **Kelola status**, centang **Selesai** pada status yang menandakan pekerjaan selesai; status Selesai yang sudah ada ditandai sekali saat migrasi. Penanda ini tetap berlaku setelah nama atau urutan status diganti. Buka detail task pada status tersebut lalu pilih **Arsipkan** dan konfirmasi. Simpan perubahan form terlebih dahulu sebelum mengarsipkan.
+
+Tab **Arsip** menampilkan task yang sudah diarsipkan dan mendukung pencarian judul/deskripsi/mention. Task arsip tidak masuk kolom atau hitungan task aktif; detailnya hanya bisa dibaca dan mention tetap bisa dibuka. Pilih **Pulihkan** untuk mengembalikan task ke papan pada statusnya saat ini, kemudian task bisa diedit lagi. Mengubah atau menghapus status tetap mempertahankan task arsip; pemindahan status berlaku pada task aktif maupun arsip. Arsip tidak menghapus data, dan guard penghapusan dokumen tetap memeriksa mention dari task arsip.
+
+Saat dua perangkat mengubah papan bersamaan, revisi lama ditolak. Muat ulang papan lalu periksa kembali sebelum menyimpan; isi form task dipertahankan, sedangkan pengaturan status yang belum disimpan direset saat dimuat ulang. Perubahan dari perangkat lain diperiksa sekitar setiap 15 detik saat papan sedang tidak digunakan dan tidak ada dialog terbuka. Task memakai simpan manual; autosave dokumen tetap terpisah.
 
 ## Persyaratan
 

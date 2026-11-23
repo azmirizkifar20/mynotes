@@ -129,6 +129,8 @@ export function createFeature({ state, actions }) {
     actions.$("delete-filename").textContent = page.path.split("/").pop();
     actions.$("delete-path").textContent = "docs" + page.path;
     actions.$("delete-draft").hidden = !actions.isDirty();
+    actions.$("delete-mentions").hidden = true;
+    actions.$("delete-mentions").textContent = "";
     actions.$("delete-error").textContent = "";
     actions.$("confirm-delete").textContent =
       page.type === "folder" ? "Hapus folder" : "Hapus file";
@@ -156,7 +158,7 @@ export function createFeature({ state, actions }) {
     button.textContent = target.removed ? "Memuat ulang…" : "Menghapus…";
     try {
       if (!target.removed) {
-        await actions.api("delete", { path: page.path, force: target.force });
+        await actions.api("delete", { path: page.path, force: target.force, ...(target.mentionToken ? { mentionToken: target.mentionToken } : {}) });
         target.removed = true;
       }
       state.editing = false;
@@ -181,7 +183,19 @@ export function createFeature({ state, actions }) {
       actions.$("main").focus();
       actions.notify("Item dihapus.");
     } catch (error) {
-      if (error.requiresConfirm) {
+      if (error.mentionImpact) {
+        const impact = error.mentionImpact;
+        target.mentionToken = impact.token;
+        target.force = page.type === "folder";
+        actions.$("delete-title").textContent = page.type === "folder" ? "Folder ini berisi dokumen yang disebut task" : "File ini disebut di task board";
+        actions.$("delete-description").textContent = page.type === "folder"
+          ? "Folder beserta seluruh isinya akan dipindahkan ke Sampah. Periksa dampak berikut, lalu konfirmasi lagi untuk melanjutkan."
+          : "File akan dipindahkan ke Sampah. Periksa dampak berikut, lalu konfirmasi lagi untuk melanjutkan.";
+        const warning = actions.$("delete-mentions");
+        warning.hidden = false;
+        warning.textContent = `${impact.documentCount} dokumen disebut dalam ${impact.taskCount} task. Mention akan menjadi tidak tersedia dan tautannya tidak dapat dibuka. Task tetap disimpan. Jika dokumen dipulihkan, tautannya aktif kembali. Task terkait: ${impact.taskTitles.join(", ")}${impact.taskCount > impact.taskTitles.length ? ", dan lainnya" : ""}.`;
+        actions.$("cancel-delete").focus();
+      } else if (error.requiresConfirm) {
         target.force = true;
         actions.$("delete-title").textContent = "Hapus folder beserta isinya?";
         actions.$("delete-description").textContent =
@@ -200,6 +214,8 @@ export function createFeature({ state, actions }) {
         .forEach((control) => (control.disabled = false));
       button.textContent = target.removed
         ? "Muat ulang daftar"
+        : target.mentionToken
+          ? page.type === "folder" ? "Tetap hapus folder & isinya" : "Tetap hapus file"
         : target.force
           ? "Hapus semua isi"
           : page.type === "folder"

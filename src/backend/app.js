@@ -85,6 +85,7 @@ for (const feature of [
   "workspace/routes",
   "templates/routes",
   "activity/routes",
+  "task-board/routes",
 ])
   require("./modules/" + feature)(api, context);
 api.use((req, res) =>

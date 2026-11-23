@@ -1,0 +1,24 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+(async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../src/frontend/public/js/features/task-board/mention-text.js'), 'utf8');
+  const { mentionToken, descriptionParts, descriptionText, descriptionHTML } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+  const id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  const name = 'file ] & ü.md', token = mentionToken({ id, path: '/' + name });
+  const text = 'Read ' + token + '\nThen ' + token;
+  assert.equal(descriptionParts(text).filter((part) => part.id === id).length, 2);
+  const docs = [{ id, path: '/moved/new name.md' }];
+  assert.equal(descriptionText(text, docs), 'Read @new name.md\nThen @new name.md');
+  assert.equal(descriptionText(token, []), '@' + name);
+  const escape = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const html = descriptionHTML('<img src=x>' + token, docs, { escape, appUrl: (p) => '/mynotes' + p });
+  assert(html.includes('&lt;img src=x&gt;'));
+  assert(html.includes('/mynotes/api/task-board/documents/' + id + '/open'));
+  assert(html.includes('target="_blank"') && html.includes('rel="noopener"'));
+  assert(!descriptionHTML(token, [], { escape, appUrl: (p) => p }).includes('href='));
+  assert(descriptionHTML(token, [], { escape, appUrl: (p) => p }).includes('tidak tersedia'));
+  assert.equal(descriptionText('@[bad](doc:javascript:evil)', docs), '@[bad](doc:javascript:evil)');
+  assert.doesNotThrow(() => descriptionParts('@[%ZZ](doc:' + id + ')'));
+  console.log('Task mention tokens, current-name resolution, repeats, unavailable documents, prefix paths and HTML escaping passed.');
+})().catch((error) => { console.error(error); process.exitCode = 1; });

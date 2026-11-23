@@ -23,6 +23,7 @@ import { createFeature as createTrash } from "./features/management/trash.js";
 import { createFeature as createTemplates } from "./features/management/templates.js";
 import { createFeature as createHistory } from "./features/management/history.js";
 import { createFeature as createPasskeys } from "./features/management/passkeys.js";
+import { createFeature as createTaskBoard } from "./features/task-board/controller.js";
 
 const state = createState(
   JSON.parse(document.getElementById("bootstrap").textContent),
@@ -52,9 +53,11 @@ Object.assign(actions, createTrash(context));
 Object.assign(actions, createTemplates(context));
 Object.assign(actions, createHistory(context));
 Object.assign(actions, createPasskeys(context));
+Object.assign(actions, createTaskBoard(context));
 bindActions(context);
 actions.bindUpload();
 actions.bindNavigation();
+actions.bindTaskBoard();
 matchMedia("(prefers-color-scheme: dark)").addEventListener(
   "change",
   actions.applyTheme,
@@ -97,7 +100,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 window.addEventListener("beforeunload", (event) => {
-  if (actions.isDirty() || state.saving) {
+  if (actions.isDirty() || state.saving || state.taskBoardDirty || state.toolBusy) {
     event.preventDefault();
     event.returnValue = "";
   }

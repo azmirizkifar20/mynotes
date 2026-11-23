@@ -1,5 +1,6 @@
 export function createFeature({ state, actions }) {
   async function renderManagementPage(view) {
+    if (view === "tasks") return actions.renderTaskBoard();
     if (view === "passkeys") return actions.renderPasskeys();
     const page = state.managementPages[view],
       sequence = state.navigationSequence;

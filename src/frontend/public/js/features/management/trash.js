@@ -9,7 +9,7 @@ export function createFeature({ state, actions }) {
   function confirmPurge(id) {
     actions.tool(
       "Hapus permanen?",
-      '<p>Isi file, riwayat versi, dan draft item ini akan dihapus. Tindakan ini tidak dapat dibatalkan.</p><div class="tool-actions"><button class="small-button" data-action="openTrash" autofocus>Batal</button><button class="small-button destructive" data-action="purgeTrashed" data-arg="' +
+      '<p>Isi file, riwayat versi, dan draft item ini akan dihapus. Tindakan ini tidak dapat dibatalkan.</p><p>Jika dokumen ini disebut di task board, mention akan tetap tidak tersedia dan tidak bisa diaktifkan kembali dengan pemulihan file.</p><div class="tool-actions"><button class="small-button" data-action="openTrash" autofocus>Batal</button><button class="small-button destructive" data-action="purgeTrashed" data-arg="' +
         id +
         '">Hapus permanen</button></div>',
     );

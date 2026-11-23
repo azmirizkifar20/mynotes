@@ -32,6 +32,7 @@ module.exports = (err, req, res, next) => {
         ? err.message
         : "Terjadi kesalahan pada server.",
     ...(err?.requiresConfirm ? { requiresConfirm: true } : {}),
+    ...(err?.mentionImpact ? { mentionImpact: err.mentionImpact } : {}),
     ...(err?.conflict ? { conflict: true } : {}),
   });
 };

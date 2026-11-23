@@ -153,7 +153,7 @@ module.exports = function register(api, { documentData, upload }) {
     asyncRoute(async (req, res) => {
       if (req.body.force !== undefined && typeof req.body.force !== "boolean")
         throw db.fail(400, "Konfirmasi tidak valid.");
-      await db.trash(req.body.path, Boolean(req.body.force), req.ip);
+      await db.trash(req.body.path, Boolean(req.body.force), req.ip, req.body.mentionToken);
       changed(res, { message: "Item dipindahkan ke sampah." });
     }),
   );
