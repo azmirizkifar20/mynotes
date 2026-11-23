@@ -16,10 +16,22 @@ export function descriptionText(text, documents = []) {
   const known = new Map(documents.map((doc) => [doc.id, doc]));
   return descriptionParts(text).map((part) => part.id ? "@" + (known.get(part.id)?.path.split("/").pop() || part.label) : part.text).join("");
 }
+function linkHTML(text, esc, editing) {
+  let html = "", start = 0;
+  for (const match of text.matchAll(/https?:\/\/[^\s<>"'`\u0000-\u001f]+/gi)) {
+    let url = match[0];
+    const unmatchedEnd = () => [["(", ")"], ["[", "]"], ["{", "}"]].some(([open, close]) => url.endsWith(close) && url.split(close).length > url.split(open).length);
+    while (/[.,;:!?]$/.test(url) || unmatchedEnd()) url = url.slice(0, -1);
+    try { if (!new URL(url).hostname) continue; } catch { continue; }
+    html += esc(text.slice(start, match.index)) + `<a class="tb-description-link"${editing ? ' contenteditable="false"' : ""} href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>`;
+    start = match.index + url.length;
+  }
+  return (html + esc(text.slice(start))).replace(/\n/g, "<br>");
+}
 export function descriptionHTML(text, documents = [], { escape: esc, appUrl }, editing = false) {
   const known = new Map(documents.map((doc) => [doc.id, doc]));
   return descriptionParts(text).map((part) => {
-    if (!part.id) return esc(part.text).replace(/\n/g, "<br>");
+    if (!part.id) return linkHTML(part.text, esc, editing);
     const doc = known.get(part.id), label = doc?.path.split("/").pop() || part.label;
     const attributes = editing ? ` contenteditable="false" data-mention-token="${esc(part.token)}"` : "";
     return doc

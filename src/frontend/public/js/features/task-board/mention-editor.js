@@ -90,6 +90,28 @@ export function createFeature({ state, actions }) {
     document.execCommand("insertHTML", false, descriptionHTML(token, documents, actions, true) + "&nbsp;");
     close(); sync();
   }
+  function insertText(text) {
+    document.execCommand("insertHTML", false, descriptionHTML(text, documents, actions, true));
+    const selection = window.getSelection(), link = selection.anchorNode?.parentElement?.closest(".tb-description-link");
+    if (link) {
+      const range = document.createRange(); range.setStartAfter(link); range.collapse(true);
+      selection.removeAllRanges(); selection.addRange(range);
+    }
+  }
+  function linkBeforeCaret() {
+    const selection = window.getSelection();
+    if (!editor().isContentEditable || !selection.rangeCount || !selection.isCollapsed) return;
+    const range = selection.getRangeAt(0), node = range.startContainer;
+    if (node.nodeType !== 3 || !editor().contains(node) || node.parentElement.closest('a, [contenteditable="false"]')) return;
+    const match = /https?:\/\/\S+$/i.exec(node.nodeValue.slice(0, range.startOffset));
+    if (!match) return;
+    const html = descriptionHTML(match[0], documents, actions, true);
+    if (!html.includes('class="tb-description-link"')) return;
+    range.setStart(node, match.index);
+    selection.removeAllRanges(); selection.addRange(range);
+    insertText(match[0]);
+    sync();
+  }
   function bind() {
     const input = editor();
     input.addEventListener("input", (event) => { sync(); if (!event.isComposing) schedule(); });
@@ -104,13 +126,14 @@ export function createFeature({ state, actions }) {
         event.preventDefault(); if (items.length) { active = (active + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; selectActive(); } return;
       }
       if (!menu().hidden && event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); return; }
-      if (!menu().hidden && items.length && (event.key === "Enter" || event.key === "Tab")) { event.preventDefault(); insert(active); }
+      if (!menu().hidden && items.length && (event.key === "Enter" || event.key === "Tab")) { event.preventDefault(); insert(active); return; }
+      if (!event.ctrlKey && !event.metaKey && !event.altKey && (event.key === " " || event.key === "Enter")) linkBeforeCaret();
     });
     input.addEventListener("paste", (event) => {
       event.preventDefault(); if (state.toolBusy || !input.isContentEditable) return;
       const text = event.clipboardData.getData("text/plain").replace(/\0/g, "");
       if (read().length - window.getSelection().toString().length + text.length > 3000) { $("board-description-error").textContent = "Teks yang ditempel melebihi batas deskripsi 3.000 karakter."; return; }
-      document.execCommand("insertText", false, text); sync(); schedule();
+      insertText(text); sync(); schedule();
     });
     input.addEventListener("drop", (event) => { event.preventDefault(); close(); });
     menu().addEventListener("pointerdown", (event) => event.preventDefault());

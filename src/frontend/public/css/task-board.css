@@ -74,6 +74,8 @@
 .tb-description-editor[aria-invalid="true"] { border-color: var(--accent); }
 .tb-mention { display: inline; padding: 2px 4px; border-radius: 3px; background: var(--tint); color: var(--accent); text-decoration: none; overflow-wrap: anywhere; font-weight: 500; cursor: pointer; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .tb-mention:hover { text-decoration: underline; }
+.tb-description-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; cursor: pointer; }
+.tb-description-link:hover { text-decoration-thickness: 2px; }
 .tb-mention-missing { color: var(--muted); background: var(--inset); cursor: default; }
 .tb-mention-missing small { font-size: .85em; }
 .tb-description-field { position: relative; }
