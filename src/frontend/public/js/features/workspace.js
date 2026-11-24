@@ -13,7 +13,9 @@ export function createFeature({ state, actions }) {
     const title = file
       ? `<h1 id="document-title"><button type="button" class="document-title-button" id="document-title-button" data-action="editDocumentName" title="Ganti nama file" aria-label="Ganti nama file: ${actions.escape(page.title)}">${actions.escape(page.title)}</button></h1><form id="document-rename-form" data-submit="renameItem" data-arg="${page.id}" hidden><label class="field-label" for="document-name">Nama file</label><input class="text-input" id="document-name" required maxlength="100" autocomplete="off" aria-describedby="document-name-hint"><p class="edit-hint" id="document-name-hint">Nama hanya berubah setelah disimpan. URL file mengikuti nama baru.</p><div class="tool-actions"><button type="submit" class="small-button primary">Simpan nama</button><button type="button" class="small-button" data-action="cancelDocumentRename">Batal</button></div></form>`
       : `<h1>${actions.escape(page.title)}</h1>`;
-    return `<div class="page-icon">${actions.icon(file ? "doc" : "book")}</div><p class="page-kicker">${file ? actions.escape(state.pages.find((p) => p.id === page.parent)?.title || "Workspace") : "Personal workspace"}</p>${title}<p class="lead">${actions.escape(page.description || "Sebuah ruang baru untuk catatanmu.")}</p><div class="page-meta">${file ? `<button class="access-meta ${page.visibility === "public" ? "public-access" : ""}" id="file-access" data-action="openShare" data-arg="${page.id}" aria-label="Atur akses file">${actions.accessLabel(page)}</button>` : `<span>${actions.icon("lock")}Workspace pribadi</span>`}<span>${actions.icon(file ? "doc" : "folder")}${page.type === "pdf" ? "Dokumen PDF" : file ? "Dokumen Markdown" : "Koleksi dokumen"}</span><span>${actions.escape(actions.dateLabel(page.modified))}</span></div>`;
+    if (file)
+      return `<header class="document-header"><p class="page-kicker">${actions.icon("doc")}${actions.escape(state.pages.find((p) => p.id === page.parent)?.title || "Workspace")}</p>${title}<details class="document-properties"><summary>Properti dokumen</summary><div class="page-meta"><button class="access-meta ${page.visibility === "public" ? "public-access" : ""}" id="file-access" data-action="openShare" data-arg="${page.id}" aria-label="Atur akses file">${actions.accessLabel(page)}</button><span>${page.type === "pdf" ? "Dokumen PDF" : "Dokumen Markdown"}</span><span>Diperbarui ${actions.escape(actions.dateLabel(page.modified))}</span></div><p class="document-path">docs${actions.escape(page.path)}</p>${page.description ? `<p class="edit-hint">${actions.escape(page.description)}</p>` : ""}</details></header>`;
+    return `<div class="page-icon">${actions.icon("book")}</div><p class="page-kicker">Personal workspace</p>${title}<p class="lead">${actions.escape(page.description || "Sebuah ruang baru untuk catatanmu.")}</p><div class="page-meta"><span>${actions.icon("lock")}Workspace pribadi</span><span>${actions.icon("folder")}Koleksi dokumen</span><span>${actions.escape(actions.dateLabel(page.modified))}</span></div>`;
   }
 
   function render() {
@@ -28,6 +30,7 @@ export function createFeature({ state, actions }) {
       actions.trackOutline([]);
       const url = actions.appUrl("/media?document=" + encodeURIComponent(page.path));
       actions.$("main").innerHTML = header(page) + pdfPreview(url, page.title, actions.escape, url + "&download=1");
+      actions.mountDocumentTools(page);
       return;
     }
     const isRecent = state.current === "recent";

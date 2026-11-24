@@ -1,6 +1,12 @@
 export function createFeature({ state, actions }) {
   function openSearch() {
     actions.$("search-input").value = "";
+    const folders = actions.$("search-folder");
+    const previousFolder = folders.value;
+    folders.innerHTML = '<option value="">Semua folder</option>' + state.pages
+      .filter((page) => page.type === "folder" && page.path && page.path !== "/")
+      .map((page) => `<option value="${actions.escape(page.path)}">${actions.escape(page.path)}</option>`).join("");
+    if ([...folders.options].some((option) => option.value === previousFolder)) folders.value = previousFolder;
     renderSearch();
     actions.$("search-dialog").showModal();
     actions.$("search-input").focus();
@@ -38,7 +44,16 @@ export function createFeature({ state, actions }) {
   async function renderFullSearch() {
     const text = actions.$("search-input").value.trim(),
       sequence = ++state.searchSequence;
-    if (!text) {
+    const params = new URLSearchParams({ q: text });
+    for (const [name, id] of [["folder", "search-folder"], ["type", "search-type"], ["visibility", "search-visibility"], ["updatedFrom", "search-updated-from"], ["updatedTo", "search-updated-to"]]) {
+      const value = actions.$(id).value;
+      if (value) params.set(name, value);
+    }
+    if (params.get("updatedFrom") && params.get("updatedTo") && params.get("updatedFrom") > params.get("updatedTo")) {
+      actions.$("search-results").innerHTML = '<p class="empty" role="alert">Tanggal mulai harus sebelum atau sama dengan tanggal akhir.</p>';
+      return;
+    }
+    if (!text && params.size === 1) {
       actions.$("search-results").innerHTML =
         '<p class="empty">Cari judul, path, atau isi dokumen.</p>';
       return;
@@ -46,7 +61,7 @@ export function createFeature({ state, actions }) {
     actions.$("search-results").innerHTML =
       '<p class="empty" role="status">Mencari…</p>';
     try {
-      const data = await actions.api("search?q=" + encodeURIComponent(text));
+      const data = await actions.api("search?" + params);
       if (sequence !== state.searchSequence) return;
       actions.$("search-results").innerHTML =
         data.items

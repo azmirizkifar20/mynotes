@@ -1,5 +1,5 @@
 export function createFeature({ state, actions }) {
-  async function api(endpoint, body) {
+  async function api(endpoint, body, keepalive = false) {
     const options =
       body instanceof FormData
         ? { method: "POST", body }
@@ -10,7 +10,7 @@ export function createFeature({ state, actions }) {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(body),
             };
-    const response = await fetch(actions.appUrl("/api/" + endpoint), options);
+    const response = await fetch(actions.appUrl("/api/" + endpoint), { ...options, keepalive });
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.success) {
       if (

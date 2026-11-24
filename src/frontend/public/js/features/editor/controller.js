@@ -129,6 +129,7 @@ export function createFeature({ state, actions }) {
       actions.mountLiveEditor(page);
     }
     actions.syncEditorLock();
+    actions.mountDocumentTools(page);
     actions
       .$("outline")
       .insertAdjacentHTML(

@@ -25,6 +25,7 @@ import { createFeature as createTemplates } from "./features/management/template
 import { createFeature as createHistory } from "./features/management/history.js";
 import { createFeature as createPasskeys } from "./features/management/passkeys.js";
 import { createFeature as createTaskBoard } from "./features/task-board/controller.js";
+import { createFeature as createDocumentTools } from "./features/document-tools.js";
 
 const state = createState(
   JSON.parse(document.getElementById("bootstrap").textContent),
@@ -56,11 +57,13 @@ Object.assign(actions, createTemplates(context));
 Object.assign(actions, createHistory(context));
 Object.assign(actions, createPasskeys(context));
 Object.assign(actions, createTaskBoard(context));
+Object.assign(actions, createDocumentTools(context));
 bindActions(context);
 actions.bindUpload();
 actions.bindDocumentImages();
 actions.bindNavigation();
 actions.bindTaskBoard();
+actions.bindDocumentTools();
 matchMedia("(prefers-color-scheme: dark)").addEventListener(
   "change",
   actions.applyTheme,

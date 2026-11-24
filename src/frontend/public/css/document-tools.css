@@ -1,0 +1,33 @@
+.document-header { margin-bottom: 22px; }
+.document-header .page-kicker { display: flex; align-items: center; gap: 7px; margin: 0 0 10px; }
+.document-header h1 { margin: 0 0 12px; font-size: clamp(25px, 3vw, 34px); line-height: 1.25; }
+.document-properties summary, .search-filter-panel summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 0; }
+.document-properties .page-meta { margin: 8px 0; flex-wrap: wrap; }
+.document-path { margin: 8px 0; color: var(--muted); overflow-wrap: anywhere; font-size: 12px; }
+.document-selection-tools { position: fixed; z-index: 18; display: flex; flex-wrap: wrap; align-items: center; gap: 2px; max-width: calc(100vw - 16px); padding: 4px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); box-shadow: var(--shadow); }
+.document-selection-tools button { min-width: 36px; min-height: 36px; padding: 7px 9px; border-radius: 4px; font-size: 12px; }
+.document-selection-tools .selection-task { display: flex; align-items: center; gap: 5px; border-left: 1px solid var(--line); }
+.document-selection-tools svg { width: 16px; height: 16px; }
+.document-related { border-top: 1px solid var(--line); margin-top: 28px; padding-top: 20px; }
+.document-related h2 { font-size: 14px; margin: 0 0 10px; }
+.related-task-list { list-style: none; padding: 0; margin: 0; }
+.related-task-list button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; padding: 10px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.related-task-list button > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.related-task-list small, .related-task-status { color: var(--muted); font-size: 11px; }
+.related-task-status { flex-shrink: 0; max-width: 40%; overflow-wrap: anywhere; }
+.search-filter-panel { margin: 4px 20px 10px; }
+.search-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 12px; padding-top: 8px; }
+.search-filters label { display: flex; flex-direction: column; gap: 5px; font-size: 11px; }
+.search-filters input, .search-filters select { width: 100%; min-width: 0; min-height: 36px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--inset); color: var(--ink); font: inherit; }
+.version-diff { max-height: 340px; overflow: auto; border: 1px solid var(--line); border-radius: 4px; margin-bottom: 18px; font: 12px/1.7 Consolas, monospace; }
+.version-diff-line { display: flex; min-width: 0; }
+.version-diff-line > span { flex: 0 0 25px; padding: 0 7px; user-select: none; font-weight: 700; }
+.version-diff-line code { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; padding-right: 8px; }
+.version-diff-line.added { background: color-mix(in srgb, var(--olive) 15%, var(--surface)); }
+.version-diff-line.removed { background: color-mix(in srgb, var(--danger-bg) 15%, var(--surface)); }
+.document-selection-tools button:focus-visible, .document-properties summary:focus-visible, .search-filter-panel summary:focus-visible, .version-diff:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 480px) {
+  .document-selection-tools button { min-height: 42px; }
+  .search-filters { gap: 10px; }
+  .related-task-list button { align-items: flex-start; }
+}

@@ -65,7 +65,7 @@ npm run attachments:migrate
 
 Task dan status disimpan di PostgreSQL, bukan `docs/` atau localStorage. Startup membuat tabel `mdpreview.task_board`, `mdpreview.task_statuses`, dan `mdpreview.tasks` beserta empat status awal; tidak menambahkan task contoh. Backup PostgreSQL lengkap juga mencakup data papan.
 
-Gunakan tab **Papan**, **Time table**, atau **Arsip**; pencarian berlaku pada tampilan yang sedang dibuka. Menu **Pengaturan** menyediakan **Kelola tag** dan **Kelola status**. Kartu menampilkan maksimal dua nama tag dengan jumlah tag lainnya; tenggat yang terlewat diberi label **Lewat**. Arsip memakai daftar ringkas dengan tombol **Pulihkan**.
+Gunakan tab **Papan**, **Time table**, **Daftar**, atau **Arsip**; pencarian berlaku pada tampilan yang sedang dibuka. Menu **Pengaturan** menyediakan **Kelola tag**, **Kelola status**, dan **Kelola view tersimpan**. Kartu menampilkan satu nama tag dengan jumlah tag lainnya; deadline yang terlewat diberi label **Lewat**. Arsip memakai daftar ringkas dengan tombol **Pulihkan**.
 
 **Tags:** buka **Pengaturan → Kelola tag** untuk membuat, mengganti nama, atau menghapus tag bersama. Nama harus berbeda tanpa membedakan huruf besar/kecil, maksimal 32 karakter; tersedia hingga 100 tag. Perubahan pengelolaan diterapkan saat **Simpan tag**. Menghapus tag memakai konfirmasi dan hanya melepasnya dari task aktif maupun arsip; task tetap tersimpan.
 
@@ -75,11 +75,11 @@ Di deskripsi task, ketik `@` lalu nama file untuk memilih dokumen dari suggestio
 
 URL `http://` dan `https://` di deskripsi task menjadi hyperlink yang membuka tab baru, termasuk di editor, kartu, dan arsip. URL yang ditempel langsung menjadi tautan; saat mengetik, tekan spasi atau Enter setelah URL. Deskripsi tetap disimpan sebagai teks ketika menekan **Simpan task**.
 
-**Hasil task** menyimpan hasil pengerjaan secara terpisah dari deskripsi. Pilih tab **Deskripsi** atau **Hasil task** di detail; berpindah tab mempertahankan kedua isinya. Editor ini juga mendukung mention `@dokumen` dan hyperlink dengan perilaku yang sama. Kedua field disimpan bersama secara manual lewat **Simpan task**, masing-masing maksimal 3.000 karakter termasuk referensi. Indikator footer menunjukkan perubahan yang belum disimpan; menutup form yang berubah meminta konfirmasi untuk membuang perubahan. Hasil ikut masuk pencarian papan/arsip dan pengecekan referensi sebelum menghapus file. Task arsip mempertahankan hasil dan tautannya, tetapi hanya bisa dibaca sampai dipulihkan.
+**Hasil task** menyimpan hasil pengerjaan secara terpisah dari deskripsi. Pilih tab **Deskripsi** atau **Hasil task** di detail; berpindah tab mempertahankan kedua isinya. Editor ini juga mendukung mention `@dokumen` dan hyperlink dengan perilaku yang sama. Kedua field disimpan bersama secara manual lewat **Simpan task**, masing-masing maksimal 3.000 karakter termasuk referensi. Indikator footer menunjukkan perubahan yang belum diterapkan ke papan; menutup form yang berubah menawarkan **Simpan draft & tutup**. Hasil ikut masuk pencarian papan/arsip dan pengecekan referensi sebelum menghapus file. Task arsip mempertahankan hasil dan tautannya, tetapi hanya bisa dibaca sampai dipulihkan.
 
 Deskripsi dan Hasil task memakai editor Markdown langsung: ketik atau tempel `**bold**`, `*italic*`, heading, daftar, kutipan, atau blok kode untuk melihat formatnya di area edit. Ctrl+B/Ctrl+I (Cmd di Mac) juga tersedia. Isinya disimpan sebagai Markdown, bukan HTML. Mention `@` tetap menyimpan referensi dokumen yang stabil dan URL HTTP/HTTPS membuka tab baru. Task lama tetap bisa diedit; membuka task tanpa mengubah field mempertahankan teks aslinya. Batas 3.000 karakter mencakup tanda Markdown dan token mention. Render otomatis tidak menyimpan task secara otomatis; gunakan **Simpan task**.
 
-Isi **Tanggal mulai** dan **Tanggal akhir / tenggat** untuk menjadwalkan task; keduanya opsional. Tanggal akhir tidak boleh sebelum tanggal mulai, dan tanggal yang sama diperbolehkan. Tenggat task lama dipertahankan sebagai tanggal akhir; tanggal mulai tidak diisi otomatis. Secara internal API tetap memakai `due` untuk tanggal akhir, ditambah `startDate` dan `result`. Payload lama yang tidak menyertakan field baru tetap mempertahankan nilai yang sudah tersimpan.
+Isi **Tanggal mulai** dan **Deadline / tanggal akhir** untuk menjadwalkan task; keduanya opsional. Deadline tidak boleh sebelum tanggal mulai, dan tanggal yang sama diperbolehkan. Deadline task lama dipertahankan sebagai tanggal akhir; tanggal mulai tidak diisi otomatis. Secara internal API tetap memakai `due` untuk tanggal akhir, ditambah `startDate` dan `result`. Payload lama yang tidak menyertakan field baru tetap mempertahankan nilai yang sudah tersimpan.
 
 Tab **Time table** menampilkan timeline mingguan task aktif, dengan default minggu berjalan (Senin–Minggu) berdasarkan tanggal lokal perangkat. Pilih tanggal untuk membuka minggu terkait, gunakan panah minggu sebelumnya/berikutnya, atau **Minggu ini**. Klik nama atau bar task untuk membuka detail dan mengubah jadwal. Bar mencakup kedua tanggal dan dipotong sesuai minggu yang dipilih; task dengan hanya satu tanggal ditandai sebagai titik dengan keterangan tanggal yang belum diisi. Task tanpa tanggal tetap ada di **Belum dijadwalkan**. Pencarian juga berlaku di tampilan ini; task arsip tetap di tab Arsip. Di layar kecil, geser area timeline secara horizontal, sementara nama task tetap terlihat. Jadwal diubah lewat detail task, tanpa drag bar.
 
@@ -247,7 +247,7 @@ pm2 restart md-previewer
 pm2 save
 ```
 
-Gunakan `NODE_ENV=production` di balik HTTPS proxy. Pertahankan `SESSION_SECRET` agar session PostgreSQL tetap dapat dipakai setelah restart. Cookie dan session berlaku 7 hari dan diperpanjang pada setiap request session (rolling session); polling workspace setiap 15 detik juga memperbaruinya selama halaman terbuka dan terhubung. Setelah tidak ada request selama 7 hari, login kembali diperlukan. Session lama menyimpan durasi sebelumnya; keluar lalu masuk sekali untuk mendapatkan durasi 7 hari. Verifikasi perubahan passkey tetap dibatasi 5 menit sejak autentikasi. Domain/prefix berbeda memiliki cookie login masing-masing.
+Gunakan `NODE_ENV=production` di balik HTTPS proxy. Pertahankan `SESSION_SECRET` agar session PostgreSQL tetap dapat dipakai setelah restart. Sesi login berakhir pada pergantian hari pukul **00.00 WIB (Asia/Jakarta)**; login pukul 23.50 WIB berlaku sampai 00.00 WIB. Aktivitas, refresh, dan polling tidak memperpanjang batas ini. Backend juga menolak sesi yang melewati batas hari, termasuk sesi lama berdasarkan waktu autentikasinya. Hari berikutnya user harus login kembali dengan passkey. Verifikasi perubahan passkey tetap dibatasi 5 menit sejak autentikasi. Domain/prefix berbeda memiliki cookie login masing-masing dengan aturan kedaluwarsa yang sama.
 
 ## Nginx dan Cloudflare Tunnel
 
@@ -263,6 +263,21 @@ Cloudflare published application:
 | Service URL | `http://localhost:8027` |
 
 Letakkan rule ini sebelum rule `itsazmi.com` tanpa path. Samakan batas body nginx dengan kebutuhan upload/JSON aplikasi. Portfolio di port 8002 tidak perlu diubah.
+
+## Docs dan task board
+
+- Header dokumen dibuat ringkas; buka **Properti dokumen** untuk melihat akses, path, dan tanggal. Mengganti nama tetap memerlukan **Simpan nama**.
+- Pilih teks dalam editor dokumen untuk menampilkan alat **Bold, Italic, H2, Tautan, Kode**, atau **Buat task**. `Alt+Shift+F` memindahkan fokus ke toolbar pilihan. Task dari pilihan teks otomatis menyebut dokumen sumber dan masih perlu **Simpan task**.
+- **Task terkait** pada dokumen Markdown/PDF menampilkan task yang menyebut dokumen dalam deskripsi atau hasil, termasuk arsip. Daftar ini hanya tersedia setelah login.
+- Pencarian workspace menyediakan filter folder (termasuk subfolder), Markdown/PDF, akses, dan tanggal pembaruan. Riwayat versi menampilkan baris yang ditambah/dihapus sebelum pemulihan. Diff besar dibatasi 300.000 karakter per versi dan 5.000 baris; isi lengkap tetap tersedia.
+- Task board menyediakan **Papan, Time table, Daftar, Arsip**. Tombol **Filter** membuka status, tag, prioritas, dan rentang deadline untuk semua tampilan; filter aktif tampil sebagai chip yang bisa dilepas. **Hari ini** berarti deadline hari ini; **Lewat deadline** tidak menyertakan task berstatus selesai. Tanggal relatif mengikuti tanggal browser.
+- **Simpan view** menyimpan filter bersama di PostgreSQL (maksimal 20 view). Saat filter view berubah, pilih **Perbarui view ini** atau **Simpan sebagai view baru**. **Kelola view tersimpan** mengganti nama atau menghapus view setelah **Simpan pengaturan**; task tetap tersimpan. Perubahan dari dua perangkat diperiksa menggunakan token agar tidak saling menimpa.
+- Detail task memakai panel isi dan properti; di HP, buka **Properti task** untuk status, prioritas, tanggal dan tag. Checklist serta lampiran bisa dilipat. Tag memakai pencarian, pilihan jamak dan chip yang bisa dilepas. Editor Deskripsi/Hasil mempertahankan isi saat berpindah tab.
+- Tampilan **Daftar** menyimpan perubahan status/tanggal langsung. Detail task dan checklist tetap diterapkan melalui **Simpan task**. Checklist mendukung maksimal 100 item, masing-masing 200 karakter.
+- Isi form task disimpan sebagai draft setelah berhenti mengetik sekitar 800 ms. Draft tidak mengubah task di papan. Setelah membuka ulang task atau **Tambah task**, pilih **Pulihkan draft** atau **Buang draft**. Draft dan view mengikuti workspace pribadi yang sama di lokal dan kedua domain.
+- Jika papan atau draft berubah di perangkat lain, muat ulang dan periksa isi form sebelum menyimpan. Jangan menutup browser sebelum status draft tersimpan; browser yang dihentikan paksa atau jaringan terputus dapat menggagalkan penyimpanan terakhir. Lampiran tetap langsung disimpan terpisah dari draft form.
+
+Migrasi startup menambahkan `tasks.checklist` (JSONB) dan `mdpreview.task_drafts`. View tersimpan dan token konkurensinya memakai `mdpreview.settings`. Tidak diperlukan environment variable atau dependency baru.
 
 ## Backup
 

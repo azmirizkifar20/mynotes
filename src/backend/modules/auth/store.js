@@ -1,6 +1,7 @@
 const { randomBytes, randomUUID, createHash } = require("node:crypto");
 const { query, transaction, fail } = require("../../database/connection");
 const { rpID } = require("./config");
+const { sessionDeadline, boundCookie } = require("./expiry");
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 const validToken = (value) =>
   typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
@@ -66,6 +67,7 @@ async function consumeChallenge(req, purpose) {
 async function freshSession(req) {
   if (
     !req.session?.authenticated ||
+    !sessionDeadline(req.session) ||
     req.session.authMethod !== "passkey" ||
     !Number.isFinite(req.session.authAt) ||
     Date.now() - req.session.authAt > 5 * 60 * 1000
@@ -75,6 +77,12 @@ async function freshSession(req) {
 async function normalizeSession(req, res, next) {
   try {
     if (req.session?.authenticated) {
+      const deadline = sessionDeadline(req.session);
+      if (!deadline) {
+        req.session.authenticated = false;
+        return next();
+      }
+      boundCookie(req.session, deadline);
       const row = (
         await query(
           "SELECT 1 FROM mdpreview.passkeys p JOIN mdpreview.settings s ON s.key='auth_generation' WHERE p.id=$1 AND p.rp_id=$2 AND s.value=$3::jsonb",

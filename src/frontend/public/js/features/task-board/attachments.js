@@ -10,9 +10,10 @@ export function createFeature({ state, actions, getBoard, setBoard, getTaskId, i
     $("board-attachment-count").textContent = `${items.length}/10`;
     $("board-attachment-input").disabled = state.toolBusy || readonly || items.length >= 10;
     $("board-attachment-drop").setAttribute("aria-disabled", String(state.toolBusy || readonly || items.length >= 10));
+    $("board-attachment-drop").disabled = state.toolBusy || readonly || items.length >= 10;
     $("board-confirm-submit").disabled = state.toolBusy;
-    $("board-attachment-hint").textContent = !current ? "Simpan task dahulu untuk menambahkan lampiran." : current.archivedAt ? "Lampiran tetap tersimpan. Pulihkan task untuk menambah atau menghapus." : "Maksimal 10 file, 50 MB per file. Penambahan dan penghapusan lampiran langsung disimpan.";
-    $("board-attachment-list").innerHTML = items.map((item) => `<li><div class="tb-attachment-info"><a href="${esc(actions.appUrl(`/api/task-board/attachments/${item.id}/view`))}" target="_blank" rel="noopener noreferrer">${esc(item.filename)}</a><small>${size(item.size)}</small></div>${!readonly ? `<button type="button" class="icon-button" data-action="removeBoardAttachment" data-arg="${esc(item.id)}" aria-label="Hapus lampiran ${esc(item.filename)}" ${state.toolBusy ? "disabled" : ""}>${actions.icon("trash")}</button>` : ""}</li>`).join("");
+    $("board-attachment-hint").textContent = !current ? "Simpan task dahulu untuk menambahkan lampiran." : current.archivedAt ? "Lampiran tetap tersimpan. Pulihkan task untuk menambah atau menghapus." : "Upload dan hapus lampiran terpisah dari Simpan task.";
+    $("board-attachment-list").innerHTML = items.map((item) => `<li><span class="tb-file-type">${esc(item.filename.split(".").pop().slice(0, 5).toUpperCase())}</span><div class="tb-attachment-info"><a href="${esc(actions.appUrl(`/api/task-board/attachments/${item.id}/view`))}" target="_blank" rel="noopener noreferrer">${esc(item.filename)}</a><small>${size(item.size)}</small></div>${!readonly ? `<button type="button" class="icon-button" data-action="removeBoardAttachment" data-arg="${esc(item.id)}" aria-label="Hapus lampiran ${esc(item.filename)}" ${state.toolBusy ? "disabled" : ""}>${actions.icon("trash")}</button>` : ""}</li>`).join("");
     $("board-attachment-empty").hidden = items.length > 0;
   }
   async function mutate(work, message, confirmation = false) {
@@ -93,6 +94,7 @@ export function createFeature({ state, actions, getBoard, setBoard, getTaskId, i
       if (!isFileDrag(event)) return;
       event.preventDefault(); event.stopPropagation(); dragDepth++;
       region.classList.toggle("is-dragging", Boolean(canDrop()));
+      if (canDrop()) region.open = true;
     });
     region.addEventListener("dragover", (event) => {
       if (!isFileDrag(event)) return;

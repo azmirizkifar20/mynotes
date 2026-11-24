@@ -25,14 +25,14 @@ export function weekModel(tasks, week) {
   return { days, first, last, scheduled, undated: tasks.filter((task) => !task.startDate && !task.due) };
 }
 function dates(task, compact = false) {
-  if (!task.startDate) return formatDate(task.due, !compact) + " · Mulai belum diisi";
-  if (!task.due) return formatDate(task.startDate, !compact) + " · Akhir belum diisi";
+  if (!task.startDate) return formatDate(task.due, !compact) + " · Tanpa tanggal mulai";
+  if (!task.due) return formatDate(task.startDate, !compact) + " · Tanpa deadline";
   return formatDate(task.startDate, !compact) + (task.startDate === task.due ? "" : " – " + formatDate(task.due, !compact));
 }
 export function timelineHTML(tasks, statuses, week, { escape: esc, icon }) {
   const { days, first, last, scheduled, undated } = weekModel(tasks, week);
   const now = localToday(), today = now >= first && now <= last ? dayOffset(first, now) + 1 : 0;
-  const heading = formatDate(first) + " – " + formatDate(last);
+  const heading = formatDate(first, first.slice(0, 4) !== last.slice(0, 4)) + " – " + formatDate(last);
   const statusOf = (task) => statuses.find((status) => status.id === task.statusId);
   const statusLabel = (task) => { const s = statusOf(task); return `<span class="tb-status-chip" data-tone="${esc(s.tone)}"><i class="tb-dot" aria-hidden="true"></i>${esc(s.name)}</span>`; };
   const openButton = (task) => `<button data-action="openBoardTask" data-arg="${esc(task.id)}" class="tb-timeline-title">${esc(task.title)}</button>`;
@@ -42,7 +42,7 @@ export function timelineHTML(tasks, statuses, week, { escape: esc, icon }) {
   }).join("");
   const rows = scheduled.map(({ task, columns }) => {
     const label = task.title + " · " + statusOf(task).name + " · " + dates(task), partial = !task.startDate || !task.due;
-    return `<tr><th scope="row" class="tb-timeline-label">${openButton(task)}<small title="${esc(dates(task))}">${esc(dates(task, true))}</small></th><td colspan="${days}"><div class="tb-timeline-track">${today ? `<span class="tb-today-line" style="grid-column:${today}" aria-hidden="true"></span>` : ""}<button data-action="openBoardTask" data-arg="${esc(task.id)}" class="tb-timeline-bar tb-status-chip ${partial ? "tb-timeline-point" : ""}" data-tone="${esc(statusOf(task).tone)}" style="grid-column:${columns[0]}/${columns[1]}" title="${esc(label)}" aria-label="${esc(label)}"><span aria-hidden="true">${partial ? "◆ " : ""}${esc(statusOf(task).name)}</span></button></div></td></tr>`;
+    return `<tr><th scope="row" class="tb-timeline-label">${openButton(task)}<small title="${esc(dates(task))}">T-${esc(String(task.number).padStart(3, "0"))} · ${esc(dates(task, true))}</small></th><td colspan="${days}"><div class="tb-timeline-track">${today ? `<span class="tb-today-line" style="grid-column:${today}" aria-hidden="true"></span>` : ""}<button data-action="openBoardTask" data-arg="${esc(task.id)}" class="tb-timeline-bar tb-status-chip ${partial ? "tb-timeline-point" : ""}" data-tone="${esc(statusOf(task).tone)}" style="grid-column:${columns[0]}/${columns[1]}" title="${esc(label)}" aria-label="${esc(label)}"><span aria-hidden="true">${partial ? "◆ " : ""}${esc(statusOf(task).name)}</span></button></div></td></tr>`;
   }).join("");
   return `<div class="tb-timeline-controls"><div><h2>${esc(heading)}</h2><p>${scheduled.length} terjadwal minggu ini · Senin–Minggu</p></div><div class="tb-week-nav"><button class="icon-button" data-action="moveBoardWeek" data-arg="-1" aria-label="Minggu sebelumnya" ${first === "0001-01-01" ? "disabled" : ""}>${icon("chevron")}</button><input id="board-timeline-week" type="date" class="text-input" value="${first}" min="0001-01-01" max="9999-12-31" aria-label="Pilih tanggal dalam minggu timeline"><button class="icon-button" data-action="moveBoardWeek" data-arg="1" aria-label="Minggu berikutnya" ${last === "9999-12-31" ? "disabled" : ""}>${icon("chevron")}</button><button class="small-button" data-action="moveBoardWeek" data-arg="today">Minggu ini</button></div></div>${scheduled.length ? `<div class="tb-timeline-scroll" tabindex="0" role="region" aria-label="Jadwal task ${esc(heading)}. Geser untuk melihat tanggal lainnya."><table class="tb-timeline-table" style="--days:${days}"><caption class="sr-only">Jadwal task ${esc(heading)}. Klik nama atau bar untuk membuka detail.</caption><colgroup><col class="tb-timeline-name-col"><col span="${days}"></colgroup><thead><tr><th scope="col" class="tb-timeline-label">Task & jadwal</th>${headers}</tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="tb-empty-column">Tidak ada jadwal pada minggu ini. Pilih minggu lain atau tambahkan tanggal di detail task.</p>'}${undated.length ? `<details class="tb-unscheduled"><summary>Belum dijadwalkan · ${undated.length} task</summary><div>${undated.map((task) => `<div class="tb-unscheduled-task">${openButton(task)}${statusLabel(task)}</div>`).join("")}</div></details>` : ""}`;
 }

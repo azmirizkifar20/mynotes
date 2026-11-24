@@ -28,6 +28,8 @@ module.exports = function register(api, { documentData }) {
       res.json({
         success: true,
         content: version.content.toString("utf8"),
+        currentContent: row.content.toString("utf8"),
+        currentRevision: row.revision,
         savedAt: version.saved_at,
       });
     }),

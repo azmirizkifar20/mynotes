@@ -3,6 +3,7 @@ const path = require("node:path");
 const db = require("../../database");
 const { parentPath } = require("./paths");
 const { uuid, asyncRoute, entry, changed } = require("../../rendering/http");
+const search = require("./search");
 module.exports = function register(api, { documentData, upload }) {
   api.post(
     "/raw",
@@ -165,17 +166,7 @@ module.exports = function register(api, { documentData, upload }) {
   api.get(
     "/search",
     asyncRoute(async (req, res) => {
-      const text = String(req.query.q || "")
-        .trim()
-        .slice(0, 200);
-      if (!text) return res.json({ success: true, items: [] });
-      const rows = (
-        await db.query(
-          `SELECT id,path,kind,CASE WHEN kind='doc' THEN ts_headline('simple',convert_from(content,'UTF8'),websearch_to_tsquery('simple',$1),'StartSel="",StopSel="",MaxWords=35,MinWords=15,MaxFragments=1') ELSE '' END AS snippet,ts_rank(search_vector,websearch_to_tsquery('simple',$1)) AS rank FROM mdpreview.entries WHERE deleted_at IS NULL AND kind IN ('doc','folder','pdf') AND path <> '/' AND path !~* '^/(steering|superpowers)(/|$)' AND (search_vector @@ websearch_to_tsquery('simple',$1) OR strpos(lower(path),lower($1))>0) ORDER BY rank DESC,path LIMIT 50`,
-          [text],
-        )
-      ).rows;
-      res.json({ success: true, items: rows });
+      res.json({ success: true, items: await search(req.query) });
     }),
   );
 };

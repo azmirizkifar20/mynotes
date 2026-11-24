@@ -64,6 +64,7 @@ export function createFeature({ state, actions }, field = "description") {
     editable().setAttribute("aria-invalid", String(invalid));
     error().textContent = invalid ? "Teks terlalu panjang (maksimal 3.000 karakter, termasuk referensi dokumen)." : "";
     state.taskBoardDirty = true;
+    $(fieldId).dispatchEvent(new Event("input", { bubbles: true }));
     return !invalid;
   }
   function load(text, currentDocuments = []) {
@@ -87,8 +88,8 @@ export function createFeature({ state, actions }, field = "description") {
       cdn: actions.appUrl("/static/editor/" + state.boot.editorVersion),
       lang: "en_US", mode: "ir", value: text,
       theme: document.documentElement.dataset.theme === "dark" ? "dark" : "classic",
-      cache: { enable: false }, toolbar: ["bold", "italic", "outdent", "indent"], toolbarConfig: { hide: true },
-      minHeight: 190, height: "auto", placeholder: editor().dataset.placeholder,
+      cache: { enable: false }, toolbar: ["bold", "italic", "headings", "list", "ordered-list", "link", "inline-code"],
+      minHeight: 220, height: "auto", placeholder: editor().dataset.placeholder,
       preview: { markdown: { sanitize: true, autoSpace: false, fixTermTypo: false }, hljs: { enable: false }, render: { media: { enable: false } } },
       input: () => { if (ready && touched && !locked && !readonly) { sync(); decorate(); schedule(); } },
       after: () => queueMicrotask(() => {

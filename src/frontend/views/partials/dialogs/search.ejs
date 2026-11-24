@@ -1,1 +1,12 @@
-  <dialog id="search-dialog" aria-label="Cari catatan"><div class="search-line"><svg><use href="#i-search"/></svg><input id="search-input" placeholder="Cari judul, path, atau isi dokumen…" aria-label="Cari judul, path, atau isi dokumen" autocomplete="off"><button class="icon-button" data-action="closeDialog" data-arg="search-dialog" aria-label="Tutup pencarian"><svg><use href="#i-close"/></svg></button></div><div class="search-results" id="search-results"></div><div class="search-foot">Cari di seluruh workspace. Escape untuk menutup.</div></dialog>
+  <dialog id="search-dialog" aria-label="Cari catatan">
+    <div class="search-line"><svg><use href="#i-search"/></svg><input id="search-input" placeholder="Cari judul, path, atau isi dokumen…" aria-label="Cari judul, path, atau isi dokumen" autocomplete="off"><button class="icon-button" data-action="closeDialog" data-arg="search-dialog" aria-label="Tutup pencarian"><svg><use href="#i-close"/></svg></button></div>
+    <details class="search-filter-panel"><summary>Filter pencarian</summary><div class="search-filters">
+      <label>Folder<select id="search-folder"><option value="">Semua folder</option></select></label>
+      <label>Jenis<select id="search-type"><option value="">Semua jenis</option><option value="doc">Markdown</option><option value="pdf">PDF</option></select></label>
+      <label>Akses<select id="search-visibility"><option value="">Semua akses</option><option value="public">Publik</option><option value="private">Privat</option></select></label>
+      <label>Diperbarui sejak<input type="date" id="search-updated-from"></label>
+      <label>Sampai tanggal<input type="date" id="search-updated-to"></label>
+      <button type="button" class="small-button" data-document-tool="reset-search">Reset filter</button>
+    </div></details>
+    <div class="search-results" id="search-results" aria-live="polite"></div><div class="search-foot">Cari di seluruh workspace. Escape untuk menutup.</div>
+  </dialog>

@@ -48,6 +48,7 @@ export function createFeature({ state, actions }) {
   }
 
   function destroyLiveEditor() {
+    actions.hideDocumentSelection?.();
     globalThis.CSS?.highlights?.delete("markdown-underline");
     actions.trackOutline([]);
     state.liveEditorGeneration++;
@@ -80,7 +81,7 @@ export function createFeature({ state, actions }) {
             ? "dark"
             : "classic",
         cache: { enable: false },
-        toolbar: ["bold", "italic", "outdent", "indent"],
+        toolbar: ["bold", "italic", "headings", "link", "inline-code", "outdent", "indent"],
         toolbarConfig: { hide: true },
         minHeight: 250,
         height: "auto",

@@ -118,6 +118,13 @@ ALTER TABLE mdpreview.task_statuses ADD COLUMN IF NOT EXISTS completed boolean N
 ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS archived_at timestamptz;
 ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS result text NOT NULL DEFAULT '' CHECK(length(result) <= 3000);
 ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS start_date date CHECK(start_date IS NULL OR due IS NULL OR start_date <= due);
+ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS checklist jsonb NOT NULL DEFAULT '[]'::jsonb CHECK(jsonb_typeof(checklist)='array' AND jsonb_array_length(checklist) <= 100);
+CREATE TABLE IF NOT EXISTS mdpreview.task_drafts (
+  key text PRIMARY KEY CHECK(key='new' OR key ~ '^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$'),
+  body jsonb NOT NULL CHECK(jsonb_typeof(body)='object'),
+  token uuid NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE IF NOT EXISTS mdpreview.task_tags (
   id uuid PRIMARY KEY,
   name text NOT NULL CHECK(length(btrim(name)) BETWEEN 1 AND 32)

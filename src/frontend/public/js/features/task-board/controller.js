@@ -3,6 +3,9 @@ import { createFeature as createMentions } from "./mention-editor.js";
 import { currentWeek, moveWeek, weekStart } from "./timeline.js";
 import { tagChoices, tagRows } from "./tags.js";
 import { createFeature as createAttachments } from "./attachments.js";
+import { emptyFilters, filterBoard } from "./filters.js";
+import { createFeature as createDrafts } from "./drafts.js";
+import { createFeature as createSelects } from "../../components/select.js";
 
 export function createFeature({ state, actions }) {
   const view = createView({ actions });
@@ -10,40 +13,52 @@ export function createFeature({ state, actions }) {
   const results = createMentions({ state, actions }, "result");
   const editors = [mentions, results];
   const { $ , escape: esc, icon } = actions;
-  const dialogIds = ["board-task-dialog", "board-status-dialog", "board-tag-dialog", "board-confirm-dialog"];
+  const dialogIds = ["board-task-dialog", "board-status-dialog", "board-tag-dialog", "board-confirm-dialog", "board-save-view", "board-views-dialog"];
+  const selects = createSelects({ actions, selector: '.task-board select,dialog[id^="board-"] select' });
+  let viewDraft = [];
   let tagDraft = [];
   let board = null, editingId = null, draft = null, moves = {}, confirmation = null;
   let loadSequence = 0, draggingId = null, conflicted = false, boardView = "active", timelineWeek = currentWeek();
+  let filters = emptyFilters(), savedViews = [], viewsToken = null, selectedView = "", checklist = [], formRevision = null;
+  const taskDrafts = createDrafts({ state, actions, getBody: taskBody, applyBody: applyTaskBody, getKey: () => editingId || "new", getRevision: () => formRevision, onChanged: () => { state.taskBoardDirty = true; updateTaskFeedback(); } });
   const taskBoardDialogOpen = () => dialogIds.some((id) => $(id)?.open);
   const attachments = createAttachments({ state, actions, getBoard: () => board, setBoard: (value) => { board = value; }, getTaskId: () => editingId, invalidate: () => { loadSequence++; }, controls: taskControls, paint, ask });
 
   function paint() {
     if (state.current !== "tasks" || !$("board-columns") || !board) return;
-    const query = $("board-search").value.trim().toLocaleLowerCase();
+    filters.query = $("board-search").value;
+    const query = filters.query.trim().toLocaleLowerCase(), filtered = filterBoard(board, filters);
     const archivedView = boardView === "archive", timelineView = boardView === "timeline";
-    const result = timelineView ? view.boardTimeline(board, query, timelineWeek) : view.boardColumns(board, query, archivedView);
+    const result = timelineView ? view.boardTimeline(filtered, "", timelineWeek) : boardView === "list" ? view.boardList(filtered) : view.boardColumns(filtered, "", archivedView);
     const archivedCount = board.tasks.filter((task) => task.archivedAt).length;
     const total = archivedView ? archivedCount : board.tasks.length - archivedCount;
     $("board-columns").innerHTML = result.html;
     $("board-columns").classList.toggle("tb-archive", archivedView);
     $("board-columns").classList.toggle("tb-timetable", timelineView);
+    $("board-columns").classList.toggle("tb-list-view", boardView === "list");
     $("board-columns").setAttribute("aria-label", timelineView ? "Timeline jadwal task" : archivedView ? "Arsip task" : "Papan task menurut status");
     $("board-summary").textContent = `${board.tasks.length - archivedCount} task aktif · ${board.tasks.filter((task) => !task.archivedAt && board.statuses.find((status) => status.id === task.statusId)?.completed).length} selesai · ${archivedCount} diarsipkan`;
     $("board-archive-count").textContent = archivedCount;
-    $("board-count").textContent = query ? `${result.count} dari ${total} task` : `${total} task`;
-    for (const [id, selected] of [["board-active-tab", boardView === "active"], ["board-timeline-tab", timelineView], ["board-archive-tab", archivedView]]) { $(id).setAttribute("aria-pressed", String(selected)); $(id).setAttribute("aria-selected", String(selected)); $(id).tabIndex = selected ? 0 : -1; if (selected) $("board-columns").setAttribute("aria-labelledby", id); }
+    const filtering = Object.values(filters).some(Boolean);
+    $("board-count").textContent = `${result.count} dari ${total} task`;
+    $("board-filter-count").textContent = Object.entries(filters).filter(([key, value]) => key !== "query" && value).length || "";
+    renderFilterSummary();
+    for (const [id, selected] of [["board-active-tab", boardView === "active"], ["board-timeline-tab", timelineView], ["board-list-tab", boardView === "list"], ["board-archive-tab", archivedView]]) { $(id).setAttribute("aria-pressed", String(selected)); $(id).setAttribute("aria-selected", String(selected)); $(id).tabIndex = selected ? 0 : -1; if (selected) $("board-columns").setAttribute("aria-labelledby", id); }
     $("board-new-task").hidden = archivedView;
-    $("board-view-hint").textContent = archivedView ? "Task arsip tetap menyimpan detail dan mention. Buka task untuk memulihkannya ke papan." : timelineView ? "Klik nama atau bar task untuk mengedit jadwal. Task dengan satu tanggal ditandai sebagai titik." : "Seret kartu untuk mengubah status, atau klik kartu untuk mengedit.";
-    $("board-empty-search").hidden = !query || result.count > 0;
-    if (query && !result.count) $("board-columns").innerHTML = "";
+    $("board-view-hint").textContent = archivedView ? "Task arsip tetap menyimpan detail dan mention. Buka task untuk memulihkannya ke papan." : timelineView ? "Klik nama atau bar task untuk mengedit jadwal. Task dengan satu tanggal ditandai sebagai titik." : boardView === "list" ? "Ubah status atau tanggal langsung di tabel; setiap perubahan langsung disimpan. Klik judul untuk detail." : "Seret kartu untuk mengubah status, atau klik kartu untuk mengedit.";
+    $("board-empty-search").hidden = !filtering || result.count > 0;
+    if (filtering && !result.count) $("board-columns").innerHTML = "";
+    if (!filtering && !result.count && (timelineView || boardView === "list")) $("board-columns").innerHTML = view.boardColumns(filtered, "").html;
+    $("board-view-hint").hidden = !result.count;
     $("board-settings").inert = state.toolBusy;
-    $("board-controls").querySelectorAll("button,input").forEach((control) => { control.disabled = state.toolBusy; });
+    $("board-controls").querySelectorAll("button,input,select").forEach((control) => { control.disabled = state.toolBusy; });
+    selects.refresh();
   }
   async function fetchBoard() {
     const sequence = ++loadSequence, navigation = state.navigationSequence;
     const result = await actions.api("task-board");
     if (sequence !== loadSequence || state.current !== "tasks" || navigation !== state.navigationSequence) return false;
-    board = result.board; conflicted = false; paint();
+    board = result.board; conflicted = false; renderFilters(); paint();
     $("board-error").textContent = ""; $("board-retry").hidden = true;
     return true;
   }
@@ -52,7 +67,7 @@ export function createFeature({ state, actions }) {
     actions.trackOutline([]);
     board = null; timelineWeek = currentWeek();
     $("main").innerHTML = view.shell();
-    try { await fetchBoard(); }
+    try { await fetchBoard(); const preferences = await taskDrafts.loadPreferences(); if (state.current === "tasks" && navigation === state.navigationSequence) { savedViews = preferences.views || []; viewsToken = preferences.viewsToken || null; renderFilters(); } }
     catch (error) {
       if (state.current !== "tasks" || navigation !== state.navigationSequence || !$("board-error")) return;
       $("board-summary").textContent = "Papan belum dapat dimuat";
@@ -63,19 +78,129 @@ export function createFeature({ state, actions }) {
     if (state.current !== "tasks" || state.toolBusy || taskBoardDialogOpen() || draggingId || document.activeElement?.closest(".task-board") || conflicted) return;
     await fetchBoard();
   }
-  function clearBoardSearch() { $("board-search").value = ""; paint(); $("board-search").focus(); }
+  function clearBoardSearch() { filters = emptyFilters(); selectedView = ""; renderFilters(); paint(); $("board-search").focus(); }
   function setBoardView(value) {
     if (!board || state.toolBusy || taskBoardDialogOpen()) return;
-    boardView = ["archive", "timeline"].includes(value) ? value : "active"; paint();
+    boardView = ["archive", "timeline", "list"].includes(value) ? value : "active"; paint();
   }
   function moveBoardWeek(value) {
     if (!board || state.toolBusy || taskBoardDialogOpen() || !["-1", "1", "today"].includes(String(value))) return;
     timelineWeek = value === "today" ? currentWeek() : moveWeek(timelineWeek, Number(value)); paint();
   }
+  function renderFilters() {
+    if (!board || !$("board-saved-view")) return;
+    $("board-search").value = filters.query;
+    $("board-filter-statusId").innerHTML = '<option value="">Semua status</option>' + view.statusOptions(board.statuses, filters.statusId);
+    $("board-filter-tagId").innerHTML = '<option value="">Semua tag</option>' + (board.tags || []).map((tag) => `<option value="${esc(tag.id)}" ${tag.id === filters.tagId ? "selected" : ""}>${esc(tag.name)}</option>`).join("");
+    for (const key of ["priority", "dateFrom", "dateTo", "dateMode"]) $("board-filter-" + key).value = filters[key];
+    $("board-saved-view").innerHTML = '<option value="">Semua task</option>' + savedViews.map((item) => `<option value="${esc(item.id)}">${esc(item.name)}</option>`).join("");
+    $("board-saved-view").value = selectedView;
+    renderFilterSummary(); selects.refresh();
+  }
+  function renderFilterSummary() {
+    const current = savedViews.find((item) => item.id === selectedView), changed = current && Object.keys(filters).some((key) => filters[key] !== (current.filters[key] || ""));
+    $("board-view-dirty").hidden = !changed;
+    $("board-save-view-button").hidden = !changed && !(!selectedView && Object.values(filters).some(Boolean));
+    const labels = { query: `Cari: ${filters.query}`, statusId: board.statuses.find((item) => item.id === filters.statusId)?.name, tagId: board.tags?.find((item) => item.id === filters.tagId)?.name, priority: { high: "Tinggi", normal: "Normal", low: "Rendah" }[filters.priority], dateFrom: `Deadline dari ${filters.dateFrom}`, dateTo: `Deadline sampai ${filters.dateTo}`, dateMode: filters.dateMode === "today" ? "Hari ini" : "Lewat deadline" };
+    $("board-filter-chips").innerHTML = Object.entries(filters).filter(([, value]) => value).map(([key]) => `<button type="button" class="tb-filter-chip" data-action="removeBoardFilter" data-arg="${key}" aria-label="Hapus filter ${esc(labels[key] || key)}">${esc(labels[key] || key)}${icon("close")}</button>`).join("");
+    $("board-filter-error").textContent = filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo ? "Deadline sampai tidak boleh sebelum tanggal dari." : "";
+    $("board-filters").querySelectorAll("[data-action=setBoardDateFilter]").forEach((button) => button.setAttribute("aria-pressed", String(filters.dateMode === button.dataset.arg)));
+  }
+  function toggleBoardFilters() { $("board-filters").hidden = !$("board-filters").hidden; $("board-filter-toggle").setAttribute("aria-expanded", String(!$("board-filters").hidden)); }
+  function removeBoardFilter(key) { if (!(key in filters) || state.toolBusy) return; filters[key] = ""; renderFilters(); paint(); }
+  function setBoardDateFilter(value) { filters.dateMode = filters.dateMode === value ? "" : value; renderFilters(); paint(); }
+  function openBoardSaveView() {
+    if (state.toolBusy || taskBoardDialogOpen()) return;
+    $("board-view-name").value = savedViews.find((item) => item.id === selectedView)?.name || "";
+    $("board-view-save-mode-field").hidden = !selectedView; $("board-view-save-mode").value = "update";
+    $("board-save-view-error").textContent = ""; $("board-save-view").showModal(); $("board-view-name").focus();
+  }
+  function cancelBoardSaveView() { if (!state.toolBusy) $("board-save-view").close(); }
+  async function saveBoardView(event) {
+    event.preventDefault(); if (state.toolBusy) return;
+    const updating = selectedView && $("board-view-save-mode").value === "update";
+    const name = $("board-view-name").value.trim();
+    if (!name) { $("board-view-name").setCustomValidity("Tulis nama view."); $("board-view-name").reportValidity(); return; }
+    if (savedViews.some((item) => (!updating || item.id !== selectedView) && item.name.toLocaleLowerCase() === name.toLocaleLowerCase())) { $("board-save-view-error").textContent = "Nama view sudah digunakan."; return; }
+    const id = updating ? selectedView : crypto.randomUUID(), item = { id, name, filters: { ...filters } };
+    const views = updating ? savedViews.map((view) => view.id === selectedView ? item : view) : [...savedViews, item];
+    if (views.length > 20) return actions.notify("Maksimal 20 view tersimpan.");
+    await persistViews(views, "board-save-view", "board-save-view-error", id);
+  }
+  async function persistViews(views, dialogId, errorId, selected = selectedView) {
+    state.toolBusy = true; const dialog = $(dialogId), controls = [...dialog.querySelectorAll("button,input,select")];
+    controls.forEach((control) => { control.disabled = true; }); dialog.setAttribute("aria-busy", "true");
+    try {
+      const data = await actions.api("task-board/views/save", { views, token: viewsToken });
+      savedViews = data.views; viewsToken = data.viewsToken; selectedView = savedViews.some((item) => item.id === selected) ? selected : "";
+      state.taskBoardDirty = false; dialog.close(); renderFilters(); paint(); actions.notify("View disimpan.");
+    } catch (error) { $(errorId).textContent = error.message; if (error.status === 409) { $("board-error").textContent = "View berubah di perangkat lain. Tutup pengaturan lalu muat ulang papan sebelum menyimpan lagi."; $("board-retry").hidden = false; } }
+    finally { state.toolBusy = false; controls.forEach((control) => { control.disabled = false; }); dialog.setAttribute("aria-busy", "false"); paint(); }
+  }
+  function renderViews() {
+    $("board-view-rows").innerHTML = viewDraft.map((item) => `<div class="tb-tag-row" data-board-view-id="${esc(item.id)}"><input class="text-input" value="${esc(item.name)}" maxlength="40" required aria-label="Nama view ${esc(item.name)}"><span class="tb-hint">${Object.values(item.filters).filter(Boolean).length} filter</span><button type="button" class="icon-button" data-action="deleteBoardSavedView" data-arg="${esc(item.id)}" aria-label="Hapus view ${esc(item.name)}">${icon("trash")}</button></div>`).join("") || '<p class="tb-hint">Belum ada view tersimpan. Atur filter lalu pilih Simpan view.</p>';
+  }
+  function openBoardViews() {
+    $("board-settings").open = false;
+    if (state.toolBusy || taskBoardDialogOpen()) return;
+    viewDraft = structuredClone(savedViews); state.taskBoardDirty = false; $("board-views-error").textContent = ""; renderViews(); $("board-views-dialog").showModal();
+  }
+  function deleteBoardSavedView(id) {
+    if (state.toolBusy) return;
+    const item = viewDraft.find((view) => view.id === id); if (!item) return;
+    ask("Hapus view?", `View “${item.name}” akan dihapus setelah Simpan pengaturan. Task tetap tersimpan.`, "Hapus view", () => {
+      viewDraft = viewDraft.filter((view) => view.id !== id); state.taskBoardDirty = true; $("board-confirm-dialog").close(); renderViews();
+    });
+  }
+  function saveBoardViews(event) {
+    event.preventDefault(); if (state.toolBusy) return;
+    const names = viewDraft.map((item) => item.name.trim().toLocaleLowerCase());
+    if (names.some((name) => !name) || new Set(names).size !== names.length) { $("board-views-error").textContent = "Tulis nama view yang berbeda dan tidak kosong."; return; }
+    return persistViews(viewDraft.map((item) => ({ ...item, name: item.name.trim() })), "board-views-dialog", "board-views-error");
+  }
+  function renderChecklist() {
+    const archived = Boolean(board?.tasks.find((task) => task.id === editingId)?.archivedAt);
+    $("board-checklist-progress").textContent = checklist.length ? `${checklist.filter((item) => item.done).length}/${checklist.length}` : "";
+    $("board-checklist-items").innerHTML = checklist.map((item) => `<div class="tb-checklist-item" data-checklist-id="${esc(item.id)}"><input type="checkbox" data-checklist-field="done" ${item.done ? "checked" : ""} ${archived ? "disabled" : ""} aria-label="Selesai: ${esc(item.text || "Item checklist")}"><input class="text-input" data-checklist-field="text" value="${esc(item.text)}" maxlength="200" ${archived ? "disabled" : ""} aria-label="Isi item checklist"><button type="button" class="icon-button" data-action="removeBoardChecklist" data-arg="${esc(item.id)}" ${archived ? "disabled" : ""} aria-label="Hapus item checklist">${icon("close")}</button></div>`).join("");
+    $("board-checklist-add").disabled = archived || state.toolBusy || checklist.length >= 100;
+  }
+  function addBoardChecklist() {
+    if (state.toolBusy || checklist.length >= 100 || board?.tasks.find((task) => task.id === editingId)?.archivedAt) return;
+    checklist.push({ id: crypto.randomUUID(), text: "", done: false }); renderChecklist(); state.taskBoardDirty = true; taskDrafts.changed(); updateTaskFeedback();
+    $("board-checklist-items").lastElementChild.querySelector('[data-checklist-field="text"]').focus();
+  }
+  function removeBoardChecklist(id) {
+    if (state.toolBusy || board?.tasks.find((task) => task.id === editingId)?.archivedAt) return;
+    checklist = checklist.filter((item) => item.id !== id); renderChecklist(); state.taskBoardDirty = true; taskDrafts.changed(); updateTaskFeedback();
+  }
+  function taskBody() {
+    return { ...(editingId ? { id: editingId } : {}), title: $("board-task-name").value, description: $("board-task-description").value, result: $("board-task-result").value, statusId: $("board-task-status").value, priority: $("board-task-priority").value, startDate: $("board-task-start").value, due: $("board-task-due").value, tagIds: selectedTags(), checklist: structuredClone(checklist), revision: formRevision };
+  }
+  function applyTaskBody(body) {
+    $("board-task-name").value = body.title || ""; mentions.load(body.description || "", board.documents); results.load(body.result || "", board.documents);
+    $("board-task-status").innerHTML = view.statusOptions(board.statuses, body.statusId);
+    if (!board.statuses.some((status) => status.id === body.statusId)) $("board-task-status").insertAdjacentHTML("afterbegin", '<option value="" selected disabled>Pilih status baru</option>');
+    $("board-task-priority").value = body.priority || "normal"; $("board-task-start").value = body.startDate || ""; $("board-task-due").value = body.due || "";
+    $("board-task-tags").innerHTML = tagChoices(board.tags || [], body.tagIds || [], esc); checklist = structuredClone(body.checklist || []); renderChecklist(); renderSelectedTags();
+    if (body.revision !== board.revision) { conflicted = true; $("board-task-error").textContent = "Draft berasal dari revisi papan sebelumnya. Muat ulang papan, lalu periksa perubahan sebelum menyimpan."; $("board-task-reload").hidden = false; }
+  }
+  async function openBoardTaskFromDocument(body) {
+    if (state.current !== "tasks" && !await actions.navigate("tasks")) return;
+    if (!board) return;
+    openBoardTask(); if (!$("board-task-dialog").open) return;
+    if (!$("board-draft-recovery").hidden) { actions.notify("Pulihkan atau buang draft task baru sebelum membuat task dari dokumen."); return; }
+    applyTaskBody({ ...taskBody(), ...body, revision: board.revision }); state.taskBoardDirty = true; taskDrafts.changed(); updateTaskFeedback();
+  }
+  async function openRelatedTask(id) {
+    if (state.current !== "tasks" && !await actions.navigate("tasks")) return;
+    const task = board?.tasks.find((item) => item.id === id); if (task?.archivedAt) setBoardView("archive"); openBoardTask(id);
+  }
   function taskControls() {
     const task = board?.tasks.find((task) => task.id === editingId), archived = Boolean(task?.archivedAt);
     for (const id of ["board-task-name", "board-task-status", "board-task-priority", "board-task-start", "board-task-due", "board-task-description", "board-task-result", "board-task-save"]) $(id).disabled = state.toolBusy || archived;
-    $("board-task-tags").querySelectorAll("input").forEach((input) => { input.disabled = state.toolBusy || archived; });
+    $("board-task-tags").querySelectorAll("input").forEach((input) => { input.disabled = state.toolBusy || archived || (!input.checked && selectedTags().length >= 20); });
+    $("board-checklist-items").querySelectorAll("input,button").forEach((input) => { input.disabled = state.toolBusy || archived; });
+    $("board-checklist-add").disabled = state.toolBusy || archived || checklist.length >= 100;
     editors.forEach((editor) => editor.busy(state.toolBusy, archived));
     $("board-mention-hint").hidden = archived;
     $("board-result-mention-hint").hidden = archived;
@@ -86,6 +211,9 @@ export function createFeature({ state, actions }) {
     $("board-task-actions").hidden = !task || archived;
     $("board-tag-picker").hidden = archived;
     $("board-task-actions").inert = state.toolBusy; $("board-tag-picker").inert = state.toolBusy;
+    $("board-tag-toggle").disabled = state.toolBusy || archived;
+    $("board-tag-search").disabled = state.toolBusy || archived;
+    if (state.toolBusy || archived) closeTagPicker();
     $("board-task-hint").hidden = !archived;
     updateTaskFeedback();
     attachments.render();
@@ -102,6 +230,7 @@ export function createFeature({ state, actions }) {
     const task = id ? board.tasks.find((task) => task.id === id) : null;
     if (id && !task) return actions.notify("Task sudah tidak tersedia. Muat ulang papan.");
     editingId = task?.id || null; state.taskBoardDirty = false; resetErrors();
+    formRevision = board.revision; checklist = structuredClone(task?.checklist || []); renderChecklist();
     $("board-attachment-error").textContent = ""; $("board-attachment-progress").textContent = "";
     $("board-task-form").reset(); $("board-task-name").setCustomValidity("");
     $("board-task-title").textContent = task ? "Detail task" : "Task baru";
@@ -114,14 +243,20 @@ export function createFeature({ state, actions }) {
     $("board-task-start").value = task?.startDate || ""; $("board-task-due").setCustomValidity("");
     $("board-task-tags").innerHTML = tagChoices(board.tags || [], task?.tagIds || [], esc);
     $("board-task-tags-error").textContent = "";
-    $("board-task-actions").open = false; $("board-tag-picker").open = false; $("board-tag-search").value = "";
+    $("board-task-actions").open = false; closeTagPicker(); $("board-tag-search").value = "";
+    $("board-properties").open = !matchMedia("(max-width:760px)").matches;
+    $("board-checklist-section").open = Boolean(checklist.length);
+    $("board-attachments").open = Boolean(task?.attachments?.length);
     renderSelectedTags(); filterTaskTags(); setBoardEditor("description"); taskControls();
     $("board-task-dialog").showModal(); (task?.archivedAt ? $("board-task-dialog").querySelector("[data-action=closeTaskBoardDialog]") : $("board-task-name")).focus();
+    updateTaskFeedback();
+    taskDrafts.open(Boolean(task?.archivedAt));
   }
   function closeTaskBoardDialog(id) {
     if (state.toolBusy || !dialogIds.includes(id)) return;
     if (id !== "board-confirm-dialog" && state.taskBoardDirty) {
-      ask("Tutup tanpa menyimpan?", "Ada perubahan yang belum disimpan. Tutup dan buang perubahan pada form ini?", "Buang perubahan", () => {
+      ask("Tutup editor?", id === "board-task-dialog" ? "Perubahan belum diterapkan ke papan. Simpan sebagai draft untuk melanjutkan nanti." : "Ada pengaturan yang belum disimpan. Tutup dan buang perubahan form ini?", id === "board-task-dialog" ? "Simpan draft & tutup" : "Buang perubahan", async () => {
+        if (id === "board-task-dialog") { try { await taskDrafts.flush(); } catch (error) { $("board-confirm-error").textContent = error.message; return; } }
         state.taskBoardDirty = false; $("board-confirm-dialog").close(); $(id).close();
       });
     } else $(id).close();
@@ -186,14 +321,22 @@ export function createFeature({ state, actions }) {
   function updateTaskFeedback() {
     const filled = Boolean($("board-task-result").value.trim());
     $("board-result-indicator").hidden = !filled;
+    $("board-result-indicator").textContent = filled ? "Terisi" : "";
     $("board-result-label").setAttribute("aria-label", filled ? "Hasil task, sudah terisi" : "Hasil task, belum terisi");
     const archived = Boolean(board?.tasks.find((task) => task.id === editingId)?.archivedAt);
     $("board-task-save-state").textContent = archived ? "Hanya baca" : state.toolBusy ? "Menyimpan…" : state.taskBoardDirty ? "Perubahan belum disimpan" : "Belum ada perubahan";
+    for (const field of ["description", "result"]) $("board-" + field + "-length").textContent = `${$("board-task-" + field).value.length.toLocaleString("id-ID")}/3.000`;
+    $("board-property-summary").textContent = [$("board-task-status").selectedOptions[0]?.textContent, $("board-task-due").value ? `Deadline ${$("board-task-due").value}` : "Tanpa deadline"].filter(Boolean).join(" · ");
+    const title = $("board-task-name"); title.style.height = "auto"; title.style.height = title.scrollHeight + "px";
+    selects.refresh();
   }
   function renderSelectedTags() {
     const selected = selectedTags(), archived = Boolean(board.tasks.find((task) => task.id === editingId)?.archivedAt);
-    $("board-selected-tags").innerHTML = (board.tags || []).filter((tag) => selected.includes(tag.id)).map((tag) => `<span class="tb-selected-tag">${esc(tag.name)}${!archived ? `<button type="button" data-action="removeBoardTaskTag" data-arg="${esc(tag.id)}" aria-label="Lepas tag ${esc(tag.name)}">×</button>` : ""}</span>`).join("") || '<span class="tb-hint">Tanpa tag</span>';
-    $("board-tag-picker").querySelector("summary").textContent = selected.length ? "+ Tag" : "Pilih tag";
+    $("board-selected-tags").innerHTML = (board.tags || []).filter((tag) => selected.includes(tag.id)).map((tag) => archived ? `<span class="tb-selected-tag">${esc(tag.name)}</span>` : `<button type="button" class="tb-selected-tag" data-action="removeBoardTaskTag" data-arg="${esc(tag.id)}" aria-label="Lepas tag ${esc(tag.name)}"><span>${esc(tag.name)}</span>${icon("close")}</button>`).join("");
+    $("board-selected-tags").hidden = !selected.length;
+    $("board-tag-toggle").firstElementChild.textContent = selected.length ? "Tambah atau ubah tag" : "Pilih tag";
+    $("board-tag-selection-count").textContent = `${selected.length}/20 dipilih`;
+    $("board-task-tags").querySelectorAll("input").forEach((input) => { input.disabled = state.toolBusy || archived || (!input.checked && selected.length >= 20); });
   }
   function filterTaskTags() {
     const query = $("board-tag-search").value.trim().toLocaleLowerCase();
@@ -204,7 +347,11 @@ export function createFeature({ state, actions }) {
   function removeBoardTaskTag(id) {
     if (state.toolBusy || board?.tasks.find((task) => task.id === editingId)?.archivedAt) return;
     const input = [...$("board-task-tags").querySelectorAll("input")].find((input) => input.value === id);
-    if (input) { input.checked = false; state.taskBoardDirty = true; renderSelectedTags(); updateTaskFeedback(); }
+    if (input) {
+      const chips = [...$("board-selected-tags").querySelectorAll("button")], index = chips.findIndex((chip) => chip.dataset.arg === id);
+      input.checked = false; state.taskBoardDirty = true; renderSelectedTags(); taskDrafts.changed(); updateTaskFeedback();
+      ($("board-selected-tags").querySelectorAll("button")[Math.max(0, index)] || $("board-tag-toggle")).focus();
+    }
   }
   function restoreBoardTask(id) {
     if (state.toolBusy || taskBoardDialogOpen()) return;
@@ -213,6 +360,8 @@ export function createFeature({ state, actions }) {
     ask("Pulihkan task?", `“${task.title}” akan dikembalikan ke papan dengan status ${board.statuses.find((status) => status.id === task.statusId).name}.`, "Pulihkan", () => write("tasks/restore", { id: task.id, confirm: true }, "confirm", ["board-confirm-dialog"], "Task dipulihkan ke papan."));
   }
   function selectedTags() { return [...$("board-task-tags").querySelectorAll("input:checked")].map((input) => input.value); }
+  function closeTagPicker() { if ($("board-tag-panel").matches(":popover-open")) $("board-tag-panel").hidePopover(); }
+  function chooseBoardAttachments() { if (!state.toolBusy && !$("board-attachment-input").disabled) $("board-attachment-input").click(); }
   function addBoardStatus() {
     if (state.toolBusy || !draft || draft.length >= 50) return;
     draft.push({ id: crypto.randomUUID(), name: "", tone: "neutral", completed: false }); state.taskBoardDirty = true;
@@ -264,7 +413,7 @@ export function createFeature({ state, actions }) {
       $(type === "board" ? "board-retry" : "board-" + type + "-reload").hidden = false; return;
     }
     state.toolBusy = true; loadSequence++;
-    $("board-settings").inert = true; $("board-task-actions").open = false; $("board-tag-picker").open = false;
+    $("board-settings").inert = true; $("board-task-actions").open = false; closeTagPicker();
     editors.forEach((editor) => editor.busy(true));
     const scopes = [$("board-controls"), $("board-columns"), ...dialogIds.map($)].filter(Boolean);
     const controls = scopes.flatMap((scope) => [...scope.querySelectorAll("button,input,select,textarea")]);
@@ -281,6 +430,7 @@ export function createFeature({ state, actions }) {
     try {
       const result = await actions.api("task-board/" + endpoint, { ...body, revision: board.revision });
       board = result.board; conflicted = false;
+      if (endpoint === "tasks/save" && type === "task") taskDrafts.published(body);
       closeIds.forEach((id) => $(id).close()); state.taskBoardDirty = false;
       paint(); actions.notify(message);
       if (closeIds.includes("board-task-dialog")) focusAfter = result.taskId ? `[data-action="openBoardTask"][data-arg="${result.taskId}"]` : '#board-controls [data-action="openBoardTask"]';
@@ -304,17 +454,25 @@ export function createFeature({ state, actions }) {
       if (focusAfter) (document.querySelector(focusAfter) || $(boardView === "archive" ? "board-archive-tab" : boardView === "timeline" ? "board-timeline-tab" : "board-active-tab"))?.focus({ preventScroll: true });
     }
   }
-  function saveBoardTask(event) {
-    event.preventDefault(); const title = $("board-task-name").value.trim();
+  async function saveBoardTask(event) {
+    event.preventDefault(); if (state.toolBusy) return; const title = $("board-task-name").value.trim();
     if (board?.tasks.find((task) => task.id === editingId)?.archivedAt) return;
     if (!mentions.sync()) { setBoardEditor("description"); $("board-task-description-editor").focus(); return; }
     if (!results.sync()) { setBoardEditor("result"); $("board-task-result-editor").focus(); return; }
     if (!title) { $("board-task-name").setCustomValidity("Tulis judul task terlebih dahulu."); $("board-task-name").reportValidity(); return; }
     const startDate = $("board-task-start").value, due = $("board-task-due").value;
-    if (startDate && due && startDate > due) { $("board-task-due").setCustomValidity("Tanggal akhir tidak boleh sebelum tanggal mulai."); $("board-task-due").reportValidity(); return; }
+    if (startDate && due && startDate > due) { $("board-properties").open = true; $("board-task-due").setCustomValidity("Deadline tidak boleh sebelum tanggal mulai."); $("board-task-due").reportValidity(); return; }
     const tagIds = selectedTags();
-    if (tagIds.length > 20) { $("board-task-tags-error").textContent = "Pilih maksimal 20 tag per task."; $("board-tag-picker").open = true; $("board-task-tags").querySelector("input")?.focus(); return; }
-    return write("tasks/save", { tagIds, ...(editingId ? { id: editingId } : {}), title, description: $("board-task-description").value, result: $("board-task-result").value, startDate, statusId: $("board-task-status").value, priority: $("board-task-priority").value, due }, "task", ["board-task-dialog"], editingId ? "Perubahan task disimpan." : "Task ditambahkan.");
+    if (tagIds.length > 20) { $("board-task-tags-error").textContent = "Pilih maksimal 20 tag per task."; $("board-properties").open = true; $("board-tag-panel").showPopover(); return; }
+    if (checklist.some((item) => !item.text.trim())) { $("board-task-error").textContent = "Isi atau hapus item checklist yang masih kosong."; return; }
+    const controls = [...$("board-task-form").querySelectorAll("button,input,select,textarea")], disabled = controls.map((control) => control.disabled);
+    state.toolBusy = true; controls.forEach((control) => { control.disabled = true; }); editors.forEach((editor) => editor.busy(true));
+    let flushed = false;
+    try { await taskDrafts.flush(); flushed = true; }
+    catch (error) { $("board-task-error").textContent = error.message; }
+    finally { state.toolBusy = false; controls.forEach((control, index) => { control.disabled = disabled[index]; }); editors.forEach((editor) => editor.busy(false)); taskControls(); }
+    if (!flushed) return;
+    return write("tasks/save", { ...taskBody(), ...taskDrafts.draftFields(), title, tagIds, startDate, due }, "task", ["board-task-dialog"], editingId ? "Perubahan task disimpan." : "Task ditambahkan.");
   }
   function confirmBoardTaskDelete() {
     if (state.toolBusy) return;
@@ -352,6 +510,8 @@ export function createFeature({ state, actions }) {
     controls.forEach((control) => { control.disabled = true; });
     try {
       if (!await fetchBoard()) return;
+      formRevision = board.revision;
+      const preferences = await taskDrafts.loadPreferences(); savedViews = preferences.views || []; viewsToken = preferences.viewsToken || null; renderFilters();
       if ($("board-confirm-dialog").open) $("board-confirm-dialog").close();
       if ($("board-task-dialog").open) {
         $("board-attachment-error").textContent = "";
@@ -371,6 +531,7 @@ export function createFeature({ state, actions }) {
       }
       if ($("board-status-dialog").open) { draft = structuredClone(board.statuses); moves = {}; renderStatuses(); state.taskBoardDirty = false; }
       if ($("board-tag-dialog").open) { tagDraft = structuredClone(board.tags || []); renderTags(); state.taskBoardDirty = false; }
+      taskDrafts.rebase();
       for (const type of ["task", "status", "tag", "confirm"]) $("board-" + type + "-reload").hidden = true;
       $("board-status-error").textContent = ""; $("board-tag-error").textContent = "";
       actions.notify("Papan diperbarui.");
@@ -385,16 +546,18 @@ export function createFeature({ state, actions }) {
     }
   }
   function bindTaskBoard() {
+    selects.bind();
+    taskDrafts.bind();
     attachments.bind();
     editors.forEach((editor) => editor.bind());
-    for (const id of ["board-task-dialog", "board-status-dialog", "board-tag-dialog"]) $(id).addEventListener("cancel", (event) => {
+    for (const id of ["board-task-dialog", "board-status-dialog", "board-tag-dialog", "board-views-dialog"]) $(id).addEventListener("cancel", (event) => {
       if (state.toolBusy) return;
       if (state.taskBoardDirty) { event.preventDefault(); closeTaskBoardDialog(id); }
     });
     document.addEventListener("keydown", (event) => {
       if (event.defaultPrevented) return;
       if (event.key === "Escape") {
-        const open = ["board-settings", "board-task-actions", "board-tag-picker"].map($).find((node) => node?.open && !node.inert && !$("board-confirm-dialog").open);
+        const open = ["board-settings", "board-task-actions"].map($).find((node) => node?.open && !node.inert && !$("board-confirm-dialog").open);
         if (open) { event.preventDefault(); open.open = false; open.querySelector("summary").focus(); return; }
       }
       const tab = event.target.closest('.tb-views [role="tab"],.tb-editor-tabs [role="tab"]');
@@ -405,15 +568,34 @@ export function createFeature({ state, actions }) {
       }
     });
     document.addEventListener("click", (event) => {
-      for (const id of ["board-settings", "board-task-actions", "board-tag-picker"]) {
+      for (const id of ["board-settings", "board-task-actions"]) {
         const detail = $(id); if (detail?.open && !detail.contains(event.target)) detail.open = false;
       }
     });
     document.addEventListener("click", (event) => {
+      const dateButton = event.target.closest("[data-board-date]");
+      if (dateButton && !state.toolBusy && !taskBoardDialogOpen()) {
+        const input = dateButton.nextElementSibling;
+        if (typeof input.showPicker === "function") { try { input.showPicker(); } catch { input.removeAttribute("aria-hidden"); input.focus(); } }
+        else { input.removeAttribute("aria-hidden"); input.focus(); }
+        return;
+      }
       const card = event.target.closest("[data-board-task]");
-      if (card && !event.target.closest("a,button") && !draggingId) openBoardTask(card.dataset.boardTask);
+      if (card && !event.target.closest("a,button,input,select,textarea") && !draggingId) openBoardTask(card.dataset.boardTask);
     });
-    document.addEventListener("change", (event) => {
+    document.addEventListener("change", async (event) => {
+      if (event.target.dataset.boardQuick && !state.toolBusy && !taskBoardDialogOpen()) {
+        const task = board?.tasks.find((item) => item.id === event.target.dataset.taskId); if (!task) return;
+        const changed = { ...task, [event.target.dataset.boardQuick]: event.target.value };
+        const key = event.target.dataset.boardQuick, id = task.id;
+        if (changed.startDate && changed.due && changed.startDate > changed.due) { paint(); actions.notify("Deadline tidak boleh sebelum tanggal mulai."); }
+        else await write("tasks/save", changed, "board", [], "Task diperbarui.");
+        const input = [...document.querySelectorAll("[data-board-quick]")].find((node) => node.dataset.taskId === id && node.dataset.boardQuick === key);
+        (input?.previousElementSibling?.matches("[data-board-date]") ? input.previousElementSibling : input?.parentElement.querySelector(".tb-select-trigger"))?.focus({ preventScroll: true });
+        return;
+      }
+      if (event.target.id === "board-saved-view") { selectedView = event.target.value; filters = { ...emptyFilters(), ...(savedViews.find((item) => item.id === selectedView)?.filters || {}) }; renderFilters(); paint(); return; }
+      if (event.target.id.startsWith("board-filter-")) { const key = event.target.id.slice(13); if (!(key in filters)) return; filters[key] = event.target.value; renderFilters(); paint(); return; }
       if (event.target.id !== "board-timeline-week" || state.toolBusy || taskBoardDialogOpen()) return;
       const value = event.target.value;
       if (event.target.validity.valid && value) { timelineWeek = weekStart(value); paint(); }
@@ -421,10 +603,13 @@ export function createFeature({ state, actions }) {
     document.addEventListener("input", (event) => {
       if (event.target.id === "board-attachment-input") return;
       if (event.target.id === "board-search") paint();
+      if (event.target.id === "board-view-name") event.target.setCustomValidity("");
       if (event.target.id === "board-tag-search") { filterTaskTags(); return; }
       if (event.target.closest("#board-task-form")) {
+        const field = event.target.dataset.checklistField;
+        if (field) { const item = checklist.find((item) => item.id === event.target.closest("[data-checklist-id]").dataset.checklistId); if (item) item[field] = field === "done" ? event.target.checked : event.target.value; $("board-checklist-progress").textContent = `${checklist.filter((item) => item.done).length}/${checklist.length}`; }
         state.taskBoardDirty = true; $("board-task-name").setCustomValidity("");
-        $("board-task-due").setCustomValidity(""); updateTaskFeedback();
+        $("board-task-due").setCustomValidity(""); taskDrafts.changed(); updateTaskFeedback();
       }
       if (event.target.closest("#board-task-tags")) { $("board-task-tags-error").textContent = ""; renderSelectedTags(); }
       if (event.target.closest("#board-tag-rows")) {
@@ -433,6 +618,11 @@ export function createFeature({ state, actions }) {
         state.taskBoardDirty = true;
         $("board-tag-rows").querySelectorAll("input").forEach((input) => input.setCustomValidity(""));
       }
+      if (event.target.closest("#board-view-rows")) {
+        const item = viewDraft.find((item) => item.id === event.target.closest("[data-board-view-id]").dataset.boardViewId);
+        if (item) item.name = event.target.value;
+        state.taskBoardDirty = true; $("board-views-error").textContent = "";
+      }
       if (event.target.dataset.boardField && draft) {
         const status = draft.find((s) => s.id === event.target.closest("[data-board-status-id]").dataset.boardStatusId);
         status[event.target.dataset.boardField] = event.target.type === "checkbox" ? event.target.checked : event.target.value; state.taskBoardDirty = true;
@@ -440,7 +630,8 @@ export function createFeature({ state, actions }) {
       }
     });
     document.addEventListener("close", (event) => {
-      if (["board-task-dialog", "board-status-dialog", "board-tag-dialog"].includes(event.target.id)) state.taskBoardDirty = false;
+      if (["board-task-dialog", "board-status-dialog", "board-tag-dialog", "board-views-dialog"].includes(event.target.id)) state.taskBoardDirty = false;
+      if (event.target.id === "board-task-dialog") closeTagPicker();
     }, true);
     document.addEventListener("dragstart", (event) => {
       const card = event.target.closest("[data-board-task]"); if (!card) return;
@@ -462,6 +653,30 @@ export function createFeature({ state, actions }) {
       if (task && !task.archivedAt && task.statusId !== column.dataset.boardStatus)
         write("tasks/save", { ...task, statusId: column.dataset.boardStatus }, "board", [], "Status task diperbarui.");
     });
+    const tagPanel = $("board-tag-panel");
+    tagPanel.addEventListener("toggle", () => {
+      const open = tagPanel.matches(":popover-open"), trigger = $("board-tag-toggle");
+      trigger.setAttribute("aria-expanded", String(open));
+      if (open) {
+        selects.close(); const rect = trigger.getBoundingClientRect(), below = innerHeight - rect.bottom - 10, above = rect.top - 10, up = below < 200 && above > below;
+        tagPanel.style.width = Math.min(innerWidth - 16, Math.max(260, rect.width)) + "px";
+        tagPanel.style.maxHeight = Math.min(340, Math.max(140, up ? above : below)) + "px";
+        tagPanel.style.left = Math.max(8, Math.min(rect.left, innerWidth - tagPanel.offsetWidth - 8)) + "px";
+        tagPanel.style.top = (up ? Math.max(8, rect.top - tagPanel.offsetHeight - 5) : rect.bottom + 5) + "px";
+        $("board-tag-search").focus();
+      } else if ($("board-task-dialog").open && (tagPanel.contains(document.activeElement) || document.activeElement === document.body)) trigger.focus({ preventScroll: true });
+    });
+    tagPanel.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeTagPicker(); $("board-tag-toggle").focus(); }
+      if (["ArrowDown", "ArrowUp"].includes(event.key)) {
+        const inputs = [...$("board-task-tags").querySelectorAll("label:not([hidden]) input:not(:disabled)")], index = inputs.indexOf(document.activeElement);
+        event.preventDefault(); inputs[Math.max(0, Math.min(inputs.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)))]?.focus();
+      }
+    });
+    document.addEventListener("scroll", (event) => { if (!tagPanel.contains(event.target)) closeTagPicker(); }, true);
+    window.addEventListener("resize", () => { closeTagPicker(); if ($("board-task-dialog").open) updateTaskFeedback(); });
+    matchMedia("(max-width:760px)").addEventListener("change", (event) => { $("board-properties").open = !event.matches; });
+    $("board-task-form").addEventListener("invalid", (event) => { if (event.target.closest(".tb-properties")) $("board-properties").open = true; }, true);
   }
-  return { removeBoardAttachment: attachments.removeBoardAttachment, setBoardEditor, removeBoardTaskTag, restoreBoardTask, openBoardTags, addBoardTag, confirmBoardTagDelete, saveBoardTags, renderTaskBoard, refreshTaskBoard, openBoardTask, closeTaskBoardDialog, openBoardStatuses, addBoardStatus, moveBoardStatus, confirmBoardStatusDelete, saveBoardTask, confirmBoardTaskDelete, confirmBoardTaskArchive, confirmBoardAction, saveBoardStatuses, reloadTaskBoard, clearBoardSearch, setBoardView, moveBoardWeek, bindTaskBoard, taskBoardDialogOpen };
+  return { toggleBoardFilters, removeBoardFilter, openBoardViews, saveBoardViews, chooseBoardAttachments, openRelatedTask, openBoardTaskFromDocument, addBoardChecklist, removeBoardChecklist, recoverBoardTaskDraft: taskDrafts.recover, discardBoardTaskDraft: taskDrafts.discard, setBoardDateFilter, openBoardSaveView, cancelBoardSaveView, saveBoardView, deleteBoardSavedView, removeBoardAttachment: attachments.removeBoardAttachment, setBoardEditor, removeBoardTaskTag, restoreBoardTask, openBoardTags, addBoardTag, confirmBoardTagDelete, saveBoardTags, renderTaskBoard, refreshTaskBoard, openBoardTask, closeTaskBoardDialog, openBoardStatuses, addBoardStatus, moveBoardStatus, confirmBoardStatusDelete, saveBoardTask, confirmBoardTaskDelete, confirmBoardTaskArchive, confirmBoardAction, saveBoardStatuses, reloadTaskBoard, clearBoardSearch, setBoardView, moveBoardWeek, bindTaskBoard, taskBoardDialogOpen };
 }
