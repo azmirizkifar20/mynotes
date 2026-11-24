@@ -12,10 +12,20 @@ routes.get(
     let document, image;
     try {
       document = await db.get(req.query.document);
-      image = await db.get(req.query.file);
     } catch {
       return res.sendStatus(404);
     }
+    if (document.kind === "pdf") {
+      if (!req.session?.authenticated && document.visibility !== "public") return res.sendStatus(404);
+      res.set("Cache-Control", "no-store");
+      res.set("X-Content-Type-Options", "nosniff");
+      res.set("Referrer-Policy", "same-origin");
+      res.set("Content-Security-Policy", "frame-ancestors 'self'");
+      res.attachment(path.posix.basename(document.path));
+      if (req.query.download !== "1") res.set("Content-Disposition", res.get("Content-Disposition").replace(/^attachment/, "inline"));
+      return res.type("application/pdf").send(document.content);
+    }
+    try { image = await db.get(req.query.file); } catch { return res.sendStatus(404); }
     if (
       document.kind !== "doc" ||
       image.kind !== "asset" ||
@@ -39,7 +49,7 @@ routes.get(
       /^[a-f0-9]{48}$/.test(req.params.id) &&
       (
         await db.query(
-          "SELECT * FROM mdpreview.entries WHERE share_id=$1 AND visibility='public' AND deleted_at IS NULL AND kind='doc'",
+          "SELECT * FROM mdpreview.entries WHERE share_id=$1 AND visibility='public' AND deleted_at IS NULL AND kind IN ('doc','pdf')",
           [req.params.id],
         )
       ).rows[0];
@@ -56,7 +66,7 @@ routes.get(
     renderPage(res, {
       mode: "public",
       document: {
-        title: path.posix.basename(row.path).replace(/\.md$/i, ""),
+        title: path.posix.basename(row.path).replace(/\.(md|pdf)$/i, ""),
         ...documentData(row, req.baseUrl),
       },
     });
@@ -94,12 +104,12 @@ routes.get(
       throw error;
     }
     if (!req.session?.authenticated) {
-      if (row.kind !== "doc" || row.visibility !== "public")
+      if (!["doc", "pdf"].includes(row.kind) || row.visibility !== "public")
         return renderPage(res, { mode: "login" });
       return renderPage(res, {
         mode: "public",
         document: {
-          title: path.posix.basename(row.path).replace(/\.md$/i, ""),
+          title: path.posix.basename(row.path).replace(/\.(md|pdf)$/i, ""),
           ...documentData(row, req.baseUrl),
         },
       });
@@ -107,7 +117,7 @@ routes.get(
     if (row.kind === "asset") {
       if (!/\.(png|jpe?g|gif|webp|avif)$/i.test(row.path))
         return res.sendStatus(404);
-      res.set("Cache-Control", "no-store");
+      res.set({ "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
       res.type(path.posix.extname(row.path));
       return res.send(row.content);
     }

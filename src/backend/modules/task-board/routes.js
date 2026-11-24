@@ -16,6 +16,7 @@ module.exports = function register(api) {
     ["tasks/save", board.saveTask], ["tasks/delete", board.removeTask],
     ["tasks/archive", board.archiveTask], ["tasks/restore", board.restoreTask],
     ["statuses/save", board.saveStatuses],
+    ["tags/save", board.saveTags],
   ]) api.post("/task-board/" + path, asyncRoute(async (req, res) =>
     res.json({ success: true, ...await mutation(req.body, req.ip) }),
   ));

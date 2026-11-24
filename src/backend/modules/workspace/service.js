@@ -11,7 +11,7 @@ function page(row, ids) {
         ? "Ruang kerja"
         : path.posix
             .basename(row.path)
-            .replace(row.kind === "doc" ? /\.md$/i : /$^/, ""),
+            .replace(row.kind === "doc" ? /\.md$/i : row.kind === "pdf" ? /\.pdf$/i : /$^/, ""),
     type: row.kind,
     parent: row.path === "/" ? null : ids.get(parentPath(row.path)) || "home",
     modified: row.modified.toISOString(),
@@ -20,6 +20,7 @@ function page(row, ids) {
     description:
       row.kind === "doc"
         ? "Catatan dan dokumentasi Markdown."
+        : row.kind === "pdf" ? "Dokumen PDF."
         : "Dokumentasi dan catatan dalam folder ini.",
   };
 }
@@ -27,7 +28,7 @@ function page(row, ids) {
 async function workspace() {
   const rows = (
     await query(
-      "SELECT id,path,kind,revision,modified,visibility FROM mdpreview.entries WHERE deleted_at IS NULL AND kind IN ('folder','doc') ORDER BY path",
+      "SELECT id,path,kind,revision,modified,visibility FROM mdpreview.entries WHERE deleted_at IS NULL AND kind IN ('folder','doc','pdf') ORDER BY path",
     )
   ).rows.filter((row) => !hiddenFromListing(row.path));
   const ids = new Map(rows.map((row) => [row.path, pageId(row)]));

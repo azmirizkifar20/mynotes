@@ -41,6 +41,29 @@ async function main() {
   let result = await service.saveTask({ ...task, revision: board.revision }, "127.0.0.1");
   const taskId = result.taskId; board = result.board;
   assert.equal(board.tasks[0].title, task.title.trim()); assert.equal(board.tasks[0].due, task.due);
+  const { rows: [legacy] } = await db.query("SELECT to_jsonb(t)-'result'-'start_date' AS data FROM mdpreview.tasks t WHERE id=$1", [taskId]);
+  await db.query("ALTER TABLE mdpreview.tasks DROP COLUMN result; ALTER TABLE mdpreview.tasks DROP COLUMN start_date");
+  await db.initialize(); board = await service.list();
+  assert.deepEqual((await db.query("SELECT to_jsonb(t)-'result'-'start_date' AS data FROM mdpreview.tasks t WHERE id=$1", [taskId])).rows[0].data, legacy.data, 'New columns preserve all existing task data');
+  assert.equal(board.tasks[0].result, ''); assert.equal(board.tasks[0].startDate, '', 'Old tasks keep their end date and have no invented start');
+  for (const fields of [{ result: null }, { result: 'x'.repeat(3001) }, { result: 'x\0' }, { startDate: null }, { startDate: '2026-02-30' }, { startDate: '2026-12-04' }])
+    await assert.rejects(service.saveTask({ ...task, ...fields, id: taskId, revision: board.revision }), statusError(400));
+  const resultMention = `@[mention-fixture.md](doc:${documentId})`;
+  result = await service.saveTask({ ...task, id: taskId, result: 'Done ' + resultMention + ' https://example.test/?a=1&b=2#result', startDate: '2026-12-01', revision: board.revision }); board = result.board;
+  assert.equal(board.tasks[0].startDate, '2026-12-01'); assert(board.tasks[0].result.includes(resultMention));
+  assert(board.documents.some((doc) => doc.id === documentId), 'Results-only mention resolves current document');
+  await assert.rejects(db.trash('/mention-fixture.md', true), (error) => error.mentionImpact?.taskCount === 1 && error.mentionImpact.documentCount === 1);
+  const storedResult = board.tasks[0].result;
+  result = await service.saveTask({ ...task, id: taskId, revision: board.revision }); board = result.board;
+  assert.equal(board.tasks[0].result, storedResult, 'Old client payload does not erase result');
+  assert.equal(board.tasks[0].startDate, '2026-12-01', 'Old client payload does not erase start date');
+  await assert.rejects(service.saveTask({ ...task, id: taskId, due: '2026-11-30', revision: board.revision }), statusError(400));
+  assert.equal((await service.list()).revision, board.revision, 'Invalid retained date range rolls back revision');
+  result = await service.saveTask({ ...task, id: taskId, startDate: '2026-12-03', revision: board.revision }); board = result.board;
+  assert.equal(board.tasks[0].startDate, task.due, 'Same-day task is valid');
+  result = await service.saveTask({ ...task, id: taskId, startDate: '', result: '', revision: board.revision }); board = result.board;
+  assert.equal(board.tasks[0].result, ''); assert.equal(board.tasks[0].startDate, '', 'New fields can be explicitly cleared');
+  await assert.rejects(db.query("UPDATE mdpreview.tasks SET start_date='2026-12-04' WHERE id=$1", [taskId]), error => error.code === '23514');
   const mention = `@[mention-fixture.md](doc:${documentId})`;
   result = await service.saveTask({ ...task, id: taskId, description: 'Read ' + mention, revision: board.revision }); board = result.board;
   assert.equal(board.documents.find((item) => item.id === documentId).path, '/mention-fixture.md');
@@ -64,12 +87,14 @@ async function main() {
   result = await service.saveStatuses({ statuses: board.statuses.map(({ completed, ...status }) => status), moves: {}, revision: board.revision }); board = result.board;
   assert(board.statuses.find((status) => status.id === completed.id).completed, 'Old client payload preserves completion');
   await assert.rejects(service.saveStatuses({ statuses: board.statuses.map((status) => ({ ...status, completed: 'true' })), moves: {}, revision: board.revision }), statusError(400));
-  result = await service.saveTask({ ...task, id: taskId, description: 'Read ' + mention, statusId: completed.id, revision: board.revision }); board = result.board;
+  result = await service.saveTask({ ...task, id: taskId, description: 'Read ' + mention, result: 'Final ' + mention, startDate: '2026-12-01', statusId: completed.id, revision: board.revision }); board = result.board;
   await assert.rejects(service.archiveTask({ id: taskId, revision: board.revision }), statusError(400));
   await assert.rejects(service.archiveTask({ id: randomUUID(), revision: board.revision, confirm: true }), statusError(404));
   result = await service.archiveTask({ id: taskId, revision: board.revision, confirm: true }); board = result.board;
   assert(board.tasks.find((item) => item.id === taskId).archivedAt);
   assert.equal(board.tasks.find((item) => item.id === taskId).description, 'Read ' + mention);
+  assert.equal(board.tasks.find((item) => item.id === taskId).result, 'Final ' + mention);
+  assert.equal(board.tasks.find((item) => item.id === taskId).startDate, '2026-12-01');
   assert(board.documents.some((item) => item.id === documentId));
   await assert.rejects(service.saveTask({ ...task, id: taskId, revision: board.revision }), statusError(409));
   await assert.rejects(service.archiveTask({ id: taskId, revision: board.revision, confirm: true }), statusError(409));
@@ -160,6 +185,7 @@ async function main() {
   assert((await db.query("SELECT 1 FROM mdpreview.audit WHERE action='TASK_CREATE'")).rowCount);
   assert((await db.query("SELECT 1 FROM mdpreview.audit WHERE action='TASK_STATUSES_SAVE'")).rowCount);
 
+  board = await require('./helpers/task-tags.cjs')(db, service, board);
   const express = require("express"), app = express();
   const routes = express.Router();
   app.use("/mynotes", routes); app.use(routes); routes.use(express.json());
@@ -173,6 +199,16 @@ async function main() {
   server = app.listen(0, "127.0.0.1"); await new Promise((resolve) => server.once("listening", resolve));
   const url = "http://127.0.0.1:" + server.address().port;
   for (const prefix of ["", "/mynotes"]) {
+    const tag = { id: randomUUID(), name: 'Route tag' };
+    const tagHeaders = { 'X-Fixture-Auth': '1', 'Content-Type': 'application/json' };
+    const tagSaved = await fetch(url + prefix + '/api/task-board/tags/save', { method: 'POST', headers: tagHeaders, body: JSON.stringify({ tags: [tag], revision: board.revision }) });
+    assert.equal(tagSaved.status, 200); board = (await tagSaved.json()).board;
+    assert.deepEqual(board.tags, [tag]);
+    const tagDenied = await fetch(url + prefix + '/api/task-board/tags/save', { method: 'POST', headers: { ...tagHeaders, Origin: 'https://other.invalid' } });
+    assert.equal(tagDenied.status, 403);
+    const guestTags = await fetch(url + prefix + '/api/task-board/tags/save', { method: 'POST' });
+    assert.equal(guestTags.status, 401); assert.equal(guestTags.headers.get('cache-control'), 'no-store');
+    board = (await service.saveTags({ tags: [], revision: board.revision })).board;
     const deleteRequest = { method: 'POST', headers: { 'X-Fixture-Auth': '1', 'Content-Type': 'application/json' }, body: JSON.stringify({ path: '/renamed-fixture.md', force: true }) };
     // Reuse a real task mention to exercise the delete route and error payload without deleting it.
     const remaining = board.tasks[0];

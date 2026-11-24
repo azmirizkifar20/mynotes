@@ -1,3 +1,5 @@
+import { pdfPreview } from "./pdf.js";
+
 export function createFeature({ state, actions }) {
   const isCanonical = () =>
     location.origin + state.basePath === state.boot.authURL;
@@ -267,7 +269,7 @@ export function createFeature({ state, actions }) {
       document.title = state.boot.document.title + " · MD Previewer";
       actions.$("access-page").innerHTML =
         toolbar +
-        `<div class="public-layout"><aside class="outline public-outline" id="public-outline" aria-label="Daftar isi dokumen"><div class="outline-title">DI HALAMAN INI</div></aside><main class="public-document"><div class="visitor-meta">${actions.icon("globe")}Publik · Hanya baca</div><h1>${actions.escape(state.boot.document.title)}</h1><article class="prose">${state.boot.document.html}</article><footer class="page-footer"><span>MD Previewer</span><span>${actions.escape(actions.dateLabel(state.boot.document.modified))}</span></footer></main></div>`;
+        `<div class="public-layout"><aside class="outline public-outline" id="public-outline" aria-label="Daftar isi dokumen"><div class="outline-title">DI HALAMAN INI</div></aside><main class="public-document"><div class="visitor-meta">${actions.icon("globe")}Publik · Hanya baca</div><h1>${actions.escape(state.boot.document.title)}</h1>${state.boot.document.type === "pdf" ? pdfPreview(state.boot.document.pdfUrl, state.boot.document.title, actions.escape, state.boot.document.pdfUrl + "&download=1") : `<article class="prose">${state.boot.document.html}</article>`}<footer class="page-footer"><span>MD Previewer</span><span>${actions.escape(actions.dateLabel(state.boot.document.modified))}</span></footer></main></div>`;
     } else if (state.boot.mode === "login") {
       actions.$("access-page").innerHTML =
         toolbar +

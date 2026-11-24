@@ -1,4 +1,4 @@
-#live-editor {
+#live-editor, .tb-description-editor.vditor {
   border: 0;
   background: var(--paper);
   color: var(--ink);

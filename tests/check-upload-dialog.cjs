@@ -10,6 +10,9 @@ function setup() {
       "upload-form",
       "upload-name",
       "upload-content",
+      "upload-content-label",
+      "upload-pdf-preview",
+      "upload-name-hint",
       "upload-target",
       "upload-size",
       "upload-draft",
@@ -27,19 +30,23 @@ function setup() {
         disabled: false,
         hidden: true,
         open: false,
+        innerHTML: "",
+        classList: { toggle() {} },
+        listeners: {},
         focus() {},
         setAttribute() {},
         setCustomValidity(message) {
           this.validity = message;
         },
         reportValidity() {},
-        addEventListener() {},
+        addEventListener(name, handler) { this.listeners[name] = handler; },
         showModal() {
           this.open = true;
         },
         close() {
           this.open = false;
           context.pendingUpload = null;
+          this.listeners.close?.();
         },
       },
     ]),
@@ -115,6 +122,7 @@ const file = (
 ) => ({ name, size: 42, text: async () => content });
 const drop = (files) => ({
   preventDefault() {},
+  stopPropagation() {},
   dataTransfer: { types: ["Files"], files },
 });
 
@@ -205,10 +213,18 @@ async function main() {
   assert.equal(check.calls.length, 1);
 
   check = setup();
+  check.events.drop({...drop([file()]),target:{closest:selector=>selector==='#board-attachments'?{}:null}});
+  assert(!check.ui['upload-dialog'].open,'Task attachment drops stay owned by the task attachment feature');
   check.events.dragenter(drop([file()]));
   assert(!check.ui["file-drop-zone"].hidden);
   check.events.dragleave();
   assert(check.ui["file-drop-zone"].hidden);
+  let image;
+  check.context.uploadDocumentImage = (value) => { image = value; };
+  const picture = file("picture.png");
+  check.events.drop(drop([picture]));
+  assert.equal(image, picture);
+  assert(!check.ui["upload-dialog"].open, "Images use immediate editor upload");
   check.events.drop(drop([file("wrong.txt")]));
   assert(!check.ui["upload-dialog"].open);
   check.events.drop(drop([file(), file()]));
@@ -223,6 +239,34 @@ async function main() {
   assert(!check.ui["upload-dialog"].open);
   check.events.drop(drop([file()]));
   assert(check.ui["upload-dialog"].open);
+  check = setup();
+  const pdf = new File(["%PDF-1.7\nfixture\n%%EOF"], 'report.pdf', { type: 'application/pdf' });
+  await check.context.openUploadPreview(pdf);
+  assert.equal(check.calls.length, 0, 'PDF stays on the device until Upload');
+  assert(check.ui['upload-content'].hidden);
+  const markup = check.ui['upload-pdf-preview'].innerHTML;
+  assert(markup.includes('<iframe') && markup.includes('blob:'));
+  const preview = /src="([^"]+)"/.exec(markup)[1];
+  assert.equal(await (await fetch(preview)).text(), await pdf.text());
+  check.ui['upload-name'].value = 'wrong.md';
+  await check.submit(); assert.equal(check.calls.length, 0);
+  check.ui['upload-name'].value = 'renamed.pdf';
+  await check.submit();
+  assert.equal(check.calls[0].filename, 'renamed.pdf');
+  assert.equal(check.calls[0].file, pdf, 'Upload preserves original binary file');
+  assert.equal(check.ui['upload-pdf-preview'].innerHTML, '');
+  await assert.rejects(fetch(preview), 'Blob URL revoked after successful upload');
+  check = setup();
+  await check.context.openUploadPreview(new File(['not a PDF'], 'invalid.pdf'));
+  assert(check.ui['confirm-upload'].disabled);
+  assert.equal(check.ui['upload-pdf-preview'].innerHTML, '');
+  check.context.closeUploadDialog();
+  check.events.drop(drop([pdf]));
+  await new Promise(resolve => setImmediate(resolve));
+  assert(check.ui['upload-pdf-preview'].innerHTML.includes('<iframe'), 'Drop accepts PDF');
+  const cancelled = /src="([^"]+)"/.exec(check.ui['upload-pdf-preview'].innerHTML)[1];
+  check.context.closeUploadDialog();
+  await assert.rejects(fetch(cancelled), 'Cancel revokes local PDF preview');
   console.log("Upload review self-check passed.");
 }
 main().catch((error) => {

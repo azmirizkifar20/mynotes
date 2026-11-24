@@ -8,9 +8,13 @@
     "dev": "nodemon --ignore docs/ --ignore .data/ --ignore uploads/ server.js",
     "db:setup": "node scripts/setup-database.js",
     "docs:sync": "node scripts/sync-docs.js",
-    "auth:recover": "node scripts/recover-passkey.js"
+    "auth:recover": "node scripts/recover-passkey.js",
+    "r2:check": "node scripts/check-r2.js",
+    "attachments:migrate": "node scripts/migrate-task-attachments.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1176.0",
+    "@aws-sdk/s3-request-presigner": "3.1176.0",
     "@simplewebauthn/browser": "14.0.0",
     "@simplewebauthn/server": "14.1.0",
     "bcrypt": "5.1.1",

@@ -3,8 +3,16 @@ export function bindActions({ state, actions }) {
     [
       "navigate",
       "openBoardTask",
+      "removeBoardAttachment",
+      "setBoardEditor",
+      "removeBoardTaskTag",
+      "restoreBoardTask",
       "closeTaskBoardDialog",
       "openBoardStatuses",
+      "openBoardTags",
+      "addBoardTag",
+      "confirmBoardTagDelete",
+      "saveBoardTags",
       "addBoardStatus",
       "moveBoardStatus",
       "confirmBoardStatusDelete",
@@ -16,6 +24,7 @@ export function bindActions({ state, actions }) {
       "reloadTaskBoard",
       "clearBoardSearch",
       "setBoardView",
+      "moveBoardWeek",
       "removeFavorite",
       "setTheme",
       "authenticate",
@@ -38,6 +47,7 @@ export function bindActions({ state, actions }) {
       "openHistory",
       "downloadDoc",
       "saveDoc",
+      "resizeDocumentImage",
       "copyDraft",
       "downloadDraft",
       "discardDraft",
@@ -92,7 +102,7 @@ export function bindActions({ state, actions }) {
     document.addEventListener(type, (event) => {
       const key = type === "click" ? "action" : type;
       const element = event.target.closest("[data-" + key + "]");
-      if (!element || element.closest(".prose,#live-editor")) return;
+      if (!element || element.closest(".prose,#live-editor,.tb-description-editor")) return;
       const handler = handlers[element.dataset[key]];
       if (!handler || element.disabled) return;
       if (type !== "change") event.preventDefault();

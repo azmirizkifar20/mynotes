@@ -1,3 +1,5 @@
+import { pdfPreview } from "./pdf.js";
+
 export function createFeature({ state, actions }) {
   function accessLabel(page) {
     return `${actions.icon(page.visibility === "public" ? "globe" : "lock")}${page.visibility === "public" ? "Publik" : "Privat"}`;
@@ -5,7 +7,7 @@ export function createFeature({ state, actions }) {
 
   async function openShare(id) {
     const page = state.pages.find(
-      (page) => page.id === id && page.type === "doc",
+      (page) => page.id === id && ["doc", "pdf"].includes(page.type),
     );
     if (!page) return;
     try {
@@ -42,7 +44,7 @@ export function createFeature({ state, actions }) {
   async function setAccess(visibility) {
     if (!["public", "private"].includes(visibility)) return;
     const page = state.pages.find(
-      (page) => page.id === state.sharingId && page.type === "doc",
+      (page) => page.id === state.sharingId && ["doc", "pdf"].includes(page.type),
     );
     if (!page) return;
     actions.$("share-access").disabled = true;
@@ -98,7 +100,7 @@ export function createFeature({ state, actions }) {
           ? await actions.api("document", { filePath: page.path })
           : null;
       actions.$("visitor-content").innerHTML = data
-        ? `<div class="visitor-meta">${actions.icon("globe")}Publik · Hanya baca</div><h1>${actions.escape(page.title)}</h1><article class="prose">${data.html}</article>`
+        ? `<div class="visitor-meta">${actions.icon("globe")}Publik · Hanya baca</div><h1>${actions.escape(page.title)}</h1>${data.type === "pdf" ? pdfPreview(data.pdfUrl, page.title, actions.escape) : `<article class="prose">${data.html}</article>`}`
         : `<div class="visitor-blocked">${actions.icon("lock")}<h2>File ini privat</h2><p>Link publik sudah tidak dapat digunakan. Masuk dengan akses workspace untuk membaca file ini.</p></div>`;
       actions.$("share-dialog").close();
       actions.$("visitor-dialog").showModal();

@@ -1,3 +1,5 @@
+import { decorateUnderline, underlineSelection } from "./underline.js";
+
 export function createFeature({ state, actions }) {
   function documentContent() {
     if (
@@ -24,6 +26,7 @@ export function createFeature({ state, actions }) {
     if (button)
       button.disabled =
         state.saving ||
+        state.imageUploading ||
         Boolean(state.draftRequest) ||
         !actions.isDirty() ||
         !state.draftState?.resolved ||
@@ -33,6 +36,7 @@ export function createFeature({ state, actions }) {
   function syncEditorLock() {
     const enabled =
       !state.saving &&
+      !state.imageUploading &&
       state.draftState?.id === state.current &&
       state.draftState.resolved &&
       !state.draftState.conflict;
@@ -44,6 +48,7 @@ export function createFeature({ state, actions }) {
   }
 
   function destroyLiveEditor() {
+    globalThis.CSS?.highlights?.delete("markdown-underline");
     actions.trackOutline([]);
     state.liveEditorGeneration++;
     if (state.liveEditorReady) state.liveEditor.destroy();
@@ -75,7 +80,7 @@ export function createFeature({ state, actions }) {
             ? "dark"
             : "classic",
         cache: { enable: false },
-        toolbar: ["outdent", "indent"],
+        toolbar: ["bold", "italic", "outdent", "indent"],
         toolbarConfig: { hide: true },
         minHeight: 250,
         height: "auto",
@@ -121,6 +126,7 @@ export function createFeature({ state, actions }) {
           generation !== state.liveEditorGeneration ||
           !state.liveEditorReady ||
           state.saving ||
+          state.imageUploading ||
           state.draftState?.id !== state.current ||
           !state.draftState.resolved ||
           state.draftState.conflict
@@ -128,9 +134,27 @@ export function createFeature({ state, actions }) {
           return;
         if (
           (event.ctrlKey || event.metaKey) &&
-          ["b", "i", "z", "y"].includes(event.key.toLowerCase())
+          !event.altKey && !event.shiftKey && !event.isComposing &&
+          ["b", "i", "u", "z", "y"].includes(event.key.toLowerCase())
         )
           state.liveEditorTouched = true;
+        if (
+          (event.ctrlKey || event.metaKey) && !event.altKey &&
+          !event.shiftKey && !event.isComposing && event.key.toLowerCase() === "u"
+        ) {
+          const editor = element.querySelector('.vditor-ir [contenteditable="true"]');
+          const selection = document.getSelection();
+          if (!editor?.contains(event.target) || !event.target.isContentEditable || !selection?.rangeCount)
+            return;
+          const range = selection.getRangeAt(0);
+          if (!editor.contains(range.startContainer) || !editor.contains(range.endContainer)) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const start = range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer : range.startContainer.parentElement;
+          if (start?.closest("code, .vditor-ir__marker--pre")) return;
+          underlineSelection(instance, range);
+          return;
+        }
         if (
           event.key !== "Tab" ||
           event.ctrlKey || event.metaKey || event.altKey || event.isComposing
@@ -189,6 +213,8 @@ export function createFeature({ state, actions }) {
 
   function refreshLiveOutline() {
     if (!state.liveEditorReady || !actions.$("live-editor")) return;
+    actions.decorateEditorImages?.();
+    decorateUnderline(actions.$("live-editor"));
     actions.$("outline").innerHTML =
       '<div class="outline-title">DI HALAMAN INI</div>';
     const slugs = new Set();

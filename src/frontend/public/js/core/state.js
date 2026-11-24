@@ -34,7 +34,7 @@ export function createState(boot) {
     pendingUpload: null,
     fileDragDepth: 0,
     recent: readPreference("md-previewer-recent").filter((id) =>
-      pages.some((p) => p.id === id && p.type === "doc"),
+      pages.some((p) => p.id === id && ["doc", "pdf"].includes(p.type)),
     ),
     favorites: new Set(
       readPreference("md-previewer-favorites").filter((id) =>
@@ -92,6 +92,7 @@ export function createState(boot) {
     documentBuffer: null,
     liveEditor: null,
     liveEditorReady: false,
+    imageUploading: false,
     liveEditorTouched: false,
     liveEditorGeneration: 0,
   };

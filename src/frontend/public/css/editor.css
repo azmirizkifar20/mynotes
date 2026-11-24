@@ -80,9 +80,20 @@
   font-size: 11px;
   color: var(--muted);
 }
+#live-editor [data-underline-marker] { display: none; }
+::highlight(markdown-underline) { text-decoration: underline; }
+#live-editor .vditor-ir [data-type="strong"] { font-weight: 700; }
+#live-editor .vditor-ir [data-type="em"] { font-style: italic; }
 .empty {
   padding: 45px 15px;
   text-align: center;
   color: var(--muted);
   font-size: 13px;
 }
+#live-editor .vditor-ir img { cursor: pointer; max-width: 100%; height: auto; }
+#live-editor .vditor-ir img:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.image-size-preview { overflow: auto; max-height: 300px; margin-bottom: 20px; padding: 12px; background: var(--inset); border: 1px solid var(--line); }
+.image-size-preview img { display: block; max-width: 100%; height: auto; }
+.image-size-controls { display: flex; align-items: center; gap: 16px; }
+.image-size-controls input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.image-size-controls input[type="number"] { width: 100px; }

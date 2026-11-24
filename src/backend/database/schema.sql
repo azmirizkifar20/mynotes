@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS mdpreview.settings (
 CREATE TABLE IF NOT EXISTS mdpreview.entries (
   id uuid PRIMARY KEY,
   path text NOT NULL,
-  kind text NOT NULL CHECK (kind IN ('folder','doc','asset')),
+  kind text NOT NULL CHECK (kind IN ('folder','doc','asset','pdf')),
   content bytea,
   visibility text NOT NULL DEFAULT 'private' CHECK (visibility IN ('public','private')),
   share_id text UNIQUE,
@@ -18,6 +18,12 @@ CREATE TABLE IF NOT EXISTS mdpreview.entries (
   trash_id uuid,
   search_vector tsvector NOT NULL DEFAULT ''::tsvector
 );
+DO $$ BEGIN
+  IF position('''pdf''' in pg_get_constraintdef((SELECT oid FROM pg_constraint WHERE conrelid='mdpreview.entries'::regclass AND conname='entries_kind_check'))) = 0 THEN
+    ALTER TABLE mdpreview.entries DROP CONSTRAINT entries_kind_check;
+    ALTER TABLE mdpreview.entries ADD CONSTRAINT entries_kind_check CHECK (kind IN ('folder','doc','asset','pdf'));
+  END IF;
+END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS entries_active_path ON mdpreview.entries (lower(path)) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS entries_search ON mdpreview.entries USING gin(search_vector);
 CREATE TABLE IF NOT EXISTS mdpreview.versions (
@@ -110,3 +116,48 @@ CREATE TABLE IF NOT EXISTS mdpreview.tasks (
 CREATE INDEX IF NOT EXISTS tasks_status ON mdpreview.tasks(status_id);
 ALTER TABLE mdpreview.task_statuses ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false;
 ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS archived_at timestamptz;
+ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS result text NOT NULL DEFAULT '' CHECK(length(result) <= 3000);
+ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS start_date date CHECK(start_date IS NULL OR due IS NULL OR start_date <= due);
+CREATE TABLE IF NOT EXISTS mdpreview.task_tags (
+  id uuid PRIMARY KEY,
+  name text NOT NULL CHECK(length(btrim(name)) BETWEEN 1 AND 32)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS task_tag_name ON mdpreview.task_tags(lower(name));
+CREATE TABLE IF NOT EXISTS mdpreview.task_tag_links (
+  task_id uuid NOT NULL REFERENCES mdpreview.tasks(id) ON DELETE CASCADE,
+  tag_id uuid NOT NULL REFERENCES mdpreview.task_tags(id) ON DELETE CASCADE,
+  PRIMARY KEY(task_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS task_tag_links_tag ON mdpreview.task_tag_links(tag_id);
+CREATE TABLE IF NOT EXISTS mdpreview.task_attachments (
+  id uuid PRIMARY KEY,
+  task_id uuid NOT NULL REFERENCES mdpreview.tasks(id) ON DELETE CASCADE,
+  slot smallint NOT NULL CHECK(slot BETWEEN 1 AND 10),
+  filename text NOT NULL CHECK(length(filename) BETWEEN 1 AND 200),
+  content bytea NOT NULL CHECK(octet_length(content) BETWEEN 1 AND 52428800),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(task_id, slot)
+);
+CREATE TABLE IF NOT EXISTS mdpreview.task_attachment_objects (
+  object_key text PRIMARY KEY CHECK(object_key LIKE 'md-preview/task-attachments/%'),
+  bucket text NOT NULL,
+  delete_after timestamptz NOT NULL DEFAULT now() + interval '1 hour'
+);
+ALTER TABLE mdpreview.task_attachments ALTER COLUMN content DROP NOT NULL;
+ALTER TABLE mdpreview.task_attachments ADD COLUMN IF NOT EXISTS object_key text REFERENCES mdpreview.task_attachment_objects(object_key) ON DELETE RESTRICT;
+ALTER TABLE mdpreview.task_attachments ADD COLUMN IF NOT EXISTS size integer CHECK(size BETWEEN 1 AND 52428800);
+CREATE UNIQUE INDEX IF NOT EXISTS task_attachment_object ON mdpreview.task_attachments(object_key);
+ALTER TABLE mdpreview.task_attachments DROP CONSTRAINT IF EXISTS task_attachment_storage;
+ALTER TABLE mdpreview.task_attachments ADD CONSTRAINT task_attachment_storage CHECK(
+  (content IS NOT NULL AND object_key IS NULL) OR (content IS NULL AND object_key IS NOT NULL AND size IS NOT NULL)
+);
+CREATE OR REPLACE FUNCTION mdpreview.queue_task_attachment_delete() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF OLD.object_key IS NOT NULL THEN
+    UPDATE mdpreview.task_attachment_objects SET delete_after=now() WHERE object_key=OLD.object_key;
+  END IF;
+  RETURN OLD;
+END $$;
+DROP TRIGGER IF EXISTS task_attachment_delete ON mdpreview.task_attachments;
+CREATE TRIGGER task_attachment_delete AFTER DELETE ON mdpreview.task_attachments
+FOR EACH ROW EXECUTE FUNCTION mdpreview.queue_task_attachment_delete();

@@ -79,6 +79,7 @@ const upload = multer({
 const context = { documentData, upload };
 for (const feature of [
   "documents/routes",
+  "documents/image-routes",
   "documents/trash-routes",
   "documents/history",
   "documents/drafts",
@@ -86,6 +87,7 @@ for (const feature of [
   "templates/routes",
   "activity/routes",
   "task-board/routes",
+  "task-board/attachment-routes",
 ])
   require("./modules/" + feature)(api, context);
 api.use((req, res) =>

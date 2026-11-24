@@ -1,0 +1,38 @@
+const assert = require('node:assert/strict');
+const { loadFrontend } = require('./helpers/frontend.cjs');
+
+(async () => {
+  const { tags, view } = await loadFrontend({ tags: 'features/task-board/tags.js', view: 'features/task-board/view.js' });
+  const actions = { escape: value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])), icon: () => '' };
+  const task = { id: 'task', number: 1, title: 'Task', description: '', statusId: 'status', priority: 'normal', due: '', tagIds: ['one', 'missing'] };
+  const board = { statuses: [{ id: 'status', name: 'Todo' }], documents: [], tags: [{ id: 'one', name: '<Backend>' }, { id: 'two', name: 'Frontend' }], tasks: [task, { ...task, id: 'archive', archivedAt: '2026-11-23T00:00:00Z' }] };
+  assert.deepEqual(tags.taskTags(board, task), [board.tags[0]]);
+  assert.equal(tags.tagsHTML(board, { tagIds: [] }, actions.escape), '');
+  assert(tags.tagsHTML(board, task, actions.escape).includes('&lt;Backend&gt;'));
+  assert(tags.tagChoices(board.tags, ['one'], actions.escape).includes('value="one" checked'));
+  assert(!tags.tagChoices(board.tags, [], actions.escape).includes(' checked'));
+  assert(tags.tagChoices([], [], actions.escape).includes('Belum ada tag'));
+  const rows = tags.tagRows(board.tags, board.tasks, actions);
+  assert(rows.includes('2 task')); assert(rows.includes('&lt;Backend&gt;')); assert(!rows.includes('<Backend>'));
+  const ui = view.createFeature({ actions });
+  assert.equal(ui.boardColumns(board, 'backend').count, 1);
+  assert.equal(ui.boardColumns(board, 'backend', true).count, 1);
+  assert.equal(ui.boardTimeline(board, 'backend', '2026-11-23').count, 1);
+  assert(ui.boardColumns(board, '').html.includes('aria-label="Tag task"'));
+  assert.equal(ui.boardColumns({ ...board, tags: [], tasks: [task] }, 'backend').count, 0, 'Deleted names disappear from search');
+  const many = { ...board, tags: [...board.tags, { id: 'three', name: 'QA "review"' }] };
+  const compact = tags.tagsHTML(many, { tagIds: ['one', 'two', 'three'] }, actions.escape);
+  assert(compact.includes('+1')); assert(compact.includes('Tag lainnya: QA &quot;review&quot;'));
+  assert.equal((compact.match(/<li/g) || []).length, 3, 'Two visible badges and one accessible overflow label');
+  const shell = ui.shell();
+  assert(shell.includes('id="board-settings"')); assert(shell.includes('role="tablist"'));
+  assert(shell.includes('<summary aria-label="Pengaturan task board">'), 'Settings retains an accessible name on mobile');
+  assert(!shell.includes('class="page-icon"'), 'Compact board header');
+  const archive = ui.boardColumns(board, '', true).html;
+  assert(archive.includes('tb-archive-row')); assert(archive.includes('restoreBoardTask'));
+  assert(!archive.includes('draggable="true"'), 'Archive rows cannot be dragged');
+  const overdue = { ...task, due: '2000-01-01' };
+  assert(ui.boardColumns({ ...board, tasks: [overdue] }, '').html.includes('Lewat ·'));
+  assert(!ui.boardColumns({ ...board, tasks: [overdue], statuses: [{ ...board.statuses[0], completed: true }] }, '').html.includes('Lewat ·'), 'Completed tasks are not overdue');
+  console.log('Tag rendering/escaping, checkbox state, counts and active/archive/timeline search passed.');
+})().catch(error => { console.error(error); process.exitCode = 1; });

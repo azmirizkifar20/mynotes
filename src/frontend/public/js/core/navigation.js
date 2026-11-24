@@ -62,7 +62,7 @@ export function createFeature({ state, actions }) {
       state.draftState = null;
       actions.closeSidebar();
       actions.$("tool-dialog").close();
-      if (page?.type === "doc") {
+      if (["doc", "pdf"].includes(page?.type)) {
         state.recent = [id, ...state.recent.filter((p) => p !== id)].slice(
           0,
           50,
@@ -71,7 +71,7 @@ export function createFeature({ state, actions }) {
       }
       actions.renderBreadcrumbs();
       actions.$("save-state").textContent =
-        page?.type === "doc" ? "" : "Workspace pribadi";
+        ["doc", "pdf"].includes(page?.type) ? "" : "Workspace pribadi";
       actions.$("manage-button").hidden = id === "home" || !page;
       actions.$("favorite-button").hidden = !page;
       document
@@ -159,10 +159,10 @@ export function createFeature({ state, actions }) {
         }));
         const page = next.find((page) => page.id === state.current);
         const changed =
-          page?.type === "doc" &&
+          ["doc", "pdf"].includes(page?.type) &&
           (page.revision !== previous?.revision ||
             page.path !== previous?.path);
-        if (changed) {
+        if (changed && page.type === "doc") {
           const document = await actions.api("document", {
             filePath: page.path,
           });
@@ -196,7 +196,7 @@ export function createFeature({ state, actions }) {
           actions.render();
           history.replaceState({ id: state.current }, "", actions.urlFor(page));
           state.activeUrl = actions.urlFor(page);
-          await actions.loadDraft(page);
+          if (page.type === "doc") await actions.loadDraft(page);
         } else if (page.type === "folder") actions.render();
       } catch {
         /* Keep the current page available during a temporary disconnect. */

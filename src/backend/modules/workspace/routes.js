@@ -43,7 +43,7 @@ module.exports = function register(api, { documentData }) {
           );
         else
           await db.query(
-            "UPDATE mdpreview.entries SET opened_at=now() WHERE id=$1 AND kind='doc' AND deleted_at IS NULL",
+            "UPDATE mdpreview.entries SET opened_at=now() WHERE id=$1 AND kind IN ('doc','pdf') AND deleted_at IS NULL",
             [id],
           );
       } else throw db.fail(400, "Aksi preferensi tidak valid.");
@@ -78,7 +78,7 @@ module.exports = function register(api, { documentData }) {
         );
         for (const [index, key] of recent.entries())
           await client.query(
-            "UPDATE mdpreview.entries SET opened_at=now()-($2::integer * interval '1 second') WHERE path=$1 AND deleted_at IS NULL AND kind='doc'",
+            "UPDATE mdpreview.entries SET opened_at=now()-($2::integer * interval '1 second') WHERE path=$1 AND deleted_at IS NULL AND kind IN ('doc','pdf')",
             [key, index],
           );
         await client.query(

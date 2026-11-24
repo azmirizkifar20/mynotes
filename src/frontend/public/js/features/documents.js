@@ -39,7 +39,7 @@ export function createFeature({ state, actions }) {
 
   function editDocumentName() {
     const page = state.pages.find((p) => p.id === state.current);
-    if (page?.type !== "doc" || state.saving || state.navigationPending || state.toolBusy)
+    if (!["doc", "pdf"].includes(page?.type) || state.saving || state.navigationPending || state.toolBusy)
       return;
     const input = actions.$("document-name");
     input.value = page.title;
@@ -73,13 +73,13 @@ export function createFeature({ state, actions }) {
     if (!inline && !actions.canLeave()) return;
     const page = state.pages.find((p) => p.id === id),
       oldPages = state.pages;
-    if (!page || (inline && (page.type !== "doc" || id !== state.current))) return;
+    if (!page || (inline && (!["doc", "pdf"].includes(page.type) || id !== state.current))) return;
     if (inline && name === page.title) return cancelDocumentRename();
     const controls = [...event.target.elements];
     controls.forEach((control) => { control.disabled = true; });
     actions.setBusy(true);
     try {
-      if (inline) await actions.flushDraft();
+      if (inline && page.type === "doc") await actions.flushDraft();
       const result = await actions.api("rename", {
         path: page.path,
         newName: name,

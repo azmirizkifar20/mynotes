@@ -18,7 +18,8 @@ module.exports = function register(api, { documentData, upload }) {
   api.post(
     "/document",
     asyncRoute(async (req, res) => {
-      const row = await entry(req);
+      const row = await db.get(req.body.filePath);
+      if (!["doc", "pdf"].includes(row.kind)) throw db.fail(400, "Pilih dokumen Markdown atau PDF.");
       res.json({
         success: true,
         ...documentData(row, req.baseUrl.replace(/\/api$/, "")),
@@ -36,7 +37,7 @@ module.exports = function register(api, { documentData, upload }) {
         throw db.fail(400, "Pengaturan akses tidak valid.");
       const row = await db.transaction(async (client) => {
         const row = await db.get(req.body.filePath, client);
-        if (row.kind !== "doc") throw db.fail(400, "Pilih dokumen Markdown.");
+        if (!["doc", "pdf"].includes(row.kind)) throw db.fail(400, "Pilih dokumen Markdown atau PDF.");
         if (visibility !== undefined) {
           await client.query(
             "UPDATE mdpreview.entries SET visibility=$2 WHERE id=$1",
@@ -98,6 +99,7 @@ module.exports = function register(api, { documentData, upload }) {
         throw db.fail(400, "Nama tidak valid.");
       name = name.trim();
       if (row.kind === "doc" && !/\.md$/i.test(name)) name += ".md";
+      if (row.kind === "pdf" && !/\.pdf$/i.test(name)) name += ".pdf";
       const destination = parentPath(row.path).replace(/\/$/, "") + "/" + name;
       await db.move(row.path, destination, req.ip);
       changed(res, { path: destination });
@@ -137,8 +139,11 @@ module.exports = function register(api, { documentData, upload }) {
         )
           throw db.fail(400, "Nama file tidak valid.");
         const normalized = name.replace(/\.markdown$/i, ".md");
+        if (!/\.(md|markdown|pdf)$/i.test(req.file.originalname) || /\.pdf$/i.test(normalized) !== /\.pdf$/i.test(req.file.originalname))
+          throw db.fail(400, "Gunakan ekstensi yang sesuai dengan file Markdown atau PDF asal.");
         const key = folder.path.replace(/\/$/, "") + "/" + normalized;
-        const row = await db.save(key, fs.readFileSync(req.file.path, "utf8"), {
+        const pdf = /\.pdf$/i.test(normalized);
+        const row = await (pdf ? db.savePdf : db.save)(key, fs.readFileSync(req.file.path, pdf ? undefined : "utf8"), {
           create: true,
           ip: req.ip,
         });
@@ -166,7 +171,7 @@ module.exports = function register(api, { documentData, upload }) {
       if (!text) return res.json({ success: true, items: [] });
       const rows = (
         await db.query(
-          `SELECT id,path,kind,CASE WHEN kind='doc' THEN ts_headline('simple',convert_from(content,'UTF8'),websearch_to_tsquery('simple',$1),'StartSel="",StopSel="",MaxWords=35,MinWords=15,MaxFragments=1') ELSE '' END AS snippet,ts_rank(search_vector,websearch_to_tsquery('simple',$1)) AS rank FROM mdpreview.entries WHERE deleted_at IS NULL AND kind IN ('doc','folder') AND path <> '/' AND path !~* '^/(steering|superpowers)(/|$)' AND (search_vector @@ websearch_to_tsquery('simple',$1) OR strpos(lower(path),lower($1))>0) ORDER BY rank DESC,path LIMIT 50`,
+          `SELECT id,path,kind,CASE WHEN kind='doc' THEN ts_headline('simple',convert_from(content,'UTF8'),websearch_to_tsquery('simple',$1),'StartSel="",StopSel="",MaxWords=35,MinWords=15,MaxFragments=1') ELSE '' END AS snippet,ts_rank(search_vector,websearch_to_tsquery('simple',$1)) AS rank FROM mdpreview.entries WHERE deleted_at IS NULL AND kind IN ('doc','folder','pdf') AND path <> '/' AND path !~* '^/(steering|superpowers)(/|$)' AND (search_vector @@ websearch_to_tsquery('simple',$1) OR strpos(lower(path),lower($1))>0) ORDER BY rank DESC,path LIMIT 50`,
           [text],
         )
       ).rows;

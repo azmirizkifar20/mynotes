@@ -119,6 +119,24 @@ async function createFolder(key, ip) {
   });
 }
 
+async function savePdf(key, content, options = {}) {
+  if (!validPath(key) || !/\.pdf$/i.test(key) || !Buffer.isBuffer(content) ||
+      content.length > 5 * 1024 * 1024 || !/^%PDF-[12]\.\d/.test(content.subarray(0, 8).toString("latin1")) ||
+      !/%%EOF\s*$/.test(content.subarray(-1024).toString("latin1")))
+    throw fail(400, "File PDF tidak valid atau melebihi 5 MB.");
+  return transaction(async (client) => {
+    const parent = await get(parentPath(key), client);
+    if (parent.kind !== "folder") throw fail(400, "Folder tujuan tidak valid.");
+    key = parent.path.replace(/\/$/, "") + "/" + path.posix.basename(key);
+    const row = (await client.query(
+      "INSERT INTO mdpreview.entries(id,path,kind,content,visibility,share_id,search_vector) VALUES($1,$2,'pdf',$3,'private',$4,to_tsvector('simple',$2)) RETURNING *",
+      [randomUUID(), key, content, randomBytes(24).toString("hex")],
+    )).rows[0];
+    await audit("FILE_CREATE", key, options.ip, client);
+    return row;
+  });
+}
+
 async function move(from, to, ip) {
   if (
     !validPath(from) ||
@@ -132,8 +150,8 @@ async function move(from, to, ip) {
     const row = await get(from, client);
     if (row.kind === "asset")
       throw fail(400, "Hanya folder atau dokumen yang dapat dipindahkan.");
-    if (row.kind === "doc" && !/\.md$/i.test(to))
-      throw fail(400, "Nama file harus berakhiran .md.");
+    if ((row.kind === "doc" && !/\.md$/i.test(to)) || (row.kind === "pdf" && !/\.pdf$/i.test(to)))
+      throw fail(400, `Nama file harus berakhiran ${row.kind === "pdf" ? ".pdf" : ".md"}.`);
     const parent = await get(parentPath(to), client);
     if (parent.kind !== "folder") throw fail(400, "Folder tujuan tidak valid.");
     to = parent.path.replace(/\/$/, "") + "/" + path.posix.basename(to);
@@ -145,4 +163,4 @@ async function move(from, to, ip) {
     return to;
   });
 }
-module.exports = { get, pageId, snapshot, save, createFolder, move };
+module.exports = { get, pageId, snapshot, save, savePdf, createFolder, move };

@@ -6,10 +6,12 @@ Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak 
 
 - Navigasi folder dan breadcrumb, favorit, serta 50 dokumen terakhir dibuka.
 - Edit langsung dengan render otomatis pada tab Dokumen, serta tab sumber Markdown yang tersinkron. Di dalam list pada tab Dokumen, Tab membuat item menjadi sublist dan Shift+Tab mengembalikannya satu tingkat. Perubahan otomatis disimpan ke dokumen sekitar 1–2 detik setelah berhenti mengetik; Simpan atau Ctrl+S tetap bisa digunakan untuk langsung menyimpan. File publik otomatis ikut diperbarui.
+- Pada tab **Dokumen**, pilih teks lalu tekan **Ctrl+B** untuk bold, **Ctrl+I** untuk italic, atau **Ctrl+U** untuk underline (gunakan Cmd pada Mac). Format langsung terlihat dan ikut autosave. Underline disimpan sebagai `<u>teks</u>` di sumber Markdown; pada browser modern tag tersebut disembunyikan dari editor live. Shortcut ini berlaku saat fokus berada di editor dokumen.
 - Syntax highlighting, daftar isi, dan link ke heading.
 - Dokumen publik untuk guest memiliki daftar isi dari heading dokumen dengan penanda aktif saat klik/scroll. Sidebar tetap terlihat di desktop; pada layar kecil, daftar isi pindah ke atas dokumen. Dokumen tanpa heading memakai lebar baca penuh tanpa sidebar kosong.
 - Pencarian judul, path, dan isi dokumen dengan PostgreSQL full-text search.
 - Buat folder/dokumen, rename, pindahkan, unduh, dan upload Markdown dengan konfirmasi nama/isi.
+- Upload PDF dengan pratinjau sebelum konfirmasi, viewer PDF, serta mention PDF di task board.
 - Klik judul file pada halaman dokumen untuk mengganti nama, lalu klik **Simpan nama**. Nama tidak mengikuti autosave isi dokumen; **Batal** atau Escape membatalkan. Klik di luar kolom tidak menyimpan. Rename mengubah URL path file; pengaturan akses dan link lama `/share/:id` tetap tersimpan.
 - Akses publik/privat, URL path asli, serta kompatibilitas link lama `/share/:id`.
 - Sampah dengan pemulihan dan hapus permanen, riwayat versi dengan preview/pemulihan.
@@ -20,15 +22,66 @@ Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak 
 
 Login memakai passkey dengan pusat autentikasi di `https://itsazmi.com/mynotes` (RP ID `itsazmi.com`). Domain lama dan lokal membuka pusat login melalui popup, kemudian menerima session masing-masing melalui handoff sekali pakai. Favorit, riwayat bacaan, tema, template, dan draft menjadi milik **workspace bersama**, belum per akun. Favorit/riwayat browser lama dapat diimpor sekali lewat sidebar setelah login. Pengunjung publik hanya mendapat dokumen yang dibuka; tema pengunjung disimpan pada browsernya.
 
+### Gambar di dokumen Markdown
+
+Pada detail Markdown, drag & drop satu gambar PNG, JPEG, GIF, atau WebP (maksimal 5 MB), atau salin gambar/screenshot lalu **Ctrl+V** (**Cmd+V** di Mac) saat kursor berada di editor. Gambar langsung diupload dan disisipkan di posisi kursor, tanpa dialog konfirmasi. Ini bekerja pada tab **Dokumen** dan **Markdown**. Paste teks tetap mengikuti editor biasa. File disimpan dengan nama unik di folder yang sama dengan `.md`; byte asli ada di PostgreSQL sebagai `asset` dan ikut mirror `docs/`.
+
+Klik gambar di tab **Dokumen**, atur lebar lewat slider atau input piksel, lalu klik **Terapkan ukuran**. Proporsi tetap dan gambar menyesuaikan lebar layar. Ukuran disimpan sebagai elemen `<img width="…">` di sumber Markdown melalui autosave. **Batal** tidak mengubah ukuran. Gambar pada dokumen publik mengikuti akses dokumen yang merujuknya; SVG tidak diterima. Menghapus gambar dari konten tidak menghapus file gambarnya.
+
+### Upload dan membaca PDF
+
+Drag & drop satu file `.pdf` ke halaman workspace atau pilih lewat upload file. Dialog menampilkan nama, folder tujuan, dan pratinjau PDF dari perangkat. Periksa atau ubah nama dengan ekstensi `.pdf`, lalu klik **Upload**. Menutup dialog membatalkan; file belum dikirim sebelum konfirmasi. Ukuran maksimal 5 MB dan nama yang sudah ada tidak ditimpa.
+
+PDF disimpan sebagai byte asli di PostgreSQL (`entries.kind='pdf'`, kolom `content`) dan dimaterialisasi ke `docs/`. File baru **privat**; pengaturan publik/privat, share path asli, favorit, terakhir dibuka, rename, pindah, dan Sampah berlaku juga untuk PDF. Klik file untuk membuka viewer; tersedia tautan buka tab baru dan unduh jika viewer browser tidak tampil. Endpoint `/media?document=<path>` selalu memeriksa akses terkini dan tidak menyimpan cache respons. Nginx mengizinkan frame dari origin yang sama hanya pada endpoint media; halaman aplikasi tetap memakai `X-Frame-Options: DENY`.
+
+Ketik `@` di **Deskripsi** atau **Hasil task** untuk memilih Markdown maupun PDF. Mention memakai ID yang tetap setelah rename/pindah dan ikut dalam guard penghapusan file. Pencarian PDF mencakup nama/path, belum isi PDF atau OCR. PDF hanya dibaca; editor, draft, dan riwayat versi tetap untuk Markdown. Pratinjau bergantung pada viewer PDF browser dan tersedia tautan alternatif untuk perangkat yang tidak mendukungnya.
+
 ### Task board
 
 Buka **Task board** di sidebar atau `/?view=tasks` (`/mynotes/?view=tasks` pada domain utama). Papan hanya tersedia setelah login dan dipakai bersama oleh semua perangkat pada workspace ini. Tidak ada link publik untuk papan.
 
+Di detail task, pilih **Tambah lampiran** untuk memilih beberapa file sekaligus, maksimal **10 lampiran per task** dan **50 MB per file**. Simpan task baru terlebih dahulu sebelum menambah lampiran. Upload dan penghapusan lampiran langsung disimpan, terpisah dari tombol **Simpan task**; perubahan deskripsi/hasil yang belum disimpan tetap dipertahankan. Jika batch gagal, file sebelumnya yang berhasil tetap tersimpan dan pesan menyebutkan jumlahnya.
+
+Seret satu atau beberapa file ke bagian **Lampiran** di detail task, atau klik **Tambah lampiran**. Daftar konfirmasi menampilkan nama dan ukuran file; file baru dikirim setelah menekan **Upload**. **Batal** atau Escape membuang pilihan tanpa mengupload. Folder tidak didukung. Jika sebagian batch gagal, file yang berhasil tetap tersimpan dan daftar konfirmasi hanya menyisakan file yang belum berhasil; retry tidak mengirim ulang file yang sudah berhasil. Muat ulang papan setelah konflik mengharuskan memilih file kembali. Perubahan teks task yang belum disimpan tetap dipertahankan.
+
+Format lampiran: PDF, ZIP, RAR, Excel (XLS/XLSX/CSV UTF-8), PowerPoint (PPT/PPTX), Markdown (MD/Markdown UTF-8), gambar (PNG/JPG/JPEG/GIF/WebP/AVIF/BMP), dan video (MP4/M4V/MOV/WebM/MKV/AVI). Klik nama file untuk mengunduh; akses memerlukan login. Arsip tetap menyimpan lampiran, tetapi harus dipulihkan sebelum menambah/menghapus. Menghapus task menghapus lampirannya secara permanen. Nginx mengizinkan body 51 MB hanya pada endpoint upload lampiran; batas upload dokumen tetap 5 MB.
+
+Byte lampiran task disimpan di **Cloudflare R2 private**, dengan key `md-preview/task-attachments/<task-id>/<id-unik-upload>/<nama-file>`. Prefix `md-preview` adalah folder utama dalam bucket. ID unik menjaga nama yang sama tidak saling menimpa; nama task tidak digunakan sebagai folder sehingga rename task tidak memindahkan object. PostgreSQL hanya menyimpan metadata/link object di `mdpreview.task_attachments` dan registry/antrean pembersihan `mdpreview.task_attachment_objects`. Lampiran tidak masuk mirror `docs/`.
+
+Klik nama lampiran untuk membuka tab baru. Setelah memeriksa login dan keberadaan lampiran, API `/api/task-board/attachments/:id/view` mengarahkan ke **URL R2 bertanda tangan yang berlaku 15 menit**, dengan tipe file dan `Content-Disposition: inline`. PDF/gambar/video yang didukung browser bisa langsung dilihat; Markdown/CSV tampil sebagai teks. ZIP/RAR/Office atau format yang tidak didukung browser dapat tetap diunduh oleh browser. Klik lagi dari aplikasi untuk URL baru setelah kedaluwarsa. URL sementara dapat dipakai siapa pun yang memegangnya hingga kedaluwarsa, jadi jangan membagikannya sebagai tautan publik permanen. Bucket tetap private; tidak memerlukan domain R2 publik atau browser CORS. Endpoint `/download` yang lama tetap menyediakan unduhan setelah login.
+
+Penghapusan lampiran, termasuk saat task dihapus, langsung menghapus metadata dan menjadwalkan penghapusan object. Worker berjalan saat startup dan setiap 60 detik; kegagalan R2 tetap dalam antrean untuk dicoba lagi. Upload yang terputus atau gagal menyimpan metadata dibersihkan setelah satu jam; object yang masih direferensikan tidak dihapus. Jangan membuat lifecycle R2 yang menghapus prefix ini berdasarkan usia karena task aktif/arsip dapat menyimpan lampiran tanpa batas waktu.
+
+Isi `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, dan `R2_SECRET_ACCESS_KEY` di `.env` **lokal dan server**, dengan endpoint/bucket yang sama. Buat API credential R2 dengan **Object Read & Write** untuk bucket tersebut saja; pertahankan bucket private. Upload baru tidak memakai binary DB sebagai fallback jika R2 belum siap.
+
+```sh
+npm run r2:check
+# Deploy kode baru ke semua instance dan restart sebelum menjalankan migrasi.
+# Buat serta verifikasi backup PostgreSQL terlebih dahulu.
+npm run attachments:migrate
+```
+
+`r2:check` membuat object sementara, memverifikasi baca ulang, lalu menghapusnya. `attachments:migrate` memindahkan lampiran lama satu per satu, membaca ulang R2 dan membandingkan SHA-256 sebelum mengosongkan binary DB. UUID lampiran, URL download, nama, slot dan tanggal tetap. Bila gagal, bytes lama tetap tersedia; perintah aman dijalankan ulang setelah memperbaiki koneksi. Kode baru tetap dapat mengunduh lampiran lama selama migrasi. Jalankan migrasi dari satu instance saja; tidak perlu sinkronisasi file lokal. Dokumen Markdown, PDF workspace, dan gambar di dalam dokumen masih menggunakan PostgreSQL/mirror seperti sebelumnya.
+
 Task dan status disimpan di PostgreSQL, bukan `docs/` atau localStorage. Startup membuat tabel `mdpreview.task_board`, `mdpreview.task_statuses`, dan `mdpreview.tasks` beserta empat status awal; tidak menambahkan task contoh. Backup PostgreSQL lengkap juga mencakup data papan.
+
+Gunakan tab **Papan**, **Time table**, atau **Arsip**; pencarian berlaku pada tampilan yang sedang dibuka. Menu **Pengaturan** menyediakan **Kelola tag** dan **Kelola status**. Kartu menampilkan maksimal dua nama tag dengan jumlah tag lainnya; tenggat yang terlewat diberi label **Lewat**. Arsip memakai daftar ringkas dengan tombol **Pulihkan**.
+
+**Tags:** buka **Pengaturan → Kelola tag** untuk membuat, mengganti nama, atau menghapus tag bersama. Nama harus berbeda tanpa membedakan huruf besar/kecil, maksimal 32 karakter; tersedia hingga 100 tag. Perubahan pengelolaan diterapkan saat **Simpan tag**. Menghapus tag memakai konfirmasi dan hanya melepasnya dari task aktif maupun arsip; task tetap tersimpan.
+
+Di detail task, pilih beberapa tag pada field **Tags** (maksimal 20 per task), lalu **Simpan task**. Tag tampil pada kartu dan namanya ikut dalam pencarian Papan, Time table, serta Arsip. Pilihan tag pada task arsip hanya bisa dibaca sampai dipulihkan. Task lama dimulai tanpa tag; payload API lama yang tidak menyertakan `tagIds` tetap mempertahankan pilihan tersimpan. Data tag memakai tabel `mdpreview.task_tags` dan relasi `mdpreview.task_tag_links` yang ikut dalam backup PostgreSQL. Saat konflik, muat ulang mempertahankan pilihan task yang masih tersedia dan memberi tahu jika tag sudah dihapus; draft pengaturan tag direset ke data terbaru.
 
 Di deskripsi task, ketik `@` lalu nama file untuk memilih dokumen dari suggestion (nama dan path ditampilkan). Gunakan panah atas/bawah dan Enter/Tab, atau klik hasilnya; Escape menutup suggestion. Mention bisa diklik dari editor maupun kartu dan membuka dokumen di tab baru, sehingga form task yang belum disimpan tetap terbuka. Referensi memakai ID dokumen: rename/pindah file tetap tersambung, sedangkan dokumen yang dihapus ditandai tidak tersedia. Dokumen privat tetap memerlukan login. Folder `steering`/`superpowers` tidak masuk suggestion. Mention disimpan bersama deskripsi ketika menekan **Simpan task**, tanpa tabel baru.
 
 URL `http://` dan `https://` di deskripsi task menjadi hyperlink yang membuka tab baru, termasuk di editor, kartu, dan arsip. URL yang ditempel langsung menjadi tautan; saat mengetik, tekan spasi atau Enter setelah URL. Deskripsi tetap disimpan sebagai teks ketika menekan **Simpan task**.
+
+**Hasil task** menyimpan hasil pengerjaan secara terpisah dari deskripsi. Pilih tab **Deskripsi** atau **Hasil task** di detail; berpindah tab mempertahankan kedua isinya. Editor ini juga mendukung mention `@dokumen` dan hyperlink dengan perilaku yang sama. Kedua field disimpan bersama secara manual lewat **Simpan task**, masing-masing maksimal 3.000 karakter termasuk referensi. Indikator footer menunjukkan perubahan yang belum disimpan; menutup form yang berubah meminta konfirmasi untuk membuang perubahan. Hasil ikut masuk pencarian papan/arsip dan pengecekan referensi sebelum menghapus file. Task arsip mempertahankan hasil dan tautannya, tetapi hanya bisa dibaca sampai dipulihkan.
+
+Deskripsi dan Hasil task memakai editor Markdown langsung: ketik atau tempel `**bold**`, `*italic*`, heading, daftar, kutipan, atau blok kode untuk melihat formatnya di area edit. Ctrl+B/Ctrl+I (Cmd di Mac) juga tersedia. Isinya disimpan sebagai Markdown, bukan HTML. Mention `@` tetap menyimpan referensi dokumen yang stabil dan URL HTTP/HTTPS membuka tab baru. Task lama tetap bisa diedit; membuka task tanpa mengubah field mempertahankan teks aslinya. Batas 3.000 karakter mencakup tanda Markdown dan token mention. Render otomatis tidak menyimpan task secara otomatis; gunakan **Simpan task**.
+
+Isi **Tanggal mulai** dan **Tanggal akhir / tenggat** untuk menjadwalkan task; keduanya opsional. Tanggal akhir tidak boleh sebelum tanggal mulai, dan tanggal yang sama diperbolehkan. Tenggat task lama dipertahankan sebagai tanggal akhir; tanggal mulai tidak diisi otomatis. Secara internal API tetap memakai `due` untuk tanggal akhir, ditambah `startDate` dan `result`. Payload lama yang tidak menyertakan field baru tetap mempertahankan nilai yang sudah tersimpan.
+
+Tab **Time table** menampilkan timeline mingguan task aktif, dengan default minggu berjalan (Senin–Minggu) berdasarkan tanggal lokal perangkat. Pilih tanggal untuk membuka minggu terkait, gunakan panah minggu sebelumnya/berikutnya, atau **Minggu ini**. Klik nama atau bar task untuk membuka detail dan mengubah jadwal. Bar mencakup kedua tanggal dan dipotong sesuai minggu yang dipilih; task dengan hanya satu tanggal ditandai sebagai titik dengan keterangan tanggal yang belum diisi. Task tanpa tanggal tetap ada di **Belum dijadwalkan**. Pencarian juga berlaku di tampilan ini; task arsip tetap di tab Arsip. Di layar kecil, geser area timeline secara horizontal, sementara nama task tetap terlihat. Jadwal diubah lewat detail task, tanpa drag bar.
 
 Hapus file melalui daftar file atau menu detail. Jika file, termasuk isi folder yang dihapus, disebut di task board, dialog menampilkan jumlah dokumen/task terdampak dan meminta konfirmasi lagi. Server mengecek ulang referensi saat penghapusan; perubahan referensi dari perangkat lain memerlukan konfirmasi baru. File masuk ke **Sampah**, task dan teks mention tetap disimpan, tetapi tautannya tidak tersedia. Memulihkan file mengaktifkan kembali referensinya; menghapus permanen dari Sampah membuat referensi tersebut tidak bisa dipulihkan.
 
@@ -75,6 +128,10 @@ DB_PORT=5432
 DB_USER=<role PostgreSQL>
 DB_PASSWORD='<password>'
 DB_NAME=<nama database>
+R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+R2_BUCKET=<bucket private>
+R2_ACCESS_KEY_ID=<access key R2>
+R2_SECRET_ACCESS_KEY='<secret key R2>'
 ```
 
 Buat hash kode akses dan secret:
@@ -211,6 +268,8 @@ Letakkan rule ini sebelum rule `itsazmi.com` tanpa path. Samakan batas body ngin
 
 Backup PostgreSQL dengan `pg_dump`, serta simpan `.env` secara privat. Backup `docs/` saja tidak mencakup akses privat, draft, sampah, riwayat, atau session. Database menyimpan semuanya, termasuk isi yang sudah dipindahkan ke sampah. Lindungi backup dengan hak akses terbatas. Jadwal dan retensi backup mengikuti pengelolaan server.
 
+**Lampiran task memerlukan backup R2 juga**: backup PostgreSQL setelah migrasi hanya berisi metadata/object key. Simpan salinan object R2 dan database dari waktu yang sesuai. Restore DB lama dapat mereferensikan object yang sudah dihapus setelah backup; pastikan salinan object tersedia sebelum restore. Jangan menghapus registry/antrean R2 secara manual karena diperlukan untuk retry penghapusan dan pembersihan upload terputus.
+
 Gunakan `pg_dump --format=custom --no-owner --no-privileges` dengan client yang versinya minimal sama dengan PostgreSQL server. Simpan dump dan `.env` dengan izin `0600` di direktori `0700`. Verifikasi dengan `pg_restore --exit-on-error --no-owner --no-privileges` ke database kosong yang terpisah; jangan arahkan restore ke database aktif. Periksa tabel/jumlah entri dan simpan checksum dump. Backup pada disk server yang sama masih perlu salinan di lokasi terpisah.
 
 ## Struktur kode
@@ -249,4 +308,4 @@ Pemeriksaan regresi terisolasi tersedia di `node tests/check-sharing.cjs`. Scrip
 - **Konflik dokumen/draft:** salin tulisan, muat versi terbaru, lalu gabungkan perubahan.
 - **Mirror tertinggal:** cek log dan izin filesystem, lalu jalankan `npm run docs:sync`.
 - **Login gagal setelah pindah domain:** login pada domain yang sedang dibuka.
-- **413:** sesuaikan `JSON_BODY_LIMIT` dan `client_max_body_size`; upload file dibatasi 5 MB.
+- **413:** sesuaikan `JSON_BODY_LIMIT` dan `client_max_body_size`; upload dokumen/gambar dibatasi 5 MB, lampiran task 50 MB per file (body nginx 51 MB khusus endpoint lampiran).

@@ -1,0 +1,85 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { randomUUID } = require("node:crypto");
+assert.equal(process.env.MDPREVIEW_TEST_ISOLATED, "1");
+assert.equal(process.env.DB_HOST, "127.0.0.1");
+assert.equal(process.env.DB_USER, "fixture");
+assert.equal(process.env.DB_NAME, "postgres");
+assert(!fs.existsSync(path.join(__dirname, "../.env")));
+const db = require("../src/backend/database");
+const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "document-images-"));
+require("../src/backend/config/paths").docs = temporary;
+const { renderMarkdown } = require("../src/backend/modules/documents/markdown");
+const { saveImage, imageType } = require("../src/backend/modules/documents/images");
+const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=", "base64");
+let server;
+async function main() {
+  assert.equal(imageType(png), "png");
+  assert.equal(imageType(Buffer.from("GIF89a\x01\x00\x01\x00fixture;", "latin1")), "gif");
+  assert.equal(imageType(Buffer.from([255,216,255,...Buffer.alloc(10),255,217])), "jpg");
+  const webp = Buffer.alloc(30); webp.write("RIFF"); webp.writeUInt32LE(22, 4); webp.write("WEBPVP8 ", 8);
+  assert.equal(imageType(webp), "webp");
+  for (const invalid of [null, Buffer.alloc(0), png.subarray(0, 25), Buffer.from("<svg></svg>"), Buffer.alloc(5*1024*1024+1)]) assert.equal(imageType(invalid), null);
+  await db.initialize();
+  await db.query("INSERT INTO mdpreview.entries(id,path,kind) VALUES($1,'/','folder')", [randomUUID()]);
+  await db.createFolder("/Folder");
+  await db.save("/Folder/Note.md", "# Keep this", { create: true });
+  const image = await saveImage("/folder/note.md", png);
+  assert(image.path.startsWith("/Folder/image-") && image.path.endsWith(".png"));
+  assert.equal(image.filename, path.posix.basename(image.path));
+  const asset = await db.get(image.path);
+  assert.equal(asset.kind, "asset"); assert.equal(asset.visibility, "private"); assert.deepEqual(asset.content, png);
+  assert.equal((await db.get("/Folder/Note.md")).content.toString(), "# Keep this");
+  const second = await saveImage("/Folder/Note.md", png); assert.notEqual(second.path, image.path);
+  for (const [key, bytes, status] of [["/Folder",png,400],["/missing.md",png,404],["/../bad.md",png,400],["/Folder/Note.md",Buffer.from("bad"),400]])
+    await assert.rejects(saveImage(key, bytes), (error) => error.status === status);
+  require("../src/backend/modules/documents/mirror").sync = async () => {};
+  const express = require("express"), app = express(), router = express.Router(), api = express.Router();
+  app.set("views", path.join(__dirname, "../src/frontend/views")); app.set("view engine", "ejs");
+  Object.assign(app.locals, { assetVersion: "fixture", editorVersion: "4.0.1", passkeyBrowserVersion: "14.0.0" });
+  app.use("/mynotes", router); app.use(router); router.use(express.json());
+  router.use((req,res,next) => { res.locals.basePath=req.baseUrl; req.session={authenticated:req.get("X-Fixture-Auth")==="1"}; next(); });
+  router.use("/api",require("../src/backend/middleware/origin"));
+  api.use(require("../src/backend/middleware/require-auth"));
+  const upload = require("multer")({dest:temporary,limits:{fileSize:5*1024*1024,files:1}});
+  require("../src/backend/modules/documents/image-routes")(api,{upload});
+  router.use("/api",api); router.use(require("../src/backend/modules/documents/public-routes")); router.use(require("../src/backend/middleware/error-handler"));
+  server=app.listen(0,"127.0.0.1"); await new Promise(resolve=>server.once("listening",resolve));
+  const origin="http://127.0.0.1:"+server.address().port;
+  for (const prefix of ["","/mynotes"]) {
+    const base=origin+prefix, auth={"X-Fixture-Auth":"1"};
+    async function uploadImage(bytes=png,headers=auth,key="/Folder/Note.md") {
+      const form=new FormData(); form.append("filePath",key); form.append("file",new Blob([bytes]),"../../original.svg");
+      return fetch(base+"/api/images/upload",{method:"POST",headers,body:form});
+    }
+    assert.equal((await uploadImage(png,{})).status,401);
+    assert.equal((await uploadImage(png,{...auth,Origin:"https://evil.invalid"})).status,403);
+    assert.equal((await uploadImage(Buffer.from("<svg/>"))).status,400);
+    assert.equal((await uploadImage(Buffer.alloc(5*1024*1024+1))).status,400);
+    assert.equal((await uploadImage(png,auth,"/Folder")).status,400);
+    const response=await uploadImage(); assert.equal(response.status,200);
+    const saved=await response.json(); assert(saved.filename.endsWith(".png"));
+    assert.deepEqual((await db.get(saved.path)).content,png);
+    const direct=await fetch(base+saved.path,{headers:auth}); assert.equal(direct.status,200); assert.equal(direct.headers.get("x-content-type-options"),"nosniff");
+    assert((await (await fetch(base+saved.path)).text()).includes('"mode":"login"'));
+    const content=`# Keep this\n\n<img src="${saved.filename}" alt="photo" width="260">\n`;
+    await db.save("/Folder/Note.md",content,{revision:(await db.get("/Folder/Note.md")).revision});
+    const html=renderMarkdown(content,"/Folder/Note.md",undefined,prefix);
+    assert(html.includes('width="260"')); assert(html.includes(prefix+"/media?document="));
+    const media=base+"/media?document=%2FFolder%2FNote.md&file="+encodeURIComponent(saved.path);
+    assert.equal((await fetch(media)).status,404);
+    assert.equal((await fetch(media,{headers:auth})).status,200);
+    await db.query("UPDATE mdpreview.entries SET visibility='public' WHERE path='/Folder/Note.md'");
+    assert.deepEqual(Buffer.from(await (await fetch(media)).arrayBuffer()),png);
+    const unused=base+"/media?document=%2FFolder%2FNote.md&file="+encodeURIComponent(image.path);
+    assert.equal((await fetch(unused)).status,404,"Unreferenced asset is not public");
+    await db.query("UPDATE mdpreview.entries SET visibility='private' WHERE path='/Folder/Note.md'");
+    assert.equal((await fetch(media)).status,404);
+    assert.equal(fs.readdirSync(temporary).length,0,"Temp uploads cleaned");
+  }
+  await db.query("DELETE FROM mdpreview.entries");
+  console.log("Image validation, unique sibling storage, byte preservation, both mounts, auth/origin, public-reference guards and resize markup passed.");
+}
+main().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{server?.closeAllConnections();if(server)await new Promise(resolve=>server.close(resolve));await db.pool.end();fs.rmSync(temporary,{recursive:true,force:true});});

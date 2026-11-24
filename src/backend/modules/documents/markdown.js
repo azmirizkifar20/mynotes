@@ -140,6 +140,10 @@ function renderMarkdown(content, key, images = new Set(), basePath = "") {
 }
 
 function documentData(row, basePath = "") {
+  if (row.kind === "pdf") return {
+    type: "pdf", pdfUrl: basePath + "/media?document=" + encodeURIComponent(row.path),
+    modified: row.modified.toISOString(), revision: row.revision,
+  };
   const content = row.content.toString("utf8");
   const slugs = new Set();
   const html = renderMarkdown(content, row.path, undefined, basePath).replace(

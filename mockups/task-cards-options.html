@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Opsi card task · MD Previewer</title>
+  <link rel="icon" href="../src/frontend/public/favicon.svg" type="image/svg+xml">
+  <style>
+    @font-face{font-family:Inter;src:url('../src/frontend/public/fonts/inter-variable.ttf') format('truetype');font-weight:100 900;font-display:swap}
+    :root{color-scheme:light;--page:#fcfcfb;--sidebar:#f5f5f3;--surface:#fff;--well:#f1f3ef;--ink:#282c28;--muted:#62685f;--line:#e0e3dc;--control:#8d9588;--hover:#e9ede5;--accent:#98472e;--accent-bg:#f6ece6;--button:#353d32;--button-ink:#fff;--danger:#983c35;--danger-bg:#f9ece9;--green:#356747;--amber:#78521b;--blue:#37657e;--focus:#98472e}
+    [data-theme="dark"]{color-scheme:dark;--page:#202123;--sidebar:#191a1c;--surface:#2a2c2f;--well:#242629;--ink:#ecece8;--muted:#b1b6bd;--line:#3c4045;--control:#79808a;--hover:#34383c;--accent:#dfbd94;--accent-bg:#3b332b;--button:#dfbd94;--button-ink:#23201b;--danger:#f0b1a9;--danger-bg:#442e2c;--green:#b2d3b5;--amber:#e1c18b;--blue:#b1d0e4;--focus:#dfbd94}
+    *{box-sizing:border-box}body{margin:0;background:var(--page);color:var(--ink);font:14px/1.55 Inter,Arial,sans-serif}button,input{font:inherit;color:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--focus);outline-offset:4px}button{border:0;background:none}button:disabled{cursor:default}svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}h1,h2,h3,p{margin:0}[hidden]{display:none!important}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    .studio{background:var(--surface);border-bottom:1px solid var(--line);padding:18px 28px 0}.studio-head{display:flex;justify-content:space-between;gap:16px;align-items:center}.studio-title{font-size:15px;font-weight:650}.studio-note{color:var(--muted);font-size:12px;margin-top:3px}.theme-button{display:flex;align-items:center;gap:8px;min-height:40px;border:1px solid var(--control);border-radius:5px;padding:8px 12px;font-size:12px;white-space:nowrap}.theme-button:hover{background:var(--hover)}.options{display:flex;gap:24px;margin-top:16px;overflow-x:auto}.option{position:relative;flex-shrink:0;min-height:45px;padding:10px 0;color:var(--muted);font-size:13px;white-space:nowrap}.option[aria-selected="true"]{color:var(--ink);font-weight:650}.option[aria-selected="true"]::after{content:'';position:absolute;height:2px;background:var(--accent);bottom:0;left:0;right:0}.recommend{font-size:10px;margin-left:5px;color:var(--accent);font-weight:550}
+    .workspace{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:calc(100dvh - 133px)}.sidebar{background:var(--sidebar);border-right:1px solid var(--line);padding:26px 18px;display:flex;flex-direction:column;gap:25px}.brand{display:flex;gap:10px;align-items:center;font-weight:650;font-size:15px}.mark{background:var(--accent-bg);color:var(--accent);font-family:Georgia,serif;font-size:26px;width:35px;height:36px;border-radius:6px;text-align:center;line-height:36px}.brand small{display:block;font-size:11px;color:var(--muted);font-weight:400}.side-item{display:flex;align-items:center;gap:10px;padding:9px 10px;font-size:13px;color:var(--muted)}.side-item.current{background:var(--hover);color:var(--ink);border-radius:5px;font-weight:550}.side-group{font-size:11px;color:var(--muted);padding:0 10px 7px}.side-caption{font-size:11px;color:var(--muted);padding:0 10px;margin-top:auto;line-height:1.6}.main{min-width:0}.breadcrumb{display:flex;gap:13px;align-items:center;min-height:55px;border-bottom:1px solid var(--line);padding:0 32px;color:var(--muted);font-size:12px}.breadcrumb strong{font-weight:500;color:var(--ink)}.content{padding:30px 32px 36px;max-width:1600px;margin:auto}.page-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:24px}.page-head h1{font-size:27px;font-weight:650;letter-spacing:-.9px}.demo-count{font-size:12px;color:var(--muted)}.direction{display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--well);border-radius:6px;margin-bottom:24px}.direction-letter{font-size:28px;line-height:1.1;font-weight:500;color:var(--accent);flex-shrink:0}.direction h2{font-size:14px;font-weight:600}.direction p{font-size:12px;color:var(--muted);margin-top:3px;max-width:730px}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:15px;padding-bottom:14px;border-bottom:1px solid var(--line)}.board-label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:550}.search{display:flex;gap:8px;align-items:center;border:1px solid var(--control);border-radius:5px;padding:7px 10px;background:var(--surface);width:230px;color:var(--muted)}.search input{min-width:0;width:100%;background:none;border:0;font-size:12px;outline-offset:7px}.search input::placeholder{color:var(--muted)}
+    .board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding-top:22px}.column{min-width:0}.column-head{display:flex;align-items:center;gap:9px;min-height:33px;margin-bottom:13px;font-size:12px;font-weight:550}.dot{height:7px;width:7px;display:inline-block;border-radius:50%;background:var(--muted);flex-shrink:0}.dot.blue{background:var(--blue)}.dot.amber{background:var(--amber)}.dot.green{background:var(--green)}.column-head .count{font-size:11px;font-weight:400;color:var(--muted);margin-left:2px}.cards{display:grid;gap:13px;align-content:start}.task-card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:18px;min-width:0;transition:border-color .12s}.task-card:hover,.task-card:focus-within{border-color:var(--control)}.card-title{font-size:14px;line-height:1.55;font-weight:590;letter-spacing:-.15px}.open-task{display:block;text-align:left;width:100%;padding:0;font-weight:inherit;line-height:inherit;letter-spacing:inherit}.open-task:hover{text-decoration:underline;text-underline-offset:3px}.title-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}.card-copy{color:var(--muted);font-size:12px;line-height:1.65;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:7px}.card-context{display:flex;align-items:center;gap:7px;min-width:0;margin-top:15px}.tag{display:inline-block;max-width:135px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;background:var(--well);border-radius:3px;padding:2px 6px;font-size:11px;color:var(--muted);vertical-align:middle}.tag-more{font-size:11px;color:var(--muted);flex-shrink:0}.priority{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);font-weight:500;margin-left:auto;white-space:nowrap}.priority svg{width:13px;height:13px}.card-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:15px;font-size:11px;color:var(--muted)}.date{display:inline-flex;align-items:center;gap:5px;min-width:0}.date svg{width:13px;height:13px}.late{color:var(--danger)}.resources{display:flex;gap:10px;align-items:center;white-space:nowrap}.resource{display:inline-flex;align-items:center;gap:4px}.resource svg{width:13px;height:13px}.code{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}.a .code{margin-right:auto}.a .card-bottom{margin-top:16px}.a .card-context .date{margin-left:auto;font-size:11px;white-space:nowrap}.b .card-top{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}.b .card-top .priority{margin:0}.b .card-context{margin-top:13px;flex-wrap:wrap}.b .card-bottom{padding-top:12px;border-top:1px solid var(--line);margin-top:14px;flex-wrap:wrap}.b .resources{margin-left:auto}.c .cards{gap:0}.c .task-card{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:16px 10px}.c .task-card:first-child{padding-top:5px}.c .task-card:hover,.c .task-card:focus-within{background:var(--well)}.c .card-main{display:grid;grid-template-columns:minmax(0,1fr) 28px;gap:10px;align-items:start}.c .card-title{font-size:13px;line-height:1.65}.c .card-bottom{margin-top:8px;justify-content:flex-start;flex-wrap:wrap;gap:9px}.c .card-bottom .date{margin-left:auto}.expand{display:grid;place-items:center;border-radius:4px;min-height:28px;width:28px;color:var(--muted)}.expand:hover{background:var(--hover);color:var(--ink)}.expand[aria-expanded="true"] svg{transform:rotate(180deg)}.extra{padding-top:13px;margin-top:13px;border-top:1px solid var(--line)}.extra .card-context{margin-top:0;flex-wrap:wrap}.extra .resources{font-size:11px;color:var(--muted);margin-top:10px}.priority-word{font-size:10px;color:var(--accent)}.empty{padding:24px 15px;border:1px dashed var(--control);border-radius:6px;font-size:12px;color:var(--muted);line-height:1.7}.board-note{font-size:11px;color:var(--muted);margin-top:24px}.no-results{margin:24px 0;padding:18px;background:var(--well);font-size:13px;border-radius:5px}.no-results button{color:var(--accent);padding:5px 0;text-decoration:underline;display:block;margin-top:8px}.comparison{padding-top:24px}.compare-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.compare-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px;font-size:13px;font-weight:600}.compare-label small{font-size:11px;color:var(--muted);font-weight:400}.compare-explain{color:var(--muted);font-size:12px;line-height:1.75;margin-top:18px}.compare-explain strong{font-weight:550;color:var(--ink)}.compare-empty{margin-top:16px}.compare-note{margin-top:22px;font-size:12px;color:var(--muted)}
+    .rationale{margin-top:32px;border-top:1px solid var(--line);padding-top:18px}.rationale summary{font-size:12px;color:var(--muted);cursor:pointer;width:fit-content;padding:5px 0}.rationale-body{font-size:12px;color:var(--muted);padding-top:12px;max-width:850px;line-height:1.8}.rationale-body p+p{margin-top:8px}.rationale-body strong{font-weight:550;color:var(--ink)}.design-read{font-size:11px;margin-top:12px}
+    dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:9px;width:min(600px,calc(100% - 32px));max-height:calc(100dvh - 48px);padding:0;overflow:auto;box-shadow:0 18px 65px #0003}dialog::backdrop{background:#0006}.dialog-head{padding:20px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);gap:12px}.dialog-head h2{font-size:14px;font-weight:600}.close{min-width:36px;min-height:36px;display:grid;place-items:center;border-radius:5px}.close:hover{background:var(--hover)}.dialog-body{padding:25px 24px}.dialog-title{font-size:23px;line-height:1.45;letter-spacing:-.6px;font-weight:620;overflow-wrap:anywhere}.detail-code{font-size:11px;color:var(--muted);margin-bottom:10px}.properties{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;margin:24px 0}.properties dt{font-size:11px;color:var(--muted);margin-bottom:4px}.properties dd{font-size:13px;margin:0;overflow-wrap:anywhere}.detail-section{border-top:1px solid var(--line);padding-top:18px;margin-top:20px}.detail-section h3{font-size:12px;font-weight:600;margin-bottom:10px}.detail-section p{color:var(--muted);font-size:13px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}.detail-tags{display:flex;gap:6px;flex-wrap:wrap}.dialog-note{font-size:11px;color:var(--muted);background:var(--well);padding:12px 24px;border-top:1px solid var(--line)}.mention-demo{color:var(--accent);background:var(--accent-bg);border-radius:3px;padding:2px 5px;display:inline-block;font-size:12px;margin-top:8px;overflow-wrap:anywhere}
+    @media(min-width:1550px){.content{padding-left:44px;padding-right:44px}.board,.compare-grid{gap:28px}.task-card{padding:20px}.card-title{font-size:15px}}
+    @media(max-width:1120px){.workspace{grid-template-columns:175px minmax(0,1fr)}.sidebar{padding:24px 12px}.brand{font-size:13px;gap:8px}.brand small{font-size:10px}.content{padding:26px 24px}.breadcrumb{padding:0 24px}.board,.compare-grid{gap:14px}.task-card{padding:15px}.a .card-context{flex-wrap:wrap}.a .card-context .date{margin-left:0}.resources{gap:7px}.tag{max-width:100px}}
+    @media(max-width:960px){.workspace{grid-template-columns:minmax(0,1fr)}.sidebar{display:none}.board,.compare-grid{gap:20px}.tag{max-width:125px}.a .card-context .date{margin-left:auto}.content{padding:26px 24px}.studio{padding-left:24px;padding-right:24px}}
+    @media(max-width:690px){.studio{padding:16px 18px 0}.studio-head{align-items:flex-start}.studio-note{font-size:11px;max-width:210px}.studio-title{font-size:14px}.theme-button{font-size:11px;padding:7px 9px;min-height:40px}.options{gap:23px;margin-top:12px}.option{min-height:44px;font-size:12px}.recommend{display:none}.breadcrumb{padding:0 18px;min-height:48px}.content{padding:22px 18px 30px}.page-head{margin-bottom:18px;align-items:center}.page-head h1{font-size:24px}.demo-count{font-size:11px;max-width:115px;text-align:right}.direction{padding:14px;margin-bottom:20px;align-items:flex-start;gap:12px}.direction-letter{font-size:24px}.direction p{font-size:12px}.toolbar{align-items:center}.search{width:195px}.board,.compare-grid{grid-template-columns:minmax(0,1fr);gap:28px}.board{padding-top:20px}.column-head{margin-bottom:10px}.cards{gap:12px}.task-card{padding:18px}.card-title{font-size:15px}.tag{max-width:170px}.card-context{margin-top:14px}.a .card-context .date{margin-left:auto}.c .task-card{padding:17px 8px}.c .card-title{font-size:14px}.expand{width:36px;min-height:36px}.c .card-main{grid-template-columns:minmax(0,1fr) 36px}.compare-label{padding-bottom:10px;border-bottom:1px solid var(--line)}.compare-explain{margin-top:13px}.compare-grid{gap:32px}.compare-empty{display:none}.dialog-head{padding:16px 18px}.dialog-body{padding:22px 18px}.dialog-title{font-size:21px}.dialog-note{padding:12px 18px}.close{min-width:44px;min-height:44px}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  </style>
+</head>
+<body>
+  <header class="studio">
+    <div class="studio-head"><div><p class="studio-title">Studi card task</p><p class="studio-note">Tiga opsi layout · data contoh · belum diterapkan ke aplikasi</p></div><button class="theme-button" id="theme" type="button" aria-label="Gunakan tema Graphite"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18"/></svg><span>Graphite</span></button></div>
+    <div class="options" role="tablist" aria-label="Pilihan desain card task">
+      <button class="option" id="tab-a" role="tab" aria-selected="true" aria-controls="preview" data-option="a" type="button">A · Fokus <span class="recommend">Rekomendasi</span></button>
+      <button class="option" id="tab-b" role="tab" aria-selected="false" aria-controls="preview" data-option="b" tabindex="-1" type="button">B · Konteks</button>
+      <button class="option" id="tab-c" role="tab" aria-selected="false" aria-controls="preview" data-option="c" tabindex="-1" type="button">C · Ringkas</button>
+      <button class="option" id="tab-compare" role="tab" aria-selected="false" aria-controls="preview" data-option="compare" tabindex="-1" type="button">Bandingkan</button>
+    </div>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar" aria-label="Konteks workspace dalam mockup">
+      <div class="brand"><span class="mark">m.</span><span>MD Previewer<small>Personal workspace</small></span></div>
+      <div><div class="side-item">Cari catatan</div><div class="side-item">Ruang kerja</div><div class="side-item">Terakhir dibuka</div><div class="side-item current" aria-current="page">Task board</div></div>
+      <div><p class="side-group">Workspace</p><div class="side-item">notes</div><div class="side-item">pitjarus</div><div class="side-item">private</div></div>
+      <p class="side-caption">Sidebar sebagai konteks visual.<br>Mockup berfokus pada card task.</p>
+    </aside>
+    <main class="main">
+      <div class="breadcrumb"><span>docs</span><span>/</span><strong>Task board</strong></div>
+      <section class="content">
+        <header class="page-head"><h1>Task board</h1><p class="demo-count">7 task contoh · 3 status</p></header>
+        <div class="direction"><span class="direction-letter" id="direction-letter">A</span><div><h2 id="direction-title">Fokus pada pekerjaan</h2><p id="direction-copy">Judul, satu tag, dan tenggat menjadi informasi utama. Deskripsi dan hasil tetap ada di detail task.</p></div></div>
+        <div class="toolbar"><span class="board-label"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16"/></svg><span id="view-label">Papan</span></span><label class="search"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Cari task atau tag…" aria-label="Cari task contoh atau tag"></label></div>
+        <div id="preview" role="tabpanel" aria-labelledby="tab-a" tabindex="0"></div>
+        <p id="search-status" class="sr-only" role="status"></p>
+        <p class="board-note" id="board-note">Klik judul card untuk melihat seluruh informasi. Semua data di halaman ini adalah contoh.</p>
+        <details class="rationale"><summary>Alasan desain & perbandingan opsi</summary><div class="rationale-body">
+          <p><strong>A · Fokus, disarankan.</strong> Untuk memindai pekerjaan harian: tanpa deskripsi, maksimal satu tag + jumlah tag lainnya, tanggal singkat, dan jumlah dokumen/lampiran bila ada. Prioritas hanya ditampilkan saat tinggi. Informasi lengkap dibuka lewat judul.</p>
+          <p><strong>B · Konteks.</strong> Untuk task yang mirip judulnya: cuplikan deskripsi satu baris, maksimal dua tag, rentang tanggal, dan resource di footer. Lebih tinggi dari A, tetapi masih memberi konteks tanpa membuka detail.</p>
+          <p><strong>C · Ringkas.</strong> Untuk banyak task: baris tanpa kotak berulang, judul dua baris, ID dan tenggat. Tombol chevron menampilkan tag dan resource. Lebih banyak task terlihat, dengan satu langkah tambahan untuk metadata.</p>
+          <p><strong>Warna.</strong> Palet terang/Graphite mengikuti aplikasi. Tag netral agar tidak bersaing dengan judul. Warna semantik disertai teks: prioritas tinggi, lewat tenggat, dan status kolom. Card tidak mengulang status yang sudah terlihat pada kolom.</p>
+          <p><strong>Tipografi & jarak.</strong> Inter mengikuti pilihan font workspace. Judul 14–15 px dan metadata 10–12 px membedakan isi utama dari konteks. Padding 18 px dan gap 13–24 px memisahkan isi card, antar-card, dan antar-kolom.</p>
+          <p><strong>Ikon & permukaan.</strong> Ikon kecil hanya untuk tanggal, prioritas, dokumen dan lampiran. Tidak ada avatar, cover, persentase progres, atau tombol aksi berulang. Border halus mengelompokkan task; shadow hanya pada dialog yang berada di atas papan.</p>
+          <p><strong>Cakupan.</strong> Preview layout, bukan CRUD atau drag/drop. Pencarian, tema, pemilihan opsi, detail baca-saja, dan expand metadata dapat digunakan. Tanggal menggunakan acuan contoh 24 Nov 2026. Refresh mengembalikan tampilan awal.</p>
+          <p class="design-read">Arah visual: workspace pribadi yang tenang, Inter dan Graphite, judul sebagai fokus. ENERGY 1 / RHYTHM 1 / MOTION 1. Susunan kolom konsisten untuk membandingkan informasi yang sama.</p>
+        </div></details>
+      </section>
+    </main>
+  </div>
+  <dialog id="detail" aria-labelledby="detail-heading"><div class="dialog-head"><h2 id="detail-heading">Detail task contoh</h2><button class="close" id="close-detail" type="button" aria-label="Tutup detail task"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div class="dialog-body" id="detail-body"></div><p class="dialog-note">Preview baca-saja. Tidak ada data yang dikirim atau disimpan.</p></dialog>
+  <script>
+    (() => {
+      'use strict';
+      const $ = id => document.getElementById(id);
+      const escape = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+      const paths = {
+        calendar:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 11h16"/>',
+        file:'<path d="M5 3h9l5 5v13H5zM14 3v6h5M9 13h6M9 17h6"/>',
+        clip:'<path d="m8 13 7-7a3 3 0 0 1 4 4L9 20a5 5 0 0 1-7-7L12 3a7 7 0 0 1 10 10L12 23" transform="translate(1 -1) scale(.9)"/>',
+        high:'<path d="M5 19v-5M12 19V9M19 19V4"/>',
+        chevron:'<path d="m6 9 6 6 6-6"/>',
+        check:'<path d="m5 12 4 4L19 6"/>'
+      };
+      const icon = name => `<svg aria-hidden="true" viewBox="0 0 24 24">${paths[name]}</svg>`;
+      const statuses = [{id:'ready',name:'Siap dikerjakan',tone:'blue'},{id:'doing',name:'Dikerjakan',tone:'amber'},{id:'done',name:'Selesai',tone:'green'}];
+      const tasks = [
+        {id:2,title:'Revisi mini dashboard',status:'doing',priority:'high',tags:['Hospital Tiger','Backend','ClickHouse'],start:'2026-11-23',end:'2026-11-25',documents:['Meeting notes.md','mini-dashboard-pharma-queries.md'],attachments:['PRD Revisi Tiger Ebook.pdf','Sample response.json.zip'],description:'Sesuaikan query dan response mini dashboard berdasarkan meeting notes. Periksa kembali perhitungan SOS untuk SAR Pharma dan Supervisor.',result:''},
+        {id:3,title:'Validasi data SOS per role',status:'doing',priority:'normal',tags:['Data','Hospital Tiger'],start:'2026-11-23',end:'2026-11-23',documents:['mini-dashboard-tempo-queries.md'],attachments:[],description:'Bandingkan nilai SOS dan compliance pada hasil query dengan data toko hospital.',result:''},
+        {id:4,title:'Perbaiki label pada laporan kunjungan',status:'doing',priority:'normal',tags:['Frontend'],start:'2026-11-24',end:'2026-11-26',documents:[],attachments:['contoh-label.png'],description:'Rapikan label dan pastikan nama toko tidak terpotong pada tampilan mobile.',result:''},
+        {id:5,title:'Dokumentasi endpoint gimmick',status:'ready',priority:'normal',tags:['Dokumentasi','API','Gimmick','Danone'],start:'2026-11-25',end:'2026-11-27',documents:['api-docs.md','prd-gimmick-inventory.md','implementation-plan-actions-gimmick.md'],attachments:['api-reference.pdf'],description:'Lengkapi contoh request, response, dan error untuk proses penerimaan gimmick.',result:''},
+        {id:6,title:'Review alur approval',status:'ready',priority:'high',tags:['Gimmick'],start:'',end:'2026-11-25',documents:['prd-gimmick-inventory.md'],attachments:[],description:'Pastikan request penggantian gimmick mengikuti role approval yang sesuai.',result:''},
+        {id:7,title:'Rapikan catatan meeting',status:'ready',priority:'low',tags:[],start:'',end:'',documents:[],attachments:[],description:'',result:''},
+        {id:1,title:'Sinkronisasi query hospital',status:'done',priority:'normal',tags:['Backend','Hospital Tiger'],start:'2026-11-20',end:'2026-11-23',documents:['Meeting notes.md'],attachments:['hasil-validasi.xlsx'],description:'Sesuaikan sumber data hospital dengan tabel summary terbaru.',result:'Query sudah menggunakan tabel summary terbaru. Hasil validasi per role dicatat pada lampiran.'}
+      ];
+      const directions = {
+        a:['A','Fokus pada pekerjaan','Judul, satu tag, dan tenggat menjadi informasi utama. Deskripsi dan hasil tetap ada di detail task.'],
+        b:['B','Sedikit konteks sebelum membuka','Cuplikan satu baris dan rentang tanggal membantu membedakan task yang serupa. Informasi pendukung ditempatkan dalam satu kelompok.'],
+        c:['C','Lebih banyak task dalam satu layar','Card menjadi baris yang lebih pendek. Tag dan resource dibuka lewat chevron; judul dan tenggat tetap selalu terlihat.'],
+        compare:['A / B / C','Bandingkan informasi yang sama','Task, status, dan data dibuat sama agar perbedaan kepadatan terlihat. A paling seimbang untuk penggunaan harian.']
+      };
+      let option = 'a';
+      const expanded = new Set();
+      const code = task => 'T-' + String(task.id).padStart(3,'0');
+      const date = value => value ? new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short'}).format(new Date(value+'T12:00:00')) : '';
+      const overdue = task => task.end && task.end < '2026-11-24' && task.status !== 'done';
+      const due = (task,range=false) => {
+        if (!task.end && !task.start) return '';
+        const label = overdue(task) ? 'Lewat · '+date(task.end) : task.status === 'done' ? 'Tenggat '+date(task.end) : range && task.start && task.end ? date(task.start)+' – '+date(task.end) : task.end ? date(task.end) : 'Mulai '+date(task.start);
+        return `<span class="date ${overdue(task)?'late':''}" title="${escape(task.start?'Mulai '+date(task.start)+'; tenggat '+(date(task.end)||'belum diatur'):'Tenggat '+date(task.end))}">${icon('calendar')}${escape(label)}</span>`;
+      };
+      const tags = (task,limit) => task.tags.slice(0,limit).map(tag => `<span class="tag">${escape(tag)}</span>`).join('') + (task.tags.length>limit ? `<span class="tag-more" aria-label="Tag lainnya: ${escape(task.tags.slice(limit).join(', '))}" title="${escape(task.tags.slice(limit).join(', '))}">+${task.tags.length-limit}</span>` : '');
+      const resources = task => task.documents.length||task.attachments.length||task.result ? `<span class="resources">${task.documents.length?`<span class="resource" aria-label="${task.documents.length} dokumen disebut" title="${escape(task.documents.join(', '))}">${icon('file')}${task.documents.length}</span>`:''}${task.attachments.length?`<span class="resource" aria-label="${task.attachments.length} lampiran" title="${escape(task.attachments.join(', '))}">${icon('clip')}${task.attachments.length}</span>`:''}${task.result?`<span class="resource" aria-label="Hasil task sudah diisi" title="Hasil task sudah diisi">${icon('check')}</span>`:''}</span>` : '';
+      const priority = task => task.priority==='high' ? `<span class="priority">${icon('high')}Tinggi</span>` : '';
+      const title = task => `<h3 class="card-title"><button type="button" class="open-task" data-open="${task.id}" aria-label="Lihat detail ${escape(task.title)}"><span class="title-text">${escape(task.title)}</span></button></h3>`;
+      function card(task,variant,scope) {
+        const identity = `<span class="code">${code(task)}</span>`;
+        let body;
+        if (variant==='a') body = `${title(task)}${task.tags.length||task.start||task.end?`<div class="card-context">${tags(task,1)}${due(task)}</div>`:''}<div class="card-bottom">${identity}${priority(task)}${resources(task)}</div>`;
+        if (variant==='b') body = `<div class="card-top">${identity}${priority(task)}</div>${title(task)}${task.description?`<p class="card-copy">${escape(task.description)}</p>`:''}${task.tags.length?`<div class="card-context">${tags(task,2)}</div>`:''}${task.start||task.end||task.documents.length||task.attachments.length||task.result?`<div class="card-bottom">${due(task,true)}${resources(task)}</div>`:''}`;
+        if (variant==='c') {
+          const key=scope+'-'+task.id, open=expanded.has(key), hasExtra=task.tags.length||task.documents.length||task.attachments.length||task.result;
+          body = `<div class="card-main"><div>${title(task)}<div class="card-bottom">${identity}${task.priority==='high'?'<span class="priority-word">Tinggi</span>':''}${due(task)}</div></div>${hasExtra?`<button type="button" class="expand" data-expand="${key}" aria-expanded="${open}" aria-controls="extra-${key}" aria-label="${open?'Sembunyikan':'Tampilkan'} metadata ${escape(task.title)}">${icon('chevron')}</button>`:''}</div>${hasExtra?`<div class="extra" id="extra-${key}" ${open?'':'hidden'}><div class="card-context">${tags(task,task.tags.length)}</div>${resources(task)}</div>`:''}`;
+        }
+        return `<article class="task-card" aria-label="${escape(code(task)+' '+task.title)}">${body}</article>`;
+      }
+      function render() {
+        const query=$('search').value.toLocaleLowerCase().trim();
+        const visible=tasks.filter(task=>[task.title,task.description,...task.tags].join(' ').toLocaleLowerCase().includes(query));
+        const dir=directions[option];
+        $('direction-letter').textContent=dir[0];$('direction-title').textContent=dir[1];$('direction-copy').textContent=dir[2];
+        $('view-label').textContent=option==='compare'?'Perbandingan card':'Papan';
+        $('board-note').textContent=option==='c'?'Klik judul untuk detail, atau chevron untuk metadata. Data contoh; urutan task tidak dapat diubah.':'Klik judul card untuk melihat seluruh informasi. Semua data di halaman ini adalah contoh.';
+        $('search-status').textContent=visible.length+' task contoh ditemukan';
+        if (!visible.length) {
+          $('preview').innerHTML='<div class="no-results">Tidak ada task yang cocok.<button type="button" id="clear-search">Hapus pencarian</button></div>';
+          return;
+        }
+        if(option==='compare') {
+          const task=visible.find(task=>task.id===2)||visible[0];
+          const text={a:'<strong>Paling seimbang.</strong> Judul mendapat ruang tanpa kehilangan tenggat. Cuplikan dibaca di detail.',b:'<strong>Konteks langsung terlihat.</strong> Ada cuplikan dan rentang tanggal, dengan card yang lebih tinggi.',c:'<strong>Paling pendek.</strong> Tag dan resource ada di balik chevron. Butuh satu klik untuk melihat metadata.'};
+          $('preview').innerHTML=`<section class="comparison" aria-label="Perbandingan tiga desain"><div class="compare-grid">${['a','b','c'].map(variant=>`<div class="${variant}"><div class="compare-label"><span>${variant.toUpperCase()} · ${variant==='a'?'Fokus':variant==='b'?'Konteks':'Ringkas'}</span><small>${variant==='a'?'Disarankan':''}</small></div><div class="cards">${card(task,variant,'compare')}</div><p class="compare-explain">${text[variant]}</p></div>`).join('')}</div><p class="compare-note">Ketiganya menggunakan ${escape(code(task))}. Buka detail untuk melihat informasi yang disimpan di balik setiap card.</p></section>`;
+        } else $('preview').innerHTML=`<div class="board ${option}">${statuses.map(status=>{const items=visible.filter(task=>task.status===status.id);return `<section class="column" aria-label="${status.name}"><h2 class="column-head"><span class="dot ${status.tone}" aria-hidden="true"></span>${status.name}<span class="count">${items.length}</span></h2><div class="cards">${items.length?items.map(task=>card(task,option,'board')).join(''):'<p class="empty">Tidak ada task yang cocok di status ini.</p>'}</div></section>`;}).join('')}</div>`;
+      }
+      function select(value) {
+        option=value;
+        document.querySelectorAll('[data-option]').forEach(button=>{
+          const active=button.dataset.option===value;
+          button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;
+        });
+        $('preview').setAttribute('aria-labelledby','tab-'+value);
+        render();
+      }
+      document.querySelector('.options').addEventListener('click',event=>{const button=event.target.closest('[data-option]');if(button)select(button.dataset.option);});
+      document.querySelector('.options').addEventListener('keydown',event=>{
+        const buttons=[...document.querySelectorAll('[data-option]')],index=buttons.indexOf(document.activeElement);
+        if(index<0||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+        event.preventDefault();
+        const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;
+        buttons[next].focus();select(buttons[next].dataset.option);
+      });
+      $('theme').addEventListener('click',()=>{
+        const dark=document.documentElement.dataset.theme!=='dark';document.documentElement.dataset.theme=dark?'dark':'light';
+        $('theme').querySelector('span').textContent=dark?'Terang':'Graphite';
+        $('theme').setAttribute('aria-label',dark?'Gunakan tema terang':'Gunakan tema Graphite');
+      });
+      $('search').addEventListener('input',render);
+      $('preview').addEventListener('click',event=>{
+        if(event.target.closest('#clear-search')){$('search').value='';render();$('search').focus();return;}
+        const expand=event.target.closest('[data-expand]');
+        if(expand){
+          const key=expand.dataset.expand,show=!expanded.has(key);
+          if(show)expanded.add(key);else expanded.delete(key);
+          expand.setAttribute('aria-expanded',String(show));
+          expand.setAttribute('aria-label',expand.getAttribute('aria-label').replace(show?'Tampilkan':'Sembunyikan',show?'Sembunyikan':'Tampilkan'));
+          $('extra-'+key).hidden=!show;
+          return;
+        }
+        const button=event.target.closest('[data-open]');if(!button)return;
+        const task=tasks.find(task=>task.id===Number(button.dataset.open));if(!task)return;
+        const status=statuses.find(status=>status.id===task.status);
+        $('detail-body').innerHTML=`<p class="detail-code">${code(task)}</p><h3 class="dialog-title">${escape(task.title)}</h3><dl class="properties"><div><dt>Status</dt><dd>${escape(status.name)}</dd></div><div><dt>Prioritas</dt><dd>${{high:'Tinggi',normal:'Normal',low:'Rendah'}[task.priority]}</dd></div><div><dt>Tanggal mulai</dt><dd>${date(task.start)||'Belum diatur'}</dd></div><div><dt>Tenggat</dt><dd>${date(task.end)||'Belum diatur'}${overdue(task)?' · Lewat tenggat':''}</dd></div></dl><div class="detail-tags">${task.tags.length?tags(task,task.tags.length):'<span class="tag">Tanpa tag</span>'}</div><section class="detail-section"><h3>Deskripsi</h3><p>${escape(task.description||'Belum ada deskripsi.')}</p>${task.documents.map(name=>`<span class="mention-demo">@${escape(name)}</span>`).join(' ')}</section><section class="detail-section"><h3>Hasil task</h3><p>${escape(task.result||'Belum diisi.')}</p></section><section class="detail-section"><h3>Lampiran · ${task.attachments.length}</h3><p>${escape(task.attachments.join('\n')||'Belum ada lampiran.')}</p></section>`;
+        $('detail').showModal();
+      });
+      $('close-detail').addEventListener('click',()=>$('detail').close());
+      render();
+    })();
+  </script>
+</body>
+</html>
