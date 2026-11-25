@@ -14,13 +14,13 @@ export function createFeature({ state, actions }) {
       ? `<h1 id="document-title"><button type="button" class="document-title-button" id="document-title-button" data-action="editDocumentName" title="Ganti nama file" aria-label="Ganti nama file: ${actions.escape(page.title)}">${actions.escape(page.title)}</button></h1><form id="document-rename-form" data-submit="renameItem" data-arg="${page.id}" hidden><label class="field-label" for="document-name">Nama file</label><input class="text-input" id="document-name" required maxlength="100" autocomplete="off" aria-describedby="document-name-hint"><p class="edit-hint" id="document-name-hint">Nama hanya berubah setelah disimpan. URL file mengikuti nama baru.</p><div class="tool-actions"><button type="submit" class="small-button primary">Simpan nama</button><button type="button" class="small-button" data-action="cancelDocumentRename">Batal</button></div></form>`
       : `<h1>${actions.escape(page.title)}</h1>`;
     if (file)
-      return `<header class="document-header"><p class="page-kicker">${actions.icon("doc")}${actions.escape(state.pages.find((p) => p.id === page.parent)?.title || "Workspace")}</p>${title}<details class="document-properties"><summary>Properti dokumen</summary><div class="page-meta"><button class="access-meta ${page.visibility === "public" ? "public-access" : ""}" id="file-access" data-action="openShare" data-arg="${page.id}" aria-label="Atur akses file">${actions.accessLabel(page)}</button><span>${page.type === "pdf" ? "Dokumen PDF" : "Dokumen Markdown"}</span><span>Diperbarui ${actions.escape(actions.dateLabel(page.modified))}</span></div><p class="document-path">docs${actions.escape(page.path)}</p>${page.description ? `<p class="edit-hint">${actions.escape(page.description)}</p>` : ""}</details></header>`;
-    return `<div class="page-icon">${actions.icon("book")}</div><p class="page-kicker">Personal workspace</p>${title}<p class="lead">${actions.escape(page.description || "Sebuah ruang baru untuk catatanmu.")}</p><div class="page-meta"><span>${actions.icon("lock")}Workspace pribadi</span><span>${actions.icon("folder")}Koleksi dokumen</span><span>${actions.escape(actions.dateLabel(page.modified))}</span></div>`;
+      return `<header class="document-header"><p class="page-kicker">${actions.icon("doc")}${actions.escape(state.pages.find((p) => p.id === page.parent)?.title || "Workspace")}</p>${title}<div class="document-meta"><button class="access-meta ${page.visibility === "public" ? "public-access" : ""}" id="file-access" data-action="openShare" data-arg="${page.id}" aria-label="Atur akses file">${actions.accessLabel(page)}</button><span>${page.type === "pdf" ? "Dokumen PDF" : "Markdown"}</span><span>Diperbarui ${actions.escape(actions.dateLabel(page.modified))}</span><button class="document-properties" data-action="openDocumentProperties">Properti</button></div></header>`;
+    return `<header class="workspace-heading"><div>${title}<p class="lead">${actions.escape(page.description || "Dokumentasi dan catatan dalam folder ini.")}</p></div><div class="heading-actions"><button class="small-button" data-action="chooseDocumentUpload">${actions.icon("upload")}Upload</button><button class="small-button primary" data-action="openCreate" data-arg="doc">${actions.icon("plus")}Halaman baru</button></div></header>`;
   }
 
   function render() {
     actions.$("main").parentElement.classList.toggle("task-board-layout", state.current === "tasks");
-    actions.$("outline").hidden = state.current === "tasks" || state.pages.find((p) => p.id === state.current)?.type === "pdf";
+    actions.$("outline").hidden = state.pages.find((p) => p.id === state.current)?.type !== "doc";
     const page = state.pages.find((p) => p.id === state.current);
     actions.$("detail-share").hidden = !["doc", "pdf"].includes(page?.type);
     if (Object.hasOwn(state.managementPages, state.current))
@@ -29,7 +29,7 @@ export function createFeature({ state, actions }) {
     if (page?.type === "pdf") {
       actions.trackOutline([]);
       const url = actions.appUrl("/media?document=" + encodeURIComponent(page.path));
-      actions.$("main").innerHTML = header(page) + pdfPreview(url, page.title, actions.escape, url + "&download=1");
+      actions.$("main").innerHTML = `<div class="pdf-document">${header(page)}${pdfPreview(url, page.title, actions.escape, url + "&download=1")}</div>`;
       actions.mountDocumentTools(page);
       return;
     }
@@ -60,20 +60,14 @@ export function createFeature({ state, actions }) {
       <div class="library-toolbar"><div class="tabs" role="tablist" aria-label="Filter dokumen">
         <button class="tab ${state.filter === "all" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "all"}" data-action="setFilter" data-arg="all">${actions.icon("list")}Semua</button>
         <button class="tab ${state.filter === "folder" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "folder"}" data-action="setFilter" data-arg="folder">Folder</button>
-        <button class="tab ${state.filter === "doc" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "doc"}" data-action="setFilter" data-arg="doc">Halaman</button>
+        <button class="tab ${state.filter === "doc" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "doc"}" data-action="setFilter" data-arg="doc">Markdown</button>
         <button class="tab ${state.filter === "pdf" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "pdf"}" data-action="setFilter" data-arg="pdf">PDF</button>
-      </div><div class="library-actions"><button class="icon-button" data-action="openSearch" aria-label="Cari dokumen" title="Cari dokumen">${actions.icon("search")}</button><button class="small-button" data-action="openCreate" data-arg="folder">${actions.icon("folder")}Folder</button><button class="small-button primary" data-action="openCreate" data-arg="doc">${actions.icon("plus")}Baru</button></div></div>
-      <div class="table-wrap"><table><thead><tr><th>Nama</th><th class="type-column">Jenis</th><th class="access-column">Akses</th><th class="action-column"><span class="sr-only">Aksi file</span></th></tr></thead><tbody id="entries"></tbody></table></div>
-      <button class="add-row" data-action="openCreate" data-arg="doc">${actions.icon("plus")}Tambah halaman baru</button>
-    </section><aside class="callout" id="note-section">${actions.icon("book")}<div><strong>Catatan yang rapi, pikiran yang lebih lega.</strong>Kelompokkan halaman berdasarkan proyek. Pakai favorit untuk menyimpan dokumen yang sering kamu buka.</div></aside><footer class="page-footer"><span>MD Previewer · Ruang untuk catatan kerja.</span></footer>`;
+      </div><div class="library-actions"><button class="small-button" data-action="openSearch">${actions.icon("search")}Cari</button><button class="small-button" data-action="openCreate" data-arg="folder">${actions.icon("folder")}Folder</button></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Nama</th><th class="access-column">Akses</th><th class="date-column">Diperbarui</th><th class="action-column"><span class="sr-only">Aksi file</span></th></tr></thead><tbody id="entries"></tbody></table></div>
+    </section><aside class="workspace-upload">${actions.icon("upload")}<div><strong>Tambahkan dokumen ke workspace</strong>Seret file .md atau PDF ke halaman ini.</div><button class="small-button" data-action="chooseDocumentUpload">Pilih file</button></aside><p class="workspace-note">Dokumen baru bersifat privat. Atur akses melalui Bagikan.</p>`;
     renderEntries();
-    actions.$("outline").innerHTML =
-      `<div class="outline-title">DI HALAMAN INI</div>${state.current === "home" ? '<a href="#recent-section">Terakhir dibuka</a>' : ""}<a href="#documents-section">${isRecent ? "Riwayat bacaan" : "Isi workspace"}</a><a href="#note-section">Catatan kecil</a><div class="outline-help"><kbd>Ctrl</kbd> + <kbd>K</kbd> untuk cari<br><kbd>Esc</kbd> untuk tutup dialog</div>`;
-    actions.trackOutline(
-      [...actions.$("outline").querySelectorAll("a")].map((link) =>
-        document.getElementById(link.getAttribute("href").slice(1)),
-      ),
-    );
+    actions.$("outline").innerHTML = "";
+    actions.trackOutline([]);
   }
 
   function setFilter(value) {
@@ -92,9 +86,9 @@ export function createFeature({ state, actions }) {
       ? items
           .map(
             (p) => `<tr>
-      <td><button class="entry" data-action="navigate" data-arg="${p.id}">${actions.icon(p.type === "folder" ? "folder" : "doc", p.type === "folder" ? "folder-icon" : "")}<span>${actions.escape(p.title)}</span>${actions.icon("chevron", "arrow")}</button></td>
-      <td class="type-column">${p.type === "folder" ? "Folder" : p.type === "pdf" ? "PDF" : "Markdown"}</td>
-      <td class="access-column">${p.type !== "folder" ? `<span class="file-access ${p.visibility === "public" ? "public-access" : ""}">${actions.accessLabel(p)}</span>` : '<span aria-label="Akses diatur per file">/</span>'}</td>
+      <td><button class="entry" data-action="navigate" data-arg="${p.id}">${actions.icon(p.type === "folder" ? "folder" : "doc", p.type === "folder" ? "folder-icon" : "")}<span>${actions.escape(p.title)}<small>${p.type === "folder" ? "Koleksi dokumen" : p.type === "pdf" ? "Dokumen PDF" : "Markdown"}</small></span></button></td>
+      <td class="access-column">${p.type !== "folder" ? `<span class="file-access ${p.visibility === "public" ? "public-access" : ""}">${actions.accessLabel(p)}</span>` : '<span class="subtle">Folder</span>'}</td>
+      <td class="date-column">${actions.escape(actions.dateLabel(p.modified))}</td>
       <td class="action-column">${p.type !== "folder" ? `<div class="row-actions"><button class="small-button row-share" data-action="openShare" data-arg="${p.id}" aria-label="Bagikan ${actions.escape(p.title)}" title="Bagikan file">${actions.icon("share")}<span>Bagikan</span></button><button class="small-button row-delete" data-action="deleteItem" data-arg="${p.id}" aria-label="Hapus ${actions.escape(p.title)}" title="Hapus file">${actions.icon("trash")}<span>Hapus</span></button></div>` : ""}</td>
     </tr>`,
           )

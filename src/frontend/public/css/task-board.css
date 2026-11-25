@@ -1,13 +1,13 @@
 .task-board-layout, .tb-drawer, .tb-status-dialog, .tb-confirm-dialog {
-  --paper: #fcfcfb; --surface: #fff; --inset: #f1f3ef; --ink: #282c28; --muted: #62685f;
-  --line: #e0e3dc; --border: #8d9588; --hover: #e9ede5; --selected: #e4e9df;
-  --accent: #98472e; --tint: #f6ece6; --button-bg: #353d32; --button-ink: #fff; --button-hover: #414b3d;
+  --paper: #fff; --surface: #fff; --inset: #f5f6f5; --ink: #292a28; --muted: #5c605b;
+  --line: #d8ddda; --border: #7f867f; --hover: #e0e4e1; --selected: #e0e4e1;
+  --accent: #98472e; --tint: #f6ece6; --button-bg: #30332e; --button-ink: #fff; --button-hover: #41453e;
   --tb-danger: #983c35; --tb-danger-tint: #f9ece9; --danger-bg: #983c35; --danger-ink: #fff; --danger-hover: #7e302a;
   --tb-neutral: #596353; --tb-neutral-bg: #eaf0e6; --tb-blue: #37657e; --tb-blue-bg: #ecf3f8;
   --tb-amber: #78521b; --tb-amber-bg: #f7f0e1; --tb-green: #356747; --tb-green-bg: #eaf3ec;
 }
 [data-theme="dark"] :is(.task-board-layout, .tb-drawer, .tb-status-dialog, .tb-confirm-dialog) {
-  --paper: #202123; --surface: #2a2c2f; --inset: #242629; --ink: #ecece8; --muted: #b1b6bd;
+  --paper: #242629; --surface: #2a2c2f; --inset: #242629; --ink: #ecece8; --muted: #b1b6bd;
   --line: #3c4045; --border: #79808a; --hover: #34383c; --selected: #373c40;
   --accent: #dfbd94; --tint: #3b332b; --button-bg: #dfbd94; --button-ink: #23201b; --button-hover: #e9cda9;
   --tb-danger: #f0b1a9; --tb-danger-tint: #442e2c; --danger-bg: #f0b1a9; --danger-ink: #2a1614; --danger-hover: #f5c2bc;

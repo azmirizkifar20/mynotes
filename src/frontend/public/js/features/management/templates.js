@@ -6,9 +6,8 @@ export function createFeature({ state, actions }) {
 
   function editTemplate(id = "") {
     const item = state.availableTemplates.find((item) => item.id === id);
-    actions.$("management-error").textContent = "";
-    actions.$("management-content").innerHTML =
-      `<h2>${item ? "Edit template" : "Template baru"}</h2><form data-submit="saveTemplate" data-arg="${id}"><label class="field-label" for="template-name">Nama template</label><input class="text-input" id="template-name" required maxlength="100" value="${actions.escape(item?.name || "")}"><label class="field-label" for="template-content">Isi Markdown</label><textarea class="editor tool-editor" id="template-content" required>${actions.escape(item?.content || "# Judul\n\n")}</textarea><div class="tool-actions"><button type="button" class="small-button" data-action="openTemplates">Batal</button><button type="submit" class="small-button primary">Simpan template</button></div></form>`;
+    actions.tool(item ? "Edit template" : "Template baru",
+      `<form data-submit="saveTemplate" data-arg="${id}"><label class="field-label" for="template-name">Nama template</label><input class="text-input" id="template-name" required maxlength="100" value="${actions.escape(item?.name || "")}"><label class="field-label" for="template-content">Isi Markdown</label><textarea class="editor tool-editor" id="template-content" required>${actions.escape(item?.content || "# Judul\n\n")}</textarea><div class="tool-actions"><button type="button" class="small-button" data-action="closeDialog" data-arg="tool-dialog">Batal</button><button type="submit" class="small-button primary">Simpan template</button></div></form>`);
     actions.$("template-name").focus();
   }
 

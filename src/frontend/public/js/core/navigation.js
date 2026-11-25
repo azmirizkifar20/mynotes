@@ -81,7 +81,7 @@ export function createFeature({ state, actions }) {
       actions.syncFavorite();
       actions.expandCurrentFolder();
       const rendering = actions.render();
-      window.scrollTo({ top: 0 });
+      actions.$("workspace-scroll").scrollTo({ top: 0 });
       document.title =
         (page?.title ||
           (id === "recent"

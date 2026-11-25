@@ -4,6 +4,12 @@ export function createFeature({ state, actions }) {
   let selectionPage = null;
   let bound = false;
 
+  function openDocumentProperties() {
+    const page = state.pages.find(page => page.id === state.current);
+    if (!page || !["doc", "pdf"].includes(page.type)) return;
+    actions.tool("Properti dokumen", `<div class="document-property-list"><section><h3>Path dokumen</h3><p>docs${actions.escape(page.path)}</p></section><section><h3>Akses</h3><p>${page.visibility === "public" ? "Publik" : "Privat"}</p></section><section><h3>Jenis</h3><p>${page.type === "pdf" ? "Dokumen PDF" : "Markdown"} · Diperbarui ${actions.escape(actions.dateLabel(page.modified))}</p></section>${page.description ? `<section><h3>Deskripsi</h3><p>${actions.escape(page.description)}</p></section>` : ""}</div><div class="tool-actions"><button class="small-button" data-action="closeDialog" data-arg="tool-dialog">Tutup</button></div>`);
+  }
+
   function hideDocumentSelection() {
     actions.$("document-selection-tools")?.setAttribute("hidden", "");
     selectedRange = null;
@@ -117,7 +123,7 @@ export function createFeature({ state, actions }) {
         hint.append(note);
       }
     }
-    main.insertAdjacentHTML("beforeend", '<section class="document-related" aria-labelledby="related-task-heading"><h2 id="related-task-heading">Task terkait</h2><div id="document-related-tasks"></div></section>');
+    main.insertAdjacentHTML("beforeend", '<details class="document-related"><summary>Dokumen terkait dan aksi lainnya</summary><section aria-labelledby="related-task-heading"><h2 id="related-task-heading">Task terkait</h2><div id="document-related-tasks"></div><div class="tool-actions"><button class="small-button" data-action="openMove" data-state="current">Pindahkan</button><button class="small-button danger" data-action="deleteItem" data-state="current">Hapus dokumen</button></div></section></details>');
     loadDocumentTasks(page, actions.$("document-related-tasks"));
   }
 
@@ -125,9 +131,9 @@ export function createFeature({ state, actions }) {
     if (bound) return;
     bound = true;
     document.addEventListener("selectionchange", updateSelection);
-    window.addEventListener("scroll", () => {
+    document.addEventListener("scroll", () => {
       if (selectedRange) updateSelection();
-    }, { passive: true });
+    }, { passive: true, capture: true });
     window.addEventListener("resize", updateSelection);
     document.addEventListener("keydown", (event) => {
       if (event.altKey && event.shiftKey && event.code === "KeyF" && selectedRange && editable()) {
@@ -163,5 +169,5 @@ export function createFeature({ state, actions }) {
     });
   }
 
-  return { bindDocumentTools, mountDocumentTools, hideDocumentSelection };
+  return { bindDocumentTools, mountDocumentTools, hideDocumentSelection, openDocumentProperties };
 }

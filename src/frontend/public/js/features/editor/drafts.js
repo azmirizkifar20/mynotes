@@ -21,6 +21,7 @@ export function createFeature({ state, actions }) {
       );
     }
     actions.syncEditorLock();
+    showSaveState(state.draftState.resolved ? "Semua perubahan tersimpan" : "Periksa draft sebelum mengedit");
   }
 
   function recoverDraft() {

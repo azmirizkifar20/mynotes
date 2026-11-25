@@ -2,6 +2,17 @@
 <html lang="id" data-theme="light">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script>
+// shortcut: embedded mode is for the whole-workspace prototype; remove when the runtime shell is implemented.
+if(new URLSearchParams(location.search).get('embed')==='1'){
+ document.documentElement.dataset.embedded='true';
+ document.documentElement.dataset.theme=new URLSearchParams(location.search).get('theme')==='dark'?'dark':'light';
+ const palette=new URLSearchParams(location.search).get('palette');
+ if(['neutral','stone','slate','sage'].includes(palette))document.documentElement.dataset.palette=palette;
+ addEventListener('message',event=>{if(event.source!==parent||event.data?.type!=='mockup-theme'||!['light','dark'].includes(event.data.theme))return;document.documentElement.dataset.theme=event.data.theme;if(['neutral','stone','slate','sage'].includes(event.data.palette))document.documentElement.dataset.palette=event.data.palette;document.getElementById('theme-toggle').textContent=event.data.theme==='dark'?'Terang':'Graphite';if(typeof editorReady!=='undefined'&&editorReady)editor.setTheme(event.data.theme==='dark'?'dark':'classic')});
+ addEventListener('message',event=>{if(event.source!==parent||event.data?.type!=='mockup-scenario'||!['normal','empty','loading','error'].includes(event.data.scenario))return;const input=document.getElementById('scenario');input.value=event.data.scenario;input.dispatchEvent(new Event('change',{bubbles:true}))});
+}
+</script>
 <title>Task board · Revisi pengalaman workspace</title>
 <link rel="icon" href="../src/frontend/public/favicon.svg">
 <link rel="stylesheet" href="../node_modules/vditor/dist/index.css">
@@ -41,6 +52,7 @@ html:has(dialog[open]){overflow:hidden}.properties{display:block}.properties-gro
 .list-date .list-date-input{position:absolute;inset:0;width:100%;height:100%;min-height:0;margin:0;opacity:0;pointer-events:none}.list-date .list-date-input:focus{opacity:1;pointer-events:auto;background:var(--card);font-size:12px;padding:6px;border-color:var(--control)}
 @media(max-width:760px){.list-date-button{min-height:44px}}
 </style>
+<link rel="stylesheet" href="workspace-light-palettes.css">
 </head>
 <body>
 <svg aria-hidden="true" style="display:none"><symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol><symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol><symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"/></symbol><symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M15 4v16M6 8v4M12 8v7M18 8v3"/></symbol><symbol id="i-file" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5zM14 3v6h5M9 13h6M9 17h6"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol><symbol id="i-attach" viewBox="0 0 24 24"><path d="m9 13 7-7a3 3 0 0 1 4 4L9 21a5 5 0 0 1-7-7L13 3a2 2 0 0 1 3 3L6 16"/></symbol><symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v11h-7v-7h-4v7H3z"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></symbol><symbol id="i-left" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></symbol><symbol id="i-right" viewBox="0 0 24 24"><path d="m10 5 7 7-7 7"/></symbol></svg>
@@ -372,5 +384,13 @@ document.addEventListener('keydown',event=>{const link=event.target.closest('#ta
 })();
 render();
 </script>
+<style>
+html[data-embedded=true] .lab,html[data-embedded=true] .sidebar,html[data-embedded=true] .crumb{display:none}
+html[data-embedded=true] .shell{display:block;min-height:100dvh}
+html[data-embedded=true] body{background:var(--card)}
+html[data-theme=dark][data-embedded=true] body{background:#242629}
+html[data-embedded=true] .workspace{padding:28px 30px}
+@media(max-width:760px){html[data-embedded=true] .workspace{padding:22px 16px}}
+</style>
 </body>
 </html>

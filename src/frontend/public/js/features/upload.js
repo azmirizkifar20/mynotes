@@ -1,6 +1,9 @@
 import { pdfPreview } from "./pdf.js";
 
 export function createFeature({ state, actions }) {
+  function chooseDocumentUpload() {
+    actions.$("upload-input").click();
+  }
   let previewUrl = null;
   function clearUploadPreview() {
     actions.$("upload-pdf-preview").innerHTML = "";
@@ -196,6 +199,7 @@ export function createFeature({ state, actions }) {
     }
   }
   return {
+    chooseDocumentUpload,
     bindUpload,
     resetFileDrag,
     openUploadPreview,

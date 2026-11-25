@@ -225,9 +225,10 @@ export function createFeature({ state, actions }) {
     }
   }
 
-  function openMove() {
-    const page = state.pages.find((page) => page.id === state.manageId);
+  function openMove(id = state.manageId) {
+    const page = state.pages.find((page) => page.id === id);
     if (!page || !actions.canLeave()) return;
+    state.manageId = id;
     actions.$("manage-dialog").close();
     const folders = state.pages.filter(
       (folder) =>

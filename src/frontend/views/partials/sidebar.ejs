@@ -1,5 +1,5 @@
-    <aside class="sidebar" aria-label="Navigasi workspace">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">m.</span><div>MD Previewer<small>Personal workspace</small></div><button class="icon-button collapse" data-action="toggleSidebar" aria-label="Sembunyikan sidebar" title="Sembunyikan sidebar"><svg><use href="#i-panel"/></svg></button></div>
+    <aside class="sidebar" id="workspace-sidebar" aria-label="Navigasi workspace">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">m.</span><div>MD Previewer<small>Personal workspace</small></div><button class="icon-button mobile-sidebar-close" data-action="closeSidebar" aria-label="Tutup navigasi"><svg><use href="#i-close"/></svg></button></div>
       <div class="sidebar-scroll">
       <button class="nav-item" data-action="openSearch"><svg><use href="#i-search"/></svg><span>Cari catatan</span><kbd>Ctrl K</kbd></button>
       <button class="nav-item active" data-nav="home" data-action="navigate" data-arg="home"><svg><use href="#i-home"/></svg><span>Ruang kerja</span></button>
@@ -19,7 +19,6 @@
         <button class="nav-item" data-nav="activity" data-action="openActivity"><svg><use href="#i-clock"/></svg><span>Aktivitas</span></button>
         <button class="nav-item" data-nav="passkeys" data-action="openPasskeys"><svg><use href="#i-lock"/></svg><span>Keamanan</span></button>
       </nav>
-      <div class="sidebar-bottom"><button class="nav-item" data-action="logout"><svg><use href="#i-lock"/></svg><span>Keluar</span></button></div>
       </div>
-      <label class="theme-setting" for="theme-select"><svg aria-hidden="true"><use href="#i-theme"/></svg><span>Tampilan</span><select id="theme-select" data-change="setTheme" data-input-value="true"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>
+      <div class="sidebar-footer"><label class="theme-setting" for="theme-select"><svg aria-hidden="true"><use href="#i-theme"/></svg><span>Tampilan</span><select id="theme-select" data-change="setTheme" data-input-value="true"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Graphite</option></select></label><div class="workspace-account"><span class="account-mark" aria-hidden="true">A</span><div><strong>Workspace pribadi</strong><small>Catatan dan pekerjaan</small></div><button class="icon-button" data-action="logout" aria-label="Keluar dari workspace" title="Keluar"><svg><use href="#i-logout"/></svg></button></div></div>
     </aside>

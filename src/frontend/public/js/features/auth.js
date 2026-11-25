@@ -45,6 +45,8 @@ export function createFeature({ state, actions }) {
       : '') + fields();
     const login = actions.$("access-page").querySelector(".login-form");
     if (login) login.innerHTML = state.loginFields;
+    const title = actions.$("access-page").querySelector(".auth-card h2");
+    if (title) title.textContent = state.authRecoveryToken ? "Pulihkan akses" : state.passkeySetupReady || state.authStatus?.registered === false ? "Daftarkan passkey" : state.authBridgeToken ? "Setujui login" : "Masuk ke workspace";
     actions.$("auth-fields").innerHTML = state.loginFields;
   }
   async function initializeAuth() {
@@ -87,10 +89,9 @@ export function createFeature({ state, actions }) {
         token: state.authBridgeToken,
         completion: result.completion,
       }, new URL(state.authStatus.destination).origin);
-      actions.$("access-page").innerHTML =
-        '<main class="login-page"><div class="page-icon">' +
-        actions.icon("lock") +
-        '</div><h1>Login disetujui.</h1><p class="lead">Kembali ke halaman asal untuk melanjutkan. Jendela ini bisa ditutup.</p><button type="button" class="small-button" data-action="closeAuthWindow">Tutup jendela</button></main>';
+      renderAccessPage();
+      actions.$("access-page").querySelector(".auth-card").innerHTML =
+        actions.icon("check") + '<h2>Login disetujui</h2><p>Kembali ke halaman asal untuk melanjutkan. Jendela ini bisa ditutup.</p><button type="button" class="small-button primary" data-action="closeAuthWindow">Tutup jendela</button>';
     } else if (state.boot.mode === "workspace") {
       actions.$("auth-dialog").close();
       actions.notify("Sesi aktif kembali. Tulisanmu tetap ada di editor.");
@@ -264,20 +265,21 @@ export function createFeature({ state, actions }) {
   function renderAccessPage() {
     actions.$("access-page").hidden = false;
     const theme = `<label class="theme-setting" for="visitor-theme">${actions.icon("theme")}<span>Tampilan</span><select id="visitor-theme" data-change="setTheme" data-input-value="true"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>`;
-    const toolbar = `<header class="public-topbar"><a class="public-brand" href="${actions.escape(actions.appUrl("/"))}">${actions.icon("book")}MD Previewer</a>${theme}</header>`;
+    const toolbar = `<header class="public-topbar"><a class="public-brand" href="${actions.escape(actions.appUrl("/"))}"><span class="brand-mark" aria-hidden="true">m.</span>MD Previewer</a>${theme}</header>`;
+    const story = `<section class="auth-story"><div class="brand"><span class="brand-mark" aria-hidden="true">m.</span><div>MD Previewer<small>Personal workspace</small></div></div><h1>Ruang tenang untuk catatan dan pekerjaan.</h1><p>Buka dokumen, lanjutkan pekerjaan, dan simpan konteks yang kamu perlukan.</p></section>`;
     if (state.boot.mode === "public") {
       document.title = state.boot.document.title + " · MD Previewer";
       actions.$("access-page").innerHTML =
         toolbar +
-        `<div class="public-layout"><aside class="outline public-outline" id="public-outline" aria-label="Daftar isi dokumen"><div class="outline-title">DI HALAMAN INI</div></aside><main class="public-document"><div class="visitor-meta">${actions.icon("globe")}Publik · Hanya baca</div><h1>${actions.escape(state.boot.document.title)}</h1>${state.boot.document.type === "pdf" ? pdfPreview(state.boot.document.pdfUrl, state.boot.document.title, actions.escape, state.boot.document.pdfUrl + "&download=1") : `<article class="prose">${state.boot.document.html}</article>`}<footer class="page-footer"><span>MD Previewer</span><span>${actions.escape(actions.dateLabel(state.boot.document.modified))}</span></footer></main></div>`;
+        `<div class="guest-banner">${actions.icon("globe")}Dokumen publik · Hanya baca<a href="${actions.escape(actions.appUrl("/"))}">Masuk ke workspace</a></div><div class="access-scroll" id="access-scroll"><div class="public-layout"><aside class="outline public-outline" id="public-outline" aria-label="Daftar isi dokumen"><div class="outline-title">DI HALAMAN INI</div></aside><main class="public-document"><p class="page-kicker">${actions.icon("doc")}Dokumen publik</p><h1>${actions.escape(state.boot.document.title)}</h1><div class="document-meta"><span>Hanya baca</span><span>Diperbarui ${actions.escape(actions.dateLabel(state.boot.document.modified))}</span></div>${state.boot.document.type === "pdf" ? pdfPreview(state.boot.document.pdfUrl, state.boot.document.title, actions.escape, state.boot.document.pdfUrl + "&download=1") : `<article class="prose">${state.boot.document.html}</article>`}</main></div></div>`;
     } else if (state.boot.mode === "login") {
       actions.$("access-page").innerHTML =
         toolbar +
-        `<main class="login-page"><div class="page-icon">${actions.icon("lock")}</div><p class="page-kicker">Personal workspace</p><h1>Ruang untuk catatanmu.</h1><p class="lead">Masuk untuk membuka workspace dan mengelola dokumen privat.</p><form class="login-form" data-submit="authenticate">${state.loginFields}</form></main>`;
+        `<div class="access-scroll" id="access-scroll"><main class="auth-layout">${story}<section class="auth-card">${actions.icon("lock")}<h2>Masuk ke workspace</h2><p>Gunakan sidik jari, pengenal wajah, atau kunci keamanan perangkatmu.</p><form class="login-form" data-submit="authenticate">${state.loginFields}</form><p class="auth-note">Login terpusat di itsazmi.com/mynotes · Sesi sampai 00.00 WIB</p></section></main></div>`;
     } else {
       actions.$("access-page").innerHTML =
         toolbar +
-        `<main class="login-page"><div class="page-icon">${actions.icon("lock")}</div><h1>${actions.escape(state.boot.message || "Halaman tidak tersedia")}</h1><p class="lead">${actions.escape(state.boot.description || "Periksa alamat halaman atau kembali ke workspace.")}</p><a class="small-button" href="${actions.escape(actions.appUrl("/"))}">Buka workspace</a></main>`;
+        `<div class="access-scroll" id="access-scroll"><main class="auth-layout">${story}<section class="auth-card">${actions.icon("lock")}<h2>${actions.escape(state.boot.message || "Halaman tidak tersedia")}</h2><p>${actions.escape(state.boot.description || "Periksa alamat halaman atau kembali ke workspace.")}</p><a class="small-button primary" href="${actions.escape(actions.appUrl("/"))}">Buka workspace</a></section></main></div>`;
     }
     actions.$("visitor-theme").value = state.themePreference;
   }

@@ -1,0 +1,6 @@
+/* Shared by the workspace shell and its embedded task prototype. */
+:root[data-theme=light][data-palette=neutral]{--ground:#f6f8fa;--card:#fff;--well:#f5f6f5;--hover:#e0e4e1;--line:#d8ddda;--control:#7f867f;--selected:#e0e4e1}
+:root[data-theme=light][data-palette=stone]{--ground:#ece8e1;--card:#fffefc;--well:#f7f4ee;--hover:#e1dad0;--line:#dcd5cb;--control:#888071;--selected:#e1dad0}
+:root[data-theme=light][data-palette=slate]{--ground:#e7ecf2;--card:#fff;--well:#f4f6f9;--hover:#d9e1ea;--line:#d3dbe5;--control:#7d8895;--selected:#d9e1ea}
+:root[data-theme=light][data-palette=sage]{--ground:#e7ece5;--card:#fff;--well:#f3f6f1;--hover:#d8e1d4;--line:#d2dace;--control:#7b8675;--selected:#d8e1d4}
+:root[data-theme=light][data-palette]{--page:var(--card);--side:var(--ground);--muted:#5c605b}

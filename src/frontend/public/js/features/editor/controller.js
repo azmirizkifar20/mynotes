@@ -10,11 +10,15 @@ export function createFeature({ state, actions }) {
       .map((heading, index) => ({ heading, link: links[index] }))
       .filter((entry) => entry.heading && entry.link);
     if (!entries.length) return;
+    const root = entries[0].heading.closest(".workspace-scroll,.access-scroll") || window;
+    const scrollTop = () => root === window ? window.scrollY : root.scrollTop;
+    const viewportHeight = () => root === window ? window.innerHeight : root.clientHeight;
+    const contentHeight = () => root === window ? document.documentElement.scrollHeight : root.scrollHeight;
     let active,
       frame = null,
       clickedAt = null;
     const readingTop = () =>
-      Math.max(0, document.querySelector(".topbar, .public-topbar")?.getBoundingClientRect().bottom || 0) + 16;
+      (root === window ? Math.max(0, document.querySelector(".topbar, .public-topbar")?.getBoundingClientRect().bottom || 0) : root.getBoundingClientRect().top) + 16;
     function activate(entry) {
       if (active === entry) return;
       active?.link.removeAttribute("aria-current");
@@ -28,7 +32,7 @@ export function createFeature({ state, actions }) {
     }
     function update() {
       frame = null;
-      if (clickedAt === window.scrollY) return;
+      if (clickedAt === scrollTop()) return;
       clickedAt = null;
       let current = entries[0];
       const top = readingTop();
@@ -37,8 +41,8 @@ export function createFeature({ state, actions }) {
         current = entry;
       }
       if (
-        window.scrollY > 0 &&
-        window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2
+        scrollTop() > 0 &&
+        scrollTop() + viewportHeight() >= contentHeight() - 2
       )
         current = entries.at(-1);
       activate(current);
@@ -58,12 +62,12 @@ export function createFeature({ state, actions }) {
       const entry = entries.find((item) => item.link === link);
       if (!entry) return;
       event.preventDefault();
-      window.scrollTo({
-        top: window.scrollY + entry.heading.getBoundingClientRect().top - readingTop(),
+      root.scrollTo({
+        top: scrollTop() + entry.heading.getBoundingClientRect().top - readingTop(),
         behavior: "instant",
       });
       // Keep the clicked section selected when scrolling is clamped at the page bottom.
-      clickedAt = window.scrollY;
+      clickedAt = scrollTop();
       activate(entry);
       history.replaceState(
         history.state,
@@ -72,11 +76,11 @@ export function createFeature({ state, actions }) {
       );
     }
     outline.addEventListener("click", click);
-    window.addEventListener("scroll", schedule, { passive: true });
+    root.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", resize);
     stopOutlineTracking = () => {
       outline.removeEventListener("click", click);
-      window.removeEventListener("scroll", schedule);
+      root.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", resize);
       if (frame !== null) cancelAnimationFrame(frame);
       active?.link.removeAttribute("aria-current");
@@ -109,7 +113,10 @@ export function createFeature({ state, actions }) {
       state.documentBuffer = { id: page.id, content: page.body || "" };
     actions.$("main").innerHTML =
       actions.header(page) +
-      `<div class="doc-toolbar"><div class="tabs"><button class="tab ${!state.editing ? "selected" : ""}" data-action="setEditing" data-value-type="boolean" data-arg="false">${actions.icon("book")}Dokumen</button><button class="tab ${state.editing ? "selected" : ""}" data-action="setEditing" data-value-type="boolean" data-arg="true">${actions.icon("code")}Markdown</button></div><div class="tool-actions"><button class="small-button" data-action="openHistory">${actions.icon("clock")}Riwayat</button><button class="small-button" data-action="downloadDoc">${actions.icon("upload")}Unduh .md</button><button class="small-button primary" id="save-document" data-action="saveDoc" disabled>${actions.icon("check")}Simpan</button></div></div>${state.editing ? `<label class="field-label" for="markdown-editor">Konten Markdown</label><textarea class="editor" id="markdown-editor" spellcheck="false">${actions.escape(actions.documentContent())}</textarea>` : `<div id="live-editor" aria-label="Konten dokumen, dapat diedit langsung" aria-busy="true"><article class="prose">${page.html || ""}</article></div>`}<p class="edit-hint">${state.editing ? "Edit sumber Markdown." : "Klik teks untuk mengedit langsung. Format akan dirender saat kamu mengetik."} Lepaskan atau paste gambar untuk upload otomatis. Klik gambar di tab Dokumen untuk mengatur ukuran. Perubahan tersimpan otomatis setelah berhenti mengetik. File publik ikut diperbarui. <span id="document-save-state" role="status" aria-live="polite"></span></p><footer class="page-footer"><span id="document-revision">${actions.escape(page.title)}.md · Versi ${page.revision}</span><span id="document-modified">${actions.escape(actions.dateLabel(page.modified))}</span></footer>`;
+      `<div class="doc-toolbar"><div class="tabs"><button class="tab ${!state.editing ? "selected" : ""}" data-action="setEditing" data-value-type="boolean" data-arg="false">${actions.icon("book")}Dokumen</button><button class="tab ${state.editing ? "selected" : ""}" data-action="setEditing" data-value-type="boolean" data-arg="true">${actions.icon("code")}Markdown</button></div><div class="tool-actions"><span class="document-save-state" id="document-save-state" role="status" aria-live="polite"></span><button class="icon-button" data-action="openHistory" aria-label="Riwayat dokumen" title="Riwayat dokumen">${actions.icon("clock")}</button><button class="icon-button" data-action="downloadDoc" aria-label="Unduh .md" title="Unduh .md">${actions.icon("upload")}</button><button class="icon-button" id="save-document" data-action="saveDoc" aria-label="Simpan sekarang" title="Simpan sekarang (Ctrl+S)" disabled>${actions.icon("check")}</button></div></div>${state.editing ? `<label class="field-label" for="markdown-editor">Konten Markdown</label><textarea class="editor" id="markdown-editor" spellcheck="false">${actions.escape(actions.documentContent())}</textarea>` : `<div id="live-editor" aria-label="Konten dokumen, dapat diedit langsung" aria-busy="true"><article class="prose">${page.html || ""}</article></div>`}<p class="edit-hint">${state.editing ? "Edit sumber Markdown." : "Klik teks untuk mengedit langsung. Format akan dirender saat kamu mengetik."} Lepaskan atau paste gambar untuk upload otomatis. Klik gambar di tab Dokumen untuk mengatur ukuran. Perubahan tersimpan otomatis setelah berhenti mengetik. File publik ikut diperbarui.</p><footer class="page-footer"><span id="document-revision">${actions.escape(page.title)}.md · Versi ${page.revision}</span><span id="document-modified">${actions.escape(actions.dateLabel(page.modified))}</span></footer>`;
+    actions.$("document-save-state").textContent = state.draftState?.id === page.id && state.draftState.resolved
+      ? actions.isDirty() ? "Menunggu disimpan…" : "Semua perubahan tersimpan"
+      : "Memuat status dokumen…";
     actions.$("outline").innerHTML =
       '<div class="outline-title">DI HALAMAN INI</div>';
     decorateHeadings(document.querySelector("#main .prose"), true);

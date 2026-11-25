@@ -26,7 +26,10 @@ export function createFeature({ state, actions }) {
     const page = state.pages.find((page) => page.id === state.sharingId);
     const publicAccess = page.visibility === "public";
     actions.$("share-filename").textContent = page.title;
-    actions.$("share-access").value = page.visibility;
+    actions.$("share-filetype").textContent = `Dokumen ${page.type === "pdf" ? "PDF" : "Markdown"} · akses hanya baca`;
+    actions.$("share-access").querySelectorAll("button").forEach(button => {
+      button.setAttribute("aria-pressed", String(button.dataset.arg === page.visibility));
+    });
     actions.$("share-description").textContent = publicAccess
       ? "Siapa pun yang punya link dapat membaca file ini tanpa masuk. Pengunjung tidak dapat mengedit."
       : "File ini privat. Pengguna harus masuk untuk membukanya. Link publik dinonaktifkan, termasuk link yang sebelumnya dibagikan.";

@@ -46,15 +46,21 @@ export function createFeature({ state, actions }) {
     const expanded = mobile
       ? document.body.classList.contains("mobile-open")
       : !document.body.classList.contains("sidebar-hidden");
-    document.querySelector(".sidebar").inert = mobile && !expanded;
+    document.querySelector(".sidebar").inert = !expanded;
+    document.querySelector(".workspace").inert = mobile && expanded;
     document
       .querySelectorAll(".sidebar-toggle,.collapse")
-      .forEach((button) => button.setAttribute("aria-expanded", expanded));
+      .forEach((button) => {
+        button.setAttribute("aria-expanded", expanded);
+        button.setAttribute("aria-label", mobile ? "Buka navigasi" : expanded ? "Sembunyikan sidebar" : "Tampilkan sidebar");
+      });
   }
 
   function closeSidebar() {
+    const returnFocus = document.querySelector(".sidebar").contains(document.activeElement);
     document.body.classList.remove("mobile-open");
     syncSidebar();
+    if (returnFocus) document.querySelector(".sidebar-toggle").focus();
   }
 
   function toggleSidebar() {
@@ -62,6 +68,8 @@ export function createFeature({ state, actions }) {
       document.body.classList.toggle("mobile-open");
     else document.body.classList.toggle("sidebar-hidden");
     syncSidebar();
+    if (document.body.classList.contains("mobile-open"))
+      document.querySelector(".sidebar [data-action=closeSidebar]").focus();
   }
 
   function renderFavorites() {
