@@ -1,5 +1,6 @@
 export function createFeature({ state, actions }) {
   async function renderManagementPage(view) {
+    if (view === "sticky") return actions.renderStickyNotes();
     if (view === "today") return actions.renderToday();
     if (view === "tasks") return actions.renderTaskBoard();
     if (view === "passkeys") return actions.renderPasskeys();

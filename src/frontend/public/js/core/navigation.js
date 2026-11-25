@@ -2,6 +2,10 @@ import { readPreference } from "./state.js";
 
 export function createFeature({ state, actions }) {
   function canLeave() {
+    if (state.stickyDirty || state.stickySaving) {
+      actions.notify("Tunggu sampai catatan tersimpan. Jika gagal, coba simpan atau unduh salinan terlebih dahulu.");
+      return false;
+    }
     if (actions.taskBoardDialogOpen?.()) {
       actions.notify("Simpan atau tutup pengaturan task board terlebih dahulu.");
       return false;
@@ -55,6 +59,8 @@ export function createFeature({ state, actions }) {
           return false;
         }
       }
+      if ((state.stickyDirty || state.stickySaving) && !canLeave()) return false;
+      actions.destroyStickyNotes();
       actions.destroyLiveEditor();
       state.documentBuffer = null;
       state.current = id;
@@ -87,7 +93,7 @@ export function createFeature({ state, actions }) {
         (page?.title ||
           (id === "recent"
             ? "Terakhir dibuka"
-            : state.managementPages[id].title)) + " · MD Previewer";
+            : state.managementPages[id].title)) + " · Ruangku";
       const url = !page ? actions.appUrl("/?view=" + id) : actions.urlFor(page);
       if (historyMode === "replace") history.replaceState({ id }, "", url);
       else if (
@@ -190,6 +196,10 @@ export function createFeature({ state, actions }) {
         }
         if (state.current === "today") {
           await actions.refreshToday();
+          return;
+        }
+        if (state.current === "sticky") {
+          await actions.refreshStickyNotes();
           return;
         }
         if (Object.hasOwn(state.managementPages, state.current)) return;

@@ -171,3 +171,11 @@ END $$;
 DROP TRIGGER IF EXISTS task_attachment_delete ON mdpreview.task_attachments;
 CREATE TRIGGER task_attachment_delete AFTER DELETE ON mdpreview.task_attachments
 FOR EACH ROW EXECUTE FUNCTION mdpreview.queue_task_attachment_delete();
+
+CREATE TABLE IF NOT EXISTS mdpreview.sticky_board (
+  id smallint PRIMARY KEY CHECK(id = 1),
+  revision integer NOT NULL DEFAULT 1 CHECK(revision > 0),
+  notes jsonb NOT NULL DEFAULT '[]'::jsonb CHECK(jsonb_typeof(notes) = 'array' AND jsonb_array_length(notes) <= 100),
+  modified timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO mdpreview.sticky_board(id) VALUES(1) ON CONFLICT DO NOTHING;

@@ -56,11 +56,14 @@ export function createState(boot) {
     draftRequest: null,
     toolBusy: false,
     taskBoardDirty: false,
+    stickyDirty: false,
+    stickySaving: false,
     searchSequence: 0,
     searchTimer: null,
     availableTemplates: [],
     selectedVersion: null,
     managementPages: {
+      sticky: { title: "Sticky notes", icon: "note", description: "Tuangkan ide. Susun sesuka hati." },
       today: { title: "Hari ini", icon: "calendar", description: "Fokus dan pekerjaan hari ini." },
       tasks: {
         title: "Task board",

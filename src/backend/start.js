@@ -10,7 +10,7 @@ async function start() {
   mirror.start();
   attachments.start();
   const server = app.listen(PORT, HOST, () =>
-    console.log("MD Previewer ready on " + HOST + ":" + PORT),
+    console.log("Ruangku ready on " + HOST + ":" + PORT),
   );
   async function stop() {
     attachments.stop();

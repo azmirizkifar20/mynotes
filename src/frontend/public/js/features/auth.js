@@ -265,10 +265,10 @@ export function createFeature({ state, actions }) {
   function renderAccessPage() {
     actions.$("access-page").hidden = false;
     const theme = `<label class="theme-setting" for="visitor-theme">${actions.icon("theme")}<span>Tampilan</span><select id="visitor-theme" data-change="setTheme" data-input-value="true"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>`;
-    const toolbar = `<header class="public-topbar"><a class="public-brand" href="${actions.escape(actions.appUrl("/"))}"><span class="brand-mark" aria-hidden="true">m.</span>MD Previewer</a>${theme}</header>`;
-    const story = `<section class="auth-story"><div class="brand"><span class="brand-mark" aria-hidden="true">m.</span><div>MD Previewer<small>Personal workspace</small></div></div><h1>Ruang tenang untuk catatan dan pekerjaan.</h1><p>Buka dokumen, lanjutkan pekerjaan, dan simpan konteks yang kamu perlukan.</p></section>`;
+    const toolbar = `<header class="public-topbar"><a class="public-brand" href="${actions.escape(actions.appUrl("/"))}"><span class="brand-mark" aria-hidden="true">R</span>Ruangku</a>${theme}</header>`;
+    const story = `<section class="auth-story"><div class="brand"><span class="brand-mark" aria-hidden="true">R</span><div>Ruangku<small>Personal workspace</small></div></div><h1>Ruang tenang untuk catatan dan pekerjaan.</h1><p>Buka dokumen, lanjutkan pekerjaan, dan simpan konteks yang kamu perlukan.</p></section>`;
     if (state.boot.mode === "public") {
-      document.title = state.boot.document.title + " · MD Previewer";
+      document.title = state.boot.document.title + " · Ruangku";
       actions.$("access-page").innerHTML =
         toolbar +
         `<div class="guest-banner">${actions.icon("globe")}Dokumen publik · Hanya baca<a href="${actions.escape(actions.appUrl("/"))}">Masuk ke workspace</a></div><div class="access-scroll" id="access-scroll"><div class="public-layout"><aside class="outline public-outline" id="public-outline" aria-label="Daftar isi dokumen"><div class="outline-title">DI HALAMAN INI</div></aside><main class="public-document"><p class="page-kicker">${actions.icon("doc")}Dokumen publik</p><h1>${actions.escape(state.boot.document.title)}</h1><div class="document-meta"><span>Hanya baca</span><span>Diperbarui ${actions.escape(actions.dateLabel(state.boot.document.modified))}</span></div>${state.boot.document.type === "pdf" ? pdfPreview(state.boot.document.pdfUrl, state.boot.document.title, actions.escape, state.boot.document.pdfUrl + "&download=1") : `<article class="prose">${state.boot.document.html}</article>`}</main></div></div>`;

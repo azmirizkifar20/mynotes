@@ -20,6 +20,7 @@ export function createFeature({ state, actions }) {
 
   function render() {
     actions.$("main").parentElement.classList.toggle("task-board-layout", state.current === "tasks");
+    actions.$("main").parentElement.classList.toggle("sticky-notes-layout", state.current === "sticky");
     actions.$("outline").hidden = state.pages.find((p) => p.id === state.current)?.type !== "doc";
     const page = state.pages.find((p) => p.id === state.current);
     actions.$("detail-share").hidden = !["doc", "pdf"].includes(page?.type);

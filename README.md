@@ -1,4 +1,4 @@
-# MD Previewer
+# Ruangku
 
 Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak ada build frontend. Tampilan memakai Inter, tema terang/sistem, dan dark mode Graphite.
 
@@ -328,3 +328,7 @@ Pemeriksaan regresi terisolasi tersedia di `node tests/check-sharing.cjs`. Scrip
 - **Mirror tertinggal:** cek log dan izin filesystem, lalu jalankan `npm run docs:sync`.
 - **Login gagal setelah pindah domain:** login pada domain yang sedang dibuka.
 - **413:** sesuaikan `JSON_BODY_LIMIT` dan `client_max_body_size`; upload dokumen/gambar dibatasi 5 MB, lampiran task 100 MB per file (body nginx 101 MB khusus endpoint lampiran, request buffering dinonaktifkan). Periksa juga Maximum Upload Size zona Cloudflare; browser terbaru mengirim body file tanpa multipart.
+
+## Sticky notes
+
+Menu Sticky notes menyediakan canvas pribadi dengan edit otomatis, drag/resize, enam warna, pencarian, zoom, duplikat, dan hapus/urungkan. Data berada pada PostgreSQL (`mdpreview.sticky_board`) dan dibaca bersama deployment lokal/server. Konflik revisi melindungi perubahan antarperangkat. Detail dan batas fitur: [laporan Ruangku dan Sticky notes](reports/2026-11-25-ruangku-sticky-notes.md).

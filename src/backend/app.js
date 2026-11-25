@@ -15,7 +15,7 @@ function hashAssets(directory, hash) {
   for (const name of fs.readdirSync(directory).sort()) {
     const filename = path.join(directory, name);
     if (fs.statSync(filename).isDirectory()) hashAssets(filename, hash);
-    else if (/\.(js|css)$/.test(name))
+    else if (/\.(js|css|svg)$/.test(name))
       hash
         .update(path.relative(paths.public, filename).split(path.sep).join("/"))
         .update(fs.readFileSync(filename));
@@ -88,6 +88,7 @@ for (const feature of [
   "activity/routes",
   "task-board/routes",
   "task-board/attachment-routes",
+  "sticky-notes/routes",
 ])
   require("./modules/" + feature)(api, context);
 api.use((req, res) =>

@@ -122,11 +122,11 @@ async function registrationOptions(req) {
     ? await bridgeInfo(req.body.bridgeToken)
     : null;
   const options = await webauthn.generateRegistrationOptions({
-    rpName: "MD Previewer",
+    rpName: "Ruangku",
     rpID: config.rpID,
     userID: new Uint8Array(Buffer.from(settings.passkey_user_id, "base64url")),
     userName: "Personal workspace",
-    userDisplayName: "MD Previewer",
+    userDisplayName: "Ruangku",
     attestationType: "none",
     supportedAlgorithmIDs: [-7, -257],
     authenticatorSelection: {

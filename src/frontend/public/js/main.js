@@ -30,6 +30,7 @@ import { createFeature as createMotion } from "./components/motion.js";
 import { createFeature as createToday } from "./features/today.js";
 import { createFeature as createDocumentLinks } from "./features/document-links.js";
 import { createFeature as createInsertMenu } from "./features/editor/insert-menu.js";
+import { createFeature as createStickyNotes } from "./features/sticky-notes/controller.js";
 
 const state = createState(
   JSON.parse(document.getElementById("bootstrap").textContent),
@@ -66,6 +67,7 @@ Object.assign(actions, createDocumentTools(context));
 Object.assign(actions, createToday(context));
 Object.assign(actions, createDocumentLinks(context));
 Object.assign(actions, createInsertMenu(context));
+Object.assign(actions, createStickyNotes(context));
 bindActions(context);
 actions.bindMotion();
 actions.bindUpload();
@@ -116,7 +118,7 @@ document.addEventListener("keydown", (event) => {
   }
 });
 window.addEventListener("beforeunload", (event) => {
-  if (actions.isDirty() || state.saving || state.taskBoardDirty || state.toolBusy) {
+  if (actions.isDirty() || state.saving || state.taskBoardDirty || state.toolBusy || state.stickyDirty || state.stickySaving) {
     event.preventDefault();
     event.returnValue = "";
   }

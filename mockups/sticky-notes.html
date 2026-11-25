@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sticky notes · Ruangku · Mockup</title>
+  <link rel="icon" href="../src/frontend/public/favicon.svg">
+  <style>
+    @font-face{font-family:Inter;src:url('../src/frontend/public/fonts/inter-variable.ttf');font-weight:100 900;font-display:swap}
+    :root{color-scheme:light;--sn-ground:#f6f8fa;--sn-card:#fff;--sn-well:#f5f6f5;--sn-ink:#292a28;--sn-muted:#5c605b;--sn-line:#d8ddda;--sn-border:#7f867f;--sn-hover:#e0e4e1;--sn-accent:#98472e;--sn-tint:#f6ece6;--sn-primary:#30332e;--sn-on-primary:#fff;--sn-grid:#d7dcda;--sn-canvas:#fafbf9;--sn-overlay:#25241f66;--sn-danger:#a1332c;--sn-shadow:0 3px 5px #282b2210,0 12px 22px #282b2208}
+    :root[data-theme=dark]{color-scheme:dark;--sn-ground:#191a1c;--sn-card:#242629;--sn-well:#2a2c2f;--sn-ink:#ecece8;--sn-muted:#b1b6bd;--sn-line:#3c4045;--sn-border:#79808a;--sn-hover:#34383c;--sn-accent:#dfbd94;--sn-tint:#3b332b;--sn-primary:#dfbd94;--sn-on-primary:#23201b;--sn-grid:#3d4144;--sn-canvas:#202225;--sn-overlay:#08090aaa;--sn-danger:#f0b1a9;--sn-shadow:0 3px 6px #0002,0 12px 22px #0002}
+    *{box-sizing:border-box}body{margin:0;background:var(--sn-ground);color:var(--sn-ink);font:13px/1.6 Inter,Arial,sans-serif}button,input,textarea,select{font:inherit;color:inherit}button,a{touch-action:manipulation}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.45}button{border:0;background:none}a{color:inherit;text-decoration:none}button:hover,a.nav:hover{background:var(--sn-hover)}:focus-visible{outline:2px solid var(--sn-accent);outline-offset:3px}button:active:not(:disabled){filter:brightness(.95)}[hidden]{display:none!important}h1,h2,p{margin:0}svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;pointer-events:none}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.skip{position:fixed;top:-70px;left:250px;z-index:100;background:var(--sn-card);padding:10px}.skip:focus{top:10px}
+    .prototype-bar{min-height:38px;display:flex;align-items:center;gap:14px;padding:5px 22px;border-bottom:1px solid var(--sn-line);font-size:11px;color:var(--sn-muted)}.prototype-bar strong{font-weight:600;color:var(--sn-ink)}.prototype-bar span{flex:1}.prototype-bar button{text-decoration:underline;text-underline-offset:3px;padding:3px 5px;border-radius:3px}
+    .app{display:grid;grid-template-columns:230px minmax(0,1fr);gap:10px;padding:12px 12px 12px 0;height:calc(100dvh - 38px);min-height:540px}.sidebar{display:flex;flex-direction:column;min-height:0;padding:0 10px 0 14px}.sidebar-header{flex:none;padding:0 2px 12px;border-bottom:1px solid var(--sn-line)}.sidebar-header .brand{padding-bottom:12px}.brand{display:flex;align-items:center;gap:10px;padding:10px 8px 21px}.brand-mark{width:34px;height:37px;border-radius:6px;background:var(--sn-tint);color:var(--sn-accent);font:700 25px/37px Inter,sans-serif;text-align:center}.brand strong{display:block;font-size:14px;line-height:1.45}.brand small{font-size:10px;color:var(--sn-muted)}.side-scroll{overflow:auto;min-height:0;padding:0 2px 24px;scrollbar-width:thin}.nav{display:flex;align-items:center;gap:11px;min-height:38px;margin-bottom:3px;border-radius:6px;padding:8px 10px;font-size:12px;color:var(--sn-muted)}.nav.active{background:var(--sn-tint);color:var(--sn-accent);font-weight:550}.nav kbd{margin-left:auto;font-size:10px;line-height:1.2;border:1px solid var(--sn-line);border-radius:3px;padding:0 3px}.side-label{display:flex;justify-content:space-between;color:var(--sn-muted);font-size:10px;margin:25px 10px 12px}.side-note{padding:0 10px;font-size:11px;color:var(--sn-muted)}.side-folder{padding-left:20px}.side-footer{margin-top:auto;border-top:1px solid var(--sn-line);padding:13px 10px 0}.theme-label{display:flex;align-items:center;gap:9px;color:var(--sn-muted);font-size:11px}.theme-label select{margin-left:auto;border:1px solid var(--sn-border);background:var(--sn-card);padding:5px 6px;border-radius:5px;min-height:32px}.mobile-close{display:none}
+    .shell{border:1px solid var(--sn-line);border-radius:12px;background:var(--sn-card);box-shadow:0 2px 4px #00000005;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}.topbar{display:flex;align-items:center;gap:16px;flex-shrink:0;min-height:57px;padding:0 24px;border-bottom:1px solid var(--sn-line);font-size:11px}.topbar .breadcrumb{display:flex;align-items:center;gap:12px}.breadcrumb span{color:var(--sn-muted)}.topbar small{margin-left:auto;font-size:10px;color:var(--sn-muted)}.icon-button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px}.mobile-label{display:none}.page-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:27px 30px 22px;flex-shrink:0}.page-heading h1{font-size:27px;letter-spacing:-.85px;line-height:1.3;font-weight:650}.page-heading p{font-size:12px;color:var(--sn-muted);margin-top:7px}.button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 12px;border:1px solid var(--sn-border);border-radius:6px;background:var(--sn-card);white-space:nowrap;font-size:12px;font-weight:450}.button.primary{background:var(--sn-primary);color:var(--sn-on-primary);border-color:var(--sn-primary)}.button.primary:hover{filter:brightness(1.08)}.button.quiet{border-color:transparent;background:transparent}.board-toolbar{display:flex;align-items:center;gap:12px;padding:0 30px 17px;flex-shrink:0}.search{display:flex;align-items:center;gap:8px;max-width:285px;flex:1;min-width:140px;padding:0 10px;min-height:35px;border:1px solid var(--sn-border);border-radius:6px;color:var(--sn-muted)}.search:focus-within{outline:2px solid var(--sn-accent);outline-offset:2px}.search svg{width:16px;height:16px}.search input{width:100%;min-width:0;background:none;border:0;outline:0;font-size:11px;padding:7px 0}.search input::placeholder{color:var(--sn-muted)}.count{font-size:11px;color:var(--sn-muted)}.toolbar-right{display:flex;gap:7px;margin-left:auto}.tool-mode{display:flex;border:1px solid var(--sn-border);border-radius:6px;padding:2px;gap:2px}.tool-mode button{border-radius:3px;width:30px;height:28px;display:grid;place-items:center}.tool-mode [aria-pressed=true]{background:var(--sn-hover);color:var(--sn-ink)}.tool-mode svg{width:16px;height:16px}
+    .canvas-wrap{position:relative;min-height:0;flex:1;display:flex;border-top:1px solid var(--sn-line);background:var(--sn-canvas);isolation:isolate}.viewport{width:100%;height:100%;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;background-image:radial-gradient(var(--sn-grid) .8px,transparent .8px);background-size:22px 22px;cursor:default}.viewport.pan-mode{cursor:grab;touch-action:none}.viewport.panning{cursor:grabbing}.canvas-space{position:relative;width:2300px;height:1550px}.board{position:absolute;left:0;top:0;width:2300px;height:1550px;transform-origin:0 0}.board.filtering .sticky:not(.matches){display:none}.canvas-meta{position:absolute;left:18px;bottom:16px;display:flex;align-items:center;gap:8px;z-index:20;pointer-events:none;background:var(--sn-card);border:1px solid var(--sn-line);border-radius:6px;padding:7px 10px;color:var(--sn-muted);font-size:10px}.canvas-meta svg{width:14px;height:14px}.zoom-controls{position:absolute;right:18px;bottom:16px;z-index:20;display:flex;align-items:center;background:var(--sn-card);border:1px solid var(--sn-border);border-radius:7px;box-shadow:0 2px 8px #00000006;padding:3px}.zoom-controls button{display:grid;place-items:center;min-width:30px;height:29px;border-radius:3px}.zoom-controls .zoom-value{font-size:10px;min-width:48px;font-variant-numeric:tabular-nums}.zoom-controls .fit{border-left:1px solid var(--sn-line);margin-left:4px;padding-left:8px;min-width:38px}.zoom-controls svg{width:16px;height:16px}.canvas-status{position:absolute;inset:0;display:flex;justify-content:center;align-items:center;text-align:center;background:var(--sn-canvas);z-index:10;padding:24px}.canvas-status>div{max-width:320px}.canvas-status svg{width:34px;height:34px;color:var(--sn-muted);margin-bottom:14px}.canvas-status h2{font-size:18px;letter-spacing:-.4px;font-weight:600}.canvas-status p{color:var(--sn-muted);font-size:12px;margin:8px 0 20px}.spinner{animation:spin .9s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .sticky{--sn-note:#fff0bb;--sn-note-ink:#443a21;--sn-note-muted:#665b3d;position:absolute;display:flex;flex-direction:column;min-width:240px;min-height:210px;background:var(--sn-note);color:var(--sn-note-ink);border:1px solid #443a2125;border-radius:3px;box-shadow:var(--sn-shadow);transition:box-shadow .16s;scroll-margin:55px}.sticky[data-color=sage]{--sn-note:#deecd9;--sn-note-ink:#2c4431;--sn-note-muted:#4c6250}.sticky[data-color=rose]{--sn-note:#f6dfe1;--sn-note-ink:#58363d;--sn-note-muted:#74515a}.sticky[data-color=blue]{--sn-note:#dceaf7;--sn-note-ink:#30465b;--sn-note-muted:#4d6276}.sticky[data-color=lilac]{--sn-note:#e9e1f3;--sn-note-ink:#49395f;--sn-note-muted:#665574}.sticky[data-color=stone]{--sn-note:#eeece5;--sn-note-ink:#44443c;--sn-note-muted:#636359}.sticky.selected{outline:2px solid var(--sn-note-muted);outline-offset:3px}.sticky.dragging{box-shadow:0 14px 30px #0002;cursor:grabbing}.sticky:focus-within{z-index:5}.sticky button:focus-visible,.sticky input:focus-visible,.sticky textarea:focus-visible{outline-color:var(--sn-note-muted)}.sticky button:hover{background:#0000000b}.sticky:target{outline:2px solid var(--sn-note-muted);outline-offset:3px}
+    :root[data-theme=dark] .sticky{--sn-note:#51482b;--sn-note-ink:#fff2c6;--sn-note-muted:#ddd0a4;border-color:#fff1c32b}:root[data-theme=dark] .sticky[data-color=sage]{--sn-note:#344b3a;--sn-note-ink:#e4f1df;--sn-note-muted:#c0d4bd}:root[data-theme=dark] .sticky[data-color=rose]{--sn-note:#573d45;--sn-note-ink:#ffe7eb;--sn-note-muted:#e4c4cb}:root[data-theme=dark] .sticky[data-color=blue]{--sn-note:#34495b;--sn-note-ink:#e5f0ff;--sn-note-muted:#bfd1e7}:root[data-theme=dark] .sticky[data-color=lilac]{--sn-note:#493e58;--sn-note-ink:#f1e8ff;--sn-note-muted:#d4c4e4}:root[data-theme=dark] .sticky[data-color=stone]{--sn-note:#444641;--sn-note-ink:#edeee7;--sn-note-muted:#d0d2c7}:root[data-theme=dark] .sticky button:hover{background:#ffffff12}
+    .sticky-header{display:flex;align-items:center;gap:6px;padding:9px 12px 2px;min-height:37px}.drag-handle{cursor:grab;touch-action:none;display:flex;align-items:center;gap:6px;flex:1;text-align:left;padding:4px 2px;color:var(--sn-note-muted);border-radius:3px;font-size:10px}.drag-handle:active{cursor:grabbing}.drag-handle svg{width:14px;height:14px}.note-more{display:grid;place-items:center;width:28px;height:27px;border-radius:4px;color:var(--sn-note-muted)}.note-title{border:0;background:none;width:100%;padding:12px 21px 5px;font-size:17px;font-weight:600;letter-spacing:-.4px;line-height:1.4;min-width:0;border-radius:0}.note-title::placeholder{color:var(--sn-note-muted)}.note-body{border:0;background:none;width:100%;padding:7px 21px 10px;font-size:12px;line-height:1.85;resize:none;flex:1;min-height:75px;border-radius:0;scrollbar-width:thin}.note-body::placeholder{color:var(--sn-note-muted)}.note-title:focus,.note-body:focus{outline:0}.note-title:focus-visible,.note-body:focus-visible{outline:1px dashed var(--sn-note-muted);outline-offset:-10px}.note-footer{display:flex;align-items:center;gap:8px;padding:2px 15px 12px;color:var(--sn-note-muted);font-size:10px}.color-trigger{display:flex;align-items:center;gap:6px;border-radius:4px;padding:4px 5px;font-size:10px}.color-chip{width:11px;height:11px;border:1px solid currentColor;border-radius:50%;background:var(--sn-note);box-shadow:inset 0 0 0 2px #ffffff50}.note-footer time{margin-left:auto;padding-right:10px;font-size:9px}.resize-handle{position:absolute;right:4px;bottom:4px;display:grid;place-items:center;width:22px;height:22px;cursor:nwse-resize;touch-action:none;border-radius:3px;color:var(--sn-note-muted)}.resize-handle svg{width:12px;height:12px}
+    .note-menu{position:fixed;width:260px;padding:7px;background:var(--sn-card);color:var(--sn-ink);border:1px solid var(--sn-border);border-radius:9px;box-shadow:0 10px 30px #0002;z-index:80}.menu-heading{display:flex;align-items:center;justify-content:space-between;padding:7px 7px 8px;font-size:11px;font-weight:550}.menu-heading button{width:25px;height:25px;border-radius:4px;display:grid;place-items:center}.menu-heading svg{width:14px;height:14px}.color-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:0 3px 8px}.color-option{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:62px;border:1px solid transparent;border-radius:5px;font-size:10px;color:var(--sn-muted)}.color-option[aria-pressed=true]{border-color:var(--sn-border);background:var(--sn-well);color:var(--sn-ink)}.color-dot{display:grid;place-items:center;width:26px;height:26px;border:1px solid #0004;border-radius:50%;color:#33372f}.color-dot svg{width:15px;height:15px}.menu-action{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:4px;width:100%;font-size:12px;text-align:left;min-height:38px}.menu-divider{border-top:1px solid var(--sn-line);margin:1px 3px 4px}.menu-action.danger{color:var(--sn-danger)}.menu-action svg{width:16px;height:16px}
+    .toast{position:fixed;left:calc(50% + 100px);transform:translateX(-50%);bottom:30px;background:var(--sn-primary);color:var(--sn-on-primary);border-radius:7px;padding:10px 14px;display:flex;align-items:center;gap:16px;max-width:calc(100% - 32px);font-size:12px;box-shadow:0 5px 20px #0002;z-index:90}.toast button{color:inherit;text-decoration:underline;text-underline-offset:3px;padding:3px;border-radius:3px}.toast button:hover{background:#ffffff20}dialog{background:var(--sn-card);color:var(--sn-ink);border:1px solid var(--sn-line);border-radius:10px;width:480px;max-width:calc(100% - 32px);padding:0;box-shadow:0 20px 70px #0003}dialog::backdrop{background:var(--sn-overlay)}.dialog-heading{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--sn-line);padding:16px 20px}.dialog-heading h2{font-size:16px;font-weight:600}.dialog-body{padding:20px}.dialog-body p{font-size:12px;color:var(--sn-muted)}.help-list{padding:0;margin:0;list-style:none}.help-list li{padding:10px 0;border-bottom:1px solid var(--sn-line);display:flex;gap:20px;align-items:start;font-size:12px}.help-list li:last-child{border:0}.help-list strong{width:110px;flex-shrink:0;font-weight:550}.help-list span{color:var(--sn-muted)}.help-list kbd{font:10px Inter;background:var(--sn-well);border:1px solid var(--sn-border);border-radius:3px;padding:1px 4px}.dialog-footer{display:flex;justify-content:flex-end;gap:8px;padding:16px 20px;border-top:1px solid var(--sn-line)}.backdrop{display:none}.collapse .app{grid-template-columns:1fr;padding-left:12px}.collapse .sidebar{display:none}
+    @media(max-width:1090px){.app{grid-template-columns:205px minmax(0,1fr)}.sidebar{padding-left:9px}.page-heading{padding:24px 22px 19px}.board-toolbar{padding:0 22px 16px}.canvas-meta{max-width:42%;line-height:1.5}.canvas-meta span{overflow-wrap:anywhere}}
+    @media(max-width:760px){.prototype-bar{padding:7px 14px;gap:8px;min-height:42px}.prototype-bar .prototype-detail{display:none}.prototype-bar strong{flex:1}.prototype-bar button{min-height:28px}.app{display:block;height:calc(100dvh - 42px);padding:7px;min-height:520px}.shell{height:100%;border-radius:10px}.sidebar{position:fixed;inset:0 auto 0 0;width:265px;max-width:85vw;z-index:100;background:var(--sn-ground);padding:12px 12px 24px;transform:translateX(-102%);transition:transform .18s ease}.mobile-open .sidebar{transform:translateX(0)}.mobile-open .backdrop{display:block;position:fixed;inset:0;background:var(--sn-overlay);z-index:99}.mobile-close{display:grid;margin-left:auto}.collapse .sidebar{display:flex}.collapse .app{padding:7px}.topbar{padding:7px 13px;min-height:54px;gap:9px}.topbar .sidebar-toggle{width:auto;gap:6px;padding:6px;border:1px solid var(--sn-border);min-height:36px}.mobile-label{display:inline;font-size:11px}.topbar .breadcrumb{gap:8px;font-size:10px}.topbar small{display:none}.page-heading{padding:20px 18px 17px;gap:12px;align-items:start}.page-heading h1{font-size:24px}.page-heading p{max-width:200px;font-size:11px}.page-heading .button{font-size:11px;padding:8px;min-height:40px;gap:5px}.page-heading .button svg{width:15px}.board-toolbar{padding:0 18px 14px;flex-wrap:wrap;gap:9px}.search{max-width:none;min-width:160px;min-height:40px}.count{font-size:10px}.toolbar-right{gap:4px}.toolbar-right>.button{font-size:11px;min-height:40px;padding:6px 9px}.toolbar-right>.button .arrange-label{display:none}.tool-mode button{width:36px;height:34px}.help-button{width:36px!important}.canvas-meta{bottom:70px;left:12px;max-width:250px;pointer-events:none}.canvas-meta svg{display:none}.zoom-controls{right:12px;bottom:14px}.zoom-controls button{min-width:38px;height:36px}.zoom-controls .zoom-value{min-width:52px}.sticky-header .drag-handle{min-height:33px}.note-more{width:36px;height:33px}.color-trigger{min-height:34px;padding:5px 7px}.resize-handle{width:30px;height:30px}.resize-handle svg{width:16px;height:16px}.note-menu{max-width:calc(100vw - 24px)}.color-option{min-height:66px}.menu-action{min-height:44px}.toast{left:50%;bottom:24px;width:max-content}.theme-label select{min-height:40px}.nav{min-height:44px}.help-list li{gap:14px}.help-list strong{width:85px}.button,.icon-button{min-height:36px}}
+    .sidebar .mobile-close{display:none}.color-dot{border-color:#73776d}
+    @media(max-width:760px){.sidebar .mobile-close{display:grid}.prototype-bar{height:54px;padding:4px 14px}.prototype-bar button{min-height:44px}.app{height:calc(100dvh - 54px)}.toast{bottom:82px}.sticky-header .drag-handle{min-height:44px}.note-more{width:44px;height:44px}.color-trigger{min-height:44px}.resize-handle{width:44px;height:44px}.note-footer time{padding-right:32px}.tool-mode button{width:44px;height:44px}.toolbar-right>.button,.page-heading .button{min-width:44px;min-height:44px}.help-button{width:44px!important;min-height:44px}.zoom-controls button{min-width:44px;height:44px}.theme-label select{min-height:44px}.topbar .sidebar-toggle{min-height:44px}.menu-heading button{width:44px;height:44px}.dialog-heading .icon-button,.dialog-footer .button{min-height:44px;min-width:44px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+    @keyframes note-enter{from{opacity:0;translate:0 8px}to{opacity:1;translate:0 0}}@media(prefers-reduced-motion:no-preference){.sticky.new{animation:note-enter .18s ease-out}}
+  </style>
+</head>
+<body>
+  <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v11h-6v-8H9v8H3z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M5.5 7v4M11.5 7v7M17.5 7v3"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M4 3h16v12l-6 6H4zM14 21v-6h6"/><path d="M8 8h8M8 12h5"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 11h18"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 5h7l2 3h9v13H3z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5zM14 3v6h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M9 4v16"/></symbol>
+    <symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12V5a1.5 1.5 0 0 1 3 0v6-7a1.5 1.5 0 0 1 3 0v7-5a1.5 1.5 0 0 1 3 0v6-3a1.5 1.5 0 0 1 3 0v6c0 5-3 7-6 7h-1c-2 0-4-1-5-3l-4-5a1.6 1.6 0 0 1 2-2z"/></symbol>
+    <symbol id="i-cursor" viewBox="0 0 24 24"><path d="m5 3 14 10-7 1-3 7z"/></symbol>
+    <symbol id="i-grip" viewBox="0 0 24 24"><path d="M8 5h.01M16 5h.01M8 12h.01M16 12h.01M8 19h.01M16 19h.01" stroke-width="3.5"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><path d="M5 12h.01M12 12h.01M19 12h.01" stroke-width="3"/></symbol>
+    <symbol id="i-resize" viewBox="0 0 24 24"><path d="m7 19 12-12M13 19l6-6M19 19h.01"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5"/><rect x="8" y="8" width="8" height="8" rx="1"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M16 8V3H3v13h5"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1.5.8-1.5 1.5-1.5 3M12 17h.01"/></symbol>
+    <symbol id="i-loader" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9"/></symbol>
+    <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H4v16h5M10 12h11m-4-4 4 4-4 4"/></symbol>
+  </defs></svg>
+  <a class="skip" href="#canvas">Langsung ke canvas</a>
+  <div class="prototype-bar"><strong>Mockup · Sticky notes</strong><span class="prototype-detail">Data contoh, hanya disimpan di browser ini.</span><button type="button" data-action="reset">Reset contoh</button></div>
+  <div class="app">
+    <div class="backdrop" data-action="sidebar-close"></div>
+    <aside class="sidebar" id="sidebar" aria-label="Navigasi workspace">
+      <div class="sidebar-header">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">R</span><div><strong>Ruangku</strong><small>Personal workspace</small></div><button class="icon-button mobile-close" data-action="sidebar-close" aria-label="Tutup menu"><svg><use href="#i-close"/></svg></button></div>
+        <button class="nav" style="width:100%" data-action="focus-search"><svg><use href="#i-search"/></svg>Cari catatan<kbd>Ctrl K</kbd></button>
+      </div>
+      <div class="side-scroll">
+        <a class="nav" href="https://itsazmi.com/mynotes/?view=today" target="_blank" rel="noopener noreferrer"><svg><use href="#i-calendar"/></svg>Hari ini</a>
+        <a class="nav" href="workspace-floating-redesign.html#home"><svg><use href="#i-home"/></svg>Workspace</a>
+        <a class="nav" href="workspace-floating-redesign.html#tasks"><svg><use href="#i-board"/></svg>Task board</a>
+        <a class="nav active" href="#canvas" aria-current="page"><svg><use href="#i-note"/></svg>Sticky notes</a>
+        <a class="nav" href="workspace-floating-redesign.html#recent"><svg><use href="#i-clock"/></svg>Terakhir dibuka</a>
+        <div class="side-label">Favorit</div><p class="side-note">Belum ada halaman favorit.</p>
+        <div class="side-label">Workspace <span>docs /</span></div>
+        <a class="nav side-folder" href="workspace-floating-redesign.html#folder"><svg><use href="#i-folder"/></svg>tempo-hospital</a>
+        <a class="nav side-folder" href="workspace-floating-redesign.html#home"><svg><use href="#i-folder"/></svg>notes</a>
+        <div class="side-label">Pengelolaan</div>
+        <a class="nav" href="workspace-floating-redesign.html#trash"><svg><use href="#i-trash"/></svg>Sampah</a>
+        <a class="nav" href="workspace-floating-redesign.html#templates"><svg><use href="#i-doc"/></svg>Template</a>
+        <a class="nav" href="workspace-floating-redesign.html#activity"><svg><use href="#i-clock"/></svg>Aktivitas</a>
+        <a class="nav" href="workspace-floating-redesign.html#security"><svg><use href="#i-lock"/></svg>Keamanan</a>
+        <a class="nav" href="workspace-floating-redesign.html#login"><svg><use href="#i-logout"/></svg>Keluar</a>
+      </div>
+      <div class="side-footer"><label class="theme-label" for="theme"><svg><use href="#i-theme"/></svg>Tampilan<select id="theme"><option value="light">Terang</option><option value="dark">Graphite</option></select></label></div>
+    </aside>
+    <main class="shell" id="main">
+      <header class="topbar"><button class="icon-button sidebar-toggle" data-action="sidebar-toggle" aria-label="Buka atau tutup sidebar" aria-controls="sidebar" aria-expanded="true"><svg><use href="#i-panel"/></svg><span class="mobile-label">Menu</span></button><div class="breadcrumb"><a href="workspace-floating-redesign.html#home">Workspace</a><span>/</span>Sticky notes</div><small>Workspace pribadi</small></header>
+      <div class="page-heading"><div><h1>Sticky notes</h1><p>Tuangkan ide. Susun sesuka hati.</p></div><button class="button primary" data-action="add"><svg><use href="#i-plus"/></svg>Catatan baru</button></div>
+      <div class="board-toolbar"><label class="search"><svg><use href="#i-search"/></svg><span class="sr-only">Cari catatan</span><input id="search" type="search" placeholder="Cari di canvas…" autocomplete="off"></label><span class="count" id="count" aria-live="polite">5 catatan</span><div class="toolbar-right"><div class="tool-mode" aria-label="Mode canvas"><button data-action="mode-select" aria-label="Pilih dan edit catatan" aria-pressed="true" title="Pilih catatan"><svg><use href="#i-cursor"/></svg></button><button data-action="mode-pan" aria-label="Geser canvas" aria-pressed="false" title="Geser canvas"><svg><use href="#i-hand"/></svg></button></div><button class="button quiet" data-action="arrange" title="Susun catatan dalam baris"><svg><use href="#i-board"/></svg><span class="arrange-label">Rapikan</span></button><button class="icon-button help-button" data-action="help" aria-label="Panduan canvas"><svg><use href="#i-help"/></svg></button></div></div>
+      <section class="canvas-wrap" aria-label="Canvas sticky notes">
+        <div class="viewport" id="canvas" tabindex="0" aria-label="Canvas. Gunakan Tab untuk memilih catatan atau tombol Geser canvas untuk menjelajah."><div class="canvas-space" id="canvas-space"><div class="board" id="board"></div></div></div>
+        <div class="canvas-status" id="canvas-status" role="status"><div><svg class="spinner"><use href="#i-loader"/></svg><h2>Memuat canvas contoh…</h2></div></div>
+        <div class="canvas-meta" id="canvas-hint"><svg><use href="#i-grip"/></svg><span>Geser dari pegangan · Klik isi untuk menulis</span></div>
+        <div class="zoom-controls" aria-label="Zoom canvas"><button data-action="zoom-out" aria-label="Perkecil canvas"><svg><use href="#i-minus"/></svg></button><button class="zoom-value" id="zoom-value" data-action="zoom-reset" title="Kembali ke 100%">100%</button><button data-action="zoom-in" aria-label="Perbesar canvas"><svg><use href="#i-plus"/></svg></button><button class="fit" data-action="fit" aria-label="Tampilkan semua catatan" title="Tampilkan semua"><svg><use href="#i-fit"/></svg></button></div>
+      </section>
+    </main>
+  </div>
+  <div class="note-menu" id="note-menu" role="dialog" aria-label="Pengaturan catatan" hidden></div>
+  <div class="toast" id="toast" role="status" hidden><span id="toast-message"></span><button data-action="undo" id="undo" hidden>Urungkan</button></div>
+  <dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><h2 id="help-title">Bekerja di canvas</h2><button class="icon-button" data-action="dialog-close" aria-label="Tutup panduan"><svg><use href="#i-close"/></svg></button></div><div class="dialog-body"><ul class="help-list"><li><strong>Tulis catatan</strong><span>Klik judul atau isi. Perubahan contoh tersimpan otomatis di browser.</span></li><li><strong>Pindahkan</strong><span>Drag pegangan di atas catatan. Dengan keyboard, fokuskan pegangan lalu gunakan tombol panah.</span></li><li><strong>Ubah warna</strong><span>Klik <b>Warna</b> di bawah catatan. Pilih salah satu dari enam warna.</span></li><li><strong>Ubah ukuran</strong><span>Tarik sudut kanan bawah. Fokuskan pegangan ukuran lalu gunakan tombol panah untuk keyboard.</span></li><li><strong>Jelajahi</strong><span>Pilih ikon tangan lalu drag canvas, atau gunakan scroll. Zoom dengan tombol <kbd>−</kbd> / <kbd>+</kbd>. Tampilkan semua untuk kembali ke kumpulan catatan.</span></li><li><strong>Aksi lainnya</strong><span>Menu <b>•••</b> menyediakan Duplikat dan Hapus. Penghapusan bisa diurungkan.</span></li></ul></div><div class="dialog-footer"><button class="button primary" data-action="dialog-close">Mengerti</button></div></dialog>
+  <dialog id="reset-dialog" aria-labelledby="reset-title"><div class="dialog-heading"><h2 id="reset-title">Kembalikan catatan contoh?</h2><button class="icon-button" data-action="dialog-close" aria-label="Tutup konfirmasi"><svg><use href="#i-close"/></svg></button></div><div class="dialog-body"><p>Isi, posisi, dan warna yang kamu ubah di mockup ini akan diganti dengan lima catatan awal. Data aplikasi tidak terpengaruh.</p></div><div class="dialog-footer"><button class="button" data-action="dialog-close">Batal</button><button class="button primary" data-action="reset-confirm">Reset contoh</button></div></dialog>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const esc = (value) => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const icon = (name) => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const palette = [
+      {id:'yellow',name:'Kuning',hex:'#fff0bb'}, {id:'sage',name:'Sage',hex:'#deecd9'},
+      {id:'rose',name:'Rose',hex:'#f6dfe1'}, {id:'blue',name:'Biru',hex:'#dceaf7'},
+      {id:'lilac',name:'Lilac',hex:'#e9e1f3'}, {id:'stone',name:'Stone',hex:'#eeece5'}
+    ];
+    const storageKey = 'mdpreview-sticky-notes-mockup-v1';
+    const samples = () => [
+      {id:'sample-1',title:'Ide yang mau dicoba',body:'Satu tempat untuk ide kecil yang belum perlu jadi task.\n\nTulis dulu di sini, susun belakangan.',color:'yellow',x:62,y:62,w:276,h:275},
+      {id:'sample-2',title:'Untuk meeting berikutnya',body:'Bahas alur approval yang baru.\n\nSiapkan contoh response dan catat keputusan setelah meeting.',color:'sage',x:389,y:128,w:280,h:268},
+      {id:'sample-3',title:'Jangan kelupaan',body:'Rapikan catatan setelah sesi selesai.\n\nYang sudah jelas tindak lanjutnya bisa dipindah ke task board.',color:'rose',x:733,y:58,w:270,h:255},
+      {id:'sample-4',title:'Sudut eksperimen',body:'Catatan singkat, potongan ide, atau hal yang baru kepikiran.\n\nBebas pindahkan kartu ini ke mana saja.',color:'blue',x:120,y:404,w:290,h:255},
+      {id:'sample-5',title:'Ruang kosong juga berguna',body:'Kelompokkan catatan yang saling berhubungan.\n\nCoba ganti warna lewat tombol di bawah.',color:'lilac',x:508,y:455,w:305,h:240}
+    ];
+    let notes = [], selected = null, menuId = null, menuAnchor = null, zoom = 1, pan = false, z = 1, pointer = null, undoState = null, toastTimer, saveTimer, initialized = false;
+    function notify(message, undo = null) {
+      clearTimeout(toastTimer); undoState = undo; $('toast-message').textContent = message; $('undo').hidden = !undo;
+      $('toast').hidden = false; toastTimer = setTimeout(() => {$('toast').hidden = true; undoState = null;}, undo ? 10000 : 3500);
+    }
+    function persist() {
+      try {localStorage.setItem(storageKey, JSON.stringify({notes,theme:document.documentElement.dataset.theme}));}
+      catch {notify('Browser tidak dapat menyimpan. Perubahan hanya bertahan selama halaman ini terbuka.');}
+    }
+    const queueSave = () => {clearTimeout(saveTimer); saveTimer = setTimeout(persist, 350);};
+    function isValid(data) {
+      return data && Array.isArray(data.notes) && data.notes.every(n => n && typeof n.id==='string' && typeof n.title==='string' && typeof n.body==='string' && palette.some(c=>c.id===n.color) && ['x','y','w','h'].every(k=>Number.isFinite(n[k])) && n.x>=0 && n.y>=0 && n.w>=240 && n.h>=210 && n.x+n.w<=2300 && n.y+n.h<=1550) && new Set(data.notes.map(n=>n.id)).size===data.notes.length;
+    }
+    function updateCount() {
+      const query = $('search').value.trim().toLocaleLowerCase();
+      let matches = 0;
+      for (const note of notes) {
+        const match = !query || `${note.title} ${note.body}`.toLocaleLowerCase().includes(query);
+        $('note-'+note.id)?.classList.toggle('matches',match); if(match) matches++;
+      }
+      $('board').classList.toggle('filtering',!!query);
+      $('count').textContent = query ? `${matches} dari ${notes.length} catatan` : `${notes.length} catatan`;
+      if (!notes.length) status('empty');
+      else if (!matches) status('no-match');
+      else $('canvas-status').hidden = true;
+      $('canvas-hint').hidden = !matches;
+    }
+    function status(kind) {
+      const states = {
+        empty: [icon('note'),'Canvas masih kosong','Mulai dengan satu ide. Catatan bisa dipindahkan dan diganti warnanya.','add','Catatan baru'],
+        'no-match': [icon('search'),'Catatan tidak ditemukan','Coba kata lain atau hapus pencarian untuk melihat seluruh canvas.','clear-search','Hapus pencarian'],
+        error: [icon('note'),'Canvas contoh tidak dapat dibuka','Data preview di browser tidak bisa dibaca. Mulai lagi dengan data contoh.','recover','Gunakan data contoh'],
+      };
+      const [symbol,title,body,action,label] = states[kind];
+      $('canvas-status').innerHTML = `<div>${symbol}<h2>${title}</h2><p>${body}</p><button class="button primary" data-action="${action}">${label}</button></div>`;
+      $('canvas-status').hidden = false;
+    }
+    function render(freshId) {
+      closeMenu(false);
+      $('board').innerHTML = notes.map(note => `<article class="sticky ${note.id===freshId?'new':''}" id="note-${esc(note.id)}" data-id="${esc(note.id)}" data-color="${esc(note.color)}" aria-label="${esc(note.title || 'Catatan tanpa judul')}" style="left:${note.x}px;top:${note.y}px;width:${note.w}px;height:${note.h}px"><header class="sticky-header"><button class="drag-handle" data-action="drag" title="Drag untuk memindahkan, atau gunakan tombol panah" aria-label="Pindahkan ${esc(note.title || 'catatan')}">${icon('grip')}<span>Catatan</span></button><button class="note-more" data-action="note-menu" aria-label="Opsi ${esc(note.title || 'catatan')}" aria-expanded="false" aria-controls="note-menu">${icon('more')}</button></header><input class="note-title" data-field="title" aria-label="Judul catatan" placeholder="Tanpa judul" maxlength="120" value="${esc(note.title)}"><textarea class="note-body" data-field="body" aria-label="Isi catatan" placeholder="Tulis sesuatu…" maxlength="10000" spellcheck="false">${esc(note.body)}</textarea><footer class="note-footer"><button class="color-trigger" data-action="note-menu" aria-label="Ganti warna ${esc(note.title || 'catatan')}" aria-expanded="false" aria-controls="note-menu"><span class="color-chip" aria-hidden="true"></span><span>Warna</span></button><time>${note.updated?'Diubah hari ini':'Catatan contoh'}</time></footer><button class="resize-handle" data-action="resize" aria-label="Ubah ukuran catatan dengan tombol panah" title="Tarik untuk mengubah ukuran">${icon('resize')}</button></article>`).join('');
+      if(selected) select(selected); updateCount();
+    }
+    function select(id) {
+      selected = id;
+      for(const element of $('board').children) element.classList.toggle('selected',element.dataset.id===id);
+      const element=$('note-'+id); if(element) element.style.zIndex=++z;
+    }
+    function closeMenu(focus = true) {
+      if(menuAnchor) menuAnchor.setAttribute('aria-expanded','false');
+      $('note-menu').hidden = true; menuId=null;
+      if(focus && menuAnchor?.isConnected) menuAnchor.focus();
+      menuAnchor=null;
+    }
+    function openMenu(id, anchor) {
+      if(menuId===id && menuAnchor===anchor) return closeMenu();
+      closeMenu(false); menuId=id; menuAnchor=anchor; select(id);
+      const note=notes.find(n=>n.id===id); if(!note) return;
+      anchor.setAttribute('aria-expanded','true');
+      $('note-menu').innerHTML = `<div class="menu-heading">Warna catatan<button data-action="menu-close" aria-label="Tutup pilihan warna">${icon('close')}</button></div><div class="color-options" aria-label="Pilihan warna">${palette.map(color=>`<button class="color-option" data-action="color" data-color="${color.id}" aria-pressed="${note.color===color.id}" aria-label="${color.name}"><span class="color-dot" style="background:${color.hex}">${note.color===color.id?icon('check'):''}</span>${color.name}</button>`).join('')}</div><div class="menu-divider"></div><button class="menu-action" data-action="duplicate">${icon('copy')}Duplikat catatan</button><button class="menu-action danger" data-action="delete">${icon('trash')}Hapus catatan</button>`;
+      $('note-menu').hidden=false;
+      const rect=anchor.getBoundingClientRect(), menu=$('note-menu');
+      menu.style.left=Math.max(12,Math.min(rect.left,innerWidth-menu.offsetWidth-12))+'px';
+      const top=rect.bottom+8+menu.offsetHeight<=innerHeight-12 ? rect.bottom+8 : rect.top-menu.offsetHeight-8;
+      menu.style.top=Math.max(12,Math.min(top,innerHeight-menu.offsetHeight-12))+'px';
+      menu.querySelector('.color-option[aria-pressed=true]').focus();
+    }
+    function ensureVisible(note) {
+      const view=$('canvas');
+      view.scrollTo({left:Math.max(0,note.x*zoom-40),top:Math.max(0,note.y*zoom-40),behavior:'auto'});
+    }
+    function add(copy) {
+      if(!initialized) return;
+      closeMenu(false); $('search').value='';
+      const view=$('canvas'), offset=(notes.length%3)*22;
+      const note=copy ? {...copy,id:crypto.randomUUID(),x:Math.min(2300-copy.w,copy.x+36),y:Math.min(1550-copy.h,copy.y+36),updated:true} : {id:crypto.randomUUID(),title:'',body:'',color:'yellow',x:Math.max(0,Math.min(2020,Math.round(view.scrollLeft/zoom+65+offset))),y:Math.max(0,Math.min(1290,Math.round(view.scrollTop/zoom+55+offset))),w:280,h:260,updated:true};
+      notes.push(note); selected=note.id; render(note.id); ensureVisible(note); persist();
+      $('note-'+note.id).querySelector('.note-title').focus({preventScroll:true});
+    }
+    function scale(value, center=true) {
+      const view=$('canvas'), previous=zoom;
+      const cx=(view.scrollLeft+view.clientWidth/2)/previous, cy=(view.scrollTop+view.clientHeight/2)/previous;
+      zoom=Math.max(.1,Math.min(1.5,value));
+      $('board').style.transform=`scale(${zoom})`;
+      $('canvas-space').style.width=2300*zoom+'px'; $('canvas-space').style.height=1550*zoom+'px';
+      $('zoom-value').textContent=Math.round(zoom*100)+'%';
+      document.querySelector('[data-action=zoom-out]').disabled=zoom<=.1;
+      document.querySelector('[data-action=zoom-in]').disabled=zoom>=1.5;
+      if(center){view.scrollLeft=cx*zoom-view.clientWidth/2;view.scrollTop=cy*zoom-view.clientHeight/2;}
+      closeMenu(false);
+    }
+    function fit() {
+      const query=$('search').value.trim().toLocaleLowerCase();
+      const visible=notes.filter(n=>!query || `${n.title} ${n.body}`.toLocaleLowerCase().includes(query));
+      if(!visible.length) return scale(1);
+      const minX=Math.min(...visible.map(n=>n.x)), minY=Math.min(...visible.map(n=>n.y));
+      const maxX=Math.max(...visible.map(n=>n.x+n.w)), maxY=Math.max(...visible.map(n=>n.y+n.h));
+      scale(Math.min(1,($('canvas').clientWidth-70)/(maxX-minX),($('canvas').clientHeight-100)/(maxY-minY)),false);
+      $('canvas').scrollTo({left:Math.max(0,minX*zoom-35),top:Math.max(0,minY*zoom-35),behavior:'auto'});
+    }
+    function setMode(value) {
+      pan=value; $('canvas').classList.toggle('pan-mode',pan);
+      document.querySelector('[data-action=mode-pan]').setAttribute('aria-pressed',String(pan));
+      document.querySelector('[data-action=mode-select]').setAttribute('aria-pressed',String(!pan));
+      $('canvas-hint').querySelector('span').textContent=pan?'Drag ruang kosong untuk menjelajahi canvas':'Geser dari pegangan · Klik isi untuk menulis';
+      closeMenu(false);
+    }
+    function sidebar(open) {
+      if(matchMedia('(max-width:760px)').matches){
+        document.body.classList.toggle('mobile-open',open); $('main').inert=open;
+        $('sidebar').inert=!open;
+        document.querySelector('.sidebar-toggle').setAttribute('aria-expanded',String(open));
+        if(open) document.querySelector('.mobile-close').focus();else document.querySelector('.sidebar-toggle').focus();
+      }else{
+        document.body.classList.toggle('collapse',!open);
+        document.querySelector('.sidebar-toggle').setAttribute('aria-expanded',String(open));
+      }
+    }
+    function recover() {
+      notes=samples(); selected=null; initialized=true; $('search').value=''; scale(1,false); $('canvas').scrollTo(0,0); render(); persist();
+    }
+    const actions = {
+      add:()=>add(), 'note-menu':(button)=>openMenu(button.closest('.sticky').dataset.id,button),
+      'menu-close':()=>closeMenu(),
+      color:(button)=>{const note=notes.find(n=>n.id===menuId); if(!note)return;note.color=button.dataset.color;note.updated=true;const id=note.id;closeMenu(false);render();persist();$('note-'+id).querySelector('.color-trigger').focus({preventScroll:true});notify('Warna catatan diubah.');},
+      duplicate:()=>{const note=notes.find(n=>n.id===menuId);if(note)add(note);},
+      delete:()=>{const index=notes.findIndex(n=>n.id===menuId);if(index<0)return;const note=notes[index];notes.splice(index,1);closeMenu(false);selected=null;render();persist();$('canvas').focus({preventScroll:true});notify('Catatan dihapus.',()=>{notes.splice(Math.min(index,notes.length),0,note);selected=note.id;$('search').value='';render();ensureVisible(note);persist();$('note-'+note.id).querySelector('.drag-handle').focus({preventScroll:true});});},
+      undo:()=>{const work=undoState;undoState=null;$('toast').hidden=true;if(work)work();},
+      'zoom-in':()=>scale(zoom+.1), 'zoom-out':()=>scale(zoom-.1),'zoom-reset':()=>scale(1),fit,
+      'mode-pan':()=>setMode(true),'mode-select':()=>setMode(false),
+      arrange:()=>{if(!notes.length || !initialized)return;const previous=notes.map(n=>({id:n.id,x:n.x,y:n.y}));let x=60,y=60,row=0;for(const n of notes){if(x+n.w>2240){x=60;y+=row+34;row=0;}if(y+n.h>1500){notify('Canvas penuh. Pindahkan beberapa catatan untuk merapikan sisanya.');break;}n.x=x;n.y=y;x+=n.w+34;row=Math.max(row,n.h);}render();fit();persist();notify('Posisi catatan dirapikan.',()=>{for(const p of previous){const n=notes.find(n=>n.id===p.id);if(n){n.x=p.x;n.y=p.y;}}render();fit();persist();});},
+      help:()=>$('help-dialog').showModal(),'dialog-close':(button)=>button.closest('dialog').close(),
+      reset:()=>$('reset-dialog').showModal(),'reset-confirm':()=>{$('reset-dialog').close();recover();notify('Catatan contoh dikembalikan.');},recover,
+      'clear-search':()=>{$('search').value='';updateCount();$('search').focus();},
+      'focus-search':()=>{if(document.body.classList.contains('mobile-open'))sidebar(false);$('search').focus();},
+      'sidebar-toggle':()=>sidebar(matchMedia('(max-width:760px)').matches?!document.body.classList.contains('mobile-open'):document.body.classList.contains('collapse')),
+      'sidebar-close':()=>sidebar(false)
+    };
+    document.addEventListener('click',event=>{const button=event.target.closest('[data-action]');if(button && actions[button.dataset.action])actions[button.dataset.action](button);});
+    document.addEventListener('pointerdown',event=>{
+      if(!$('note-menu').hidden && !$('note-menu').contains(event.target) && !event.target.closest('[data-action=note-menu]'))closeMenu(false);
+      const noteElement=event.target.closest('.sticky');
+      if(noteElement)select(noteElement.dataset.id);
+      const handle=event.target.closest('[data-action=drag],[data-action=resize]');
+      if(handle && event.button===0){
+        const note=notes.find(n=>n.id===noteElement.dataset.id);event.preventDefault();closeMenu(false);handle.focus({preventScroll:true});
+        pointer={type:handle.dataset.action,note,element:noteElement,target:handle,id:event.pointerId,sx:event.clientX,sy:event.clientY,x:note.x,y:note.y,w:note.w,h:note.h};handle.setPointerCapture(event.pointerId);noteElement.classList.add('dragging');
+      }else if(pan && event.button===0 && event.target.closest('#canvas') && !noteElement){
+        event.preventDefault();pointer={type:'pan',target:$('canvas'),id:event.pointerId,sx:event.clientX,sy:event.clientY,x:$('canvas').scrollLeft,y:$('canvas').scrollTop};$('canvas').setPointerCapture(event.pointerId);$('canvas').classList.add('panning');
+      }else if(!noteElement && event.target.closest('#canvas')){selected=null;for(const n of $('board').children)n.classList.remove('selected');}
+    });
+    document.addEventListener('pointermove',event=>{
+      if(!pointer || event.pointerId!==pointer.id)return;
+      const dx=event.clientX-pointer.sx,dy=event.clientY-pointer.sy,p=pointer;
+      if(p.type==='pan'){$('canvas').scrollLeft=p.x-dx;$('canvas').scrollTop=p.y-dy;return;}
+      if(p.type==='drag'){
+        p.note.x=Math.max(0,Math.min(2300-p.note.w,Math.round(p.x+dx/zoom)));p.note.y=Math.max(0,Math.min(1550-p.note.h,Math.round(p.y+dy/zoom)));
+        p.element.style.left=p.note.x+'px';p.element.style.top=p.note.y+'px';
+      }else{
+        p.note.w=Math.max(240,Math.min(700,2300-p.note.x,Math.round(p.w+dx/zoom)));p.note.h=Math.max(210,Math.min(800,1550-p.note.y,Math.round(p.h+dy/zoom)));
+        p.element.style.width=p.note.w+'px';p.element.style.height=p.note.h+'px';
+      }
+    });
+    function finishPointer(event){if(!pointer || event.pointerId!==pointer.id)return;const p=pointer;pointer=null;p.element?.classList.remove('dragging');$('canvas').classList.remove('panning');if(p.target.hasPointerCapture(event.pointerId))p.target.releasePointerCapture(event.pointerId);if(p.type!=='pan')persist();}
+    for(const type of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(type,finishPointer);
+    $('board').addEventListener('input',event=>{const field=event.target.dataset.field;if(!field)return;const note=notes.find(n=>n.id===event.target.closest('.sticky').dataset.id);if(!note)return;note[field]=event.target.value;note.updated=true;event.target.closest('.sticky').querySelector('time').textContent='Diubah hari ini';event.target.closest('.sticky').setAttribute('aria-label',note.title||'Catatan tanpa judul');queueSave();});
+    $('search').addEventListener('input',()=>{closeMenu(false);updateCount();const query=$('search').value.trim().toLocaleLowerCase();const match=notes.find(n=>`${n.title} ${n.body}`.toLocaleLowerCase().includes(query));if(query && match)ensureVisible(match);});
+    $('theme').addEventListener('change',event=>{document.documentElement.dataset.theme=event.target.value;if(initialized)persist();closeMenu(false);});
+    document.addEventListener('keydown',event=>{
+      if((event.ctrlKey || event.metaKey) && event.key.toLowerCase()==='k' && !document.querySelector('dialog[open]')){event.preventDefault();actions['focus-search']();return;}
+      if(document.body.classList.contains('mobile-open') && event.key==='Tab'){
+        const controls=[...$('sidebar').querySelectorAll('a,button,select')].filter(element=>element.getClientRects().length);
+        const index=controls.indexOf(document.activeElement);
+        if(event.shiftKey && index<=0){event.preventDefault();controls.at(-1).focus();}
+        else if(!event.shiftKey && (index===controls.length-1 || index<0)){event.preventDefault();controls[0].focus();}
+      }
+      if(event.key==='Escape'){
+        if(!$('note-menu').hidden){event.preventDefault();closeMenu();}
+        else if(document.body.classList.contains('mobile-open')){event.preventDefault();sidebar(false);}
+      }
+      if(!$('note-menu').hidden && $('note-menu').contains(event.target)){
+        const buttons=[...$('note-menu').querySelectorAll('button')];let index=buttons.indexOf(event.target);
+        if(['ArrowDown','ArrowRight','ArrowUp','ArrowLeft','Home','End','Tab'].includes(event.key)){
+          event.preventDefault();index=event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(['ArrowUp','ArrowLeft'].includes(event.key)||event.shiftKey?-1:1)+buttons.length)%buttons.length;buttons[index].focus();
+        }
+      }
+      const handle=event.target.closest('[data-action=drag],[data-action=resize]');
+      if(handle && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key)){
+        event.preventDefault();const note=notes.find(n=>n.id===handle.closest('.sticky').dataset.id),step=event.shiftKey?30:10;
+        const dx=event.key==='ArrowRight'?step:event.key==='ArrowLeft'?-step:0,dy=event.key==='ArrowDown'?step:event.key==='ArrowUp'?-step:0;
+        if(handle.dataset.action==='drag'){note.x=Math.max(0,Math.min(2300-note.w,note.x+dx));note.y=Math.max(0,Math.min(1550-note.h,note.y+dy));}
+        else{note.w=Math.max(240,Math.min(700,2300-note.x,note.w+dx));note.h=Math.max(210,Math.min(800,1550-note.y,note.h+dy));}
+        const element=handle.closest('.sticky');Object.assign(element.style,{left:note.x+'px',top:note.y+'px',width:note.w+'px',height:note.h+'px'});persist();
+      }
+    });
+    $('canvas').addEventListener('scroll',()=>closeMenu(false),{passive:true});
+    window.addEventListener('resize',()=>{
+      closeMenu(false);
+      if(!matchMedia('(max-width:760px)').matches){document.body.classList.remove('mobile-open');$('main').inert=false;$('sidebar').inert=false;}
+      else $('sidebar').inert=!document.body.classList.contains('mobile-open');
+      document.querySelector('.sidebar-toggle').setAttribute('aria-expanded',String(matchMedia('(max-width:760px)').matches?document.body.classList.contains('mobile-open'):!document.body.classList.contains('collapse')));
+    });
+    window.addEventListener('pagehide',()=>{if(initialized)persist();});
+    setTimeout(()=>{
+      try {
+        const stored=localStorage.getItem(storageKey);
+        if(stored){const data=JSON.parse(stored);if(!isValid(data))throw Error('invalid preview');notes=data.notes;if(['light','dark'].includes(data.theme))document.documentElement.dataset.theme=data.theme;}
+        else notes=samples();
+        initialized=true;$('theme').value=document.documentElement.dataset.theme;render();
+      }catch{status('error');}
+      document.querySelector('.sidebar-toggle').setAttribute('aria-expanded',String(!matchMedia('(max-width:760px)').matches));
+      $('sidebar').inert=matchMedia('(max-width:760px)').matches;
+    },220);
+  </script>
+</body>
+</html>
