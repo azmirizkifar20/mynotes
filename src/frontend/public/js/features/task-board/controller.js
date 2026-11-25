@@ -104,9 +104,9 @@ export function createFeature({ state, actions }) {
     const current = savedViews.find((item) => item.id === selectedView), changed = current && Object.keys(filters).some((key) => filters[key] !== (current.filters[key] || ""));
     $("board-view-dirty").hidden = !changed;
     $("board-save-view-button").hidden = !changed && !(!selectedView && Object.values(filters).some(Boolean));
-    const labels = { query: `Cari: ${filters.query}`, statusId: board.statuses.find((item) => item.id === filters.statusId)?.name, tagId: board.tags?.find((item) => item.id === filters.tagId)?.name, priority: { high: "Tinggi", normal: "Normal", low: "Rendah" }[filters.priority], dateFrom: `Deadline dari ${filters.dateFrom}`, dateTo: `Deadline sampai ${filters.dateTo}`, dateMode: filters.dateMode === "today" ? "Hari ini" : "Lewat deadline" };
+    const labels = { query: `Cari: ${filters.query}`, statusId: board.statuses.find((item) => item.id === filters.statusId)?.name, tagId: board.tags?.find((item) => item.id === filters.tagId)?.name, priority: { high: "Tinggi", normal: "Normal", low: "Rendah" }[filters.priority], dateFrom: `Periode dari ${filters.dateFrom}`, dateTo: `Periode sampai ${filters.dateTo}`, dateMode: filters.dateMode === "today" ? "Hari ini" : "Lewat deadline" };
     $("board-filter-chips").innerHTML = Object.entries(filters).filter(([, value]) => value).map(([key]) => `<button type="button" class="tb-filter-chip" data-action="removeBoardFilter" data-arg="${key}" aria-label="Hapus filter ${esc(labels[key] || key)}">${esc(labels[key] || key)}${icon("close")}</button>`).join("");
-    $("board-filter-error").textContent = filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo ? "Deadline sampai tidak boleh sebelum tanggal dari." : "";
+    $("board-filter-error").textContent = filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo ? "Periode sampai tidak boleh sebelum periode dari." : "";
     $("board-filters").querySelectorAll("[data-action=setBoardDateFilter]").forEach((button) => button.setAttribute("aria-pressed", String(filters.dateMode === button.dataset.arg)));
   }
   function toggleBoardFilters() {

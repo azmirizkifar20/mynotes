@@ -2,9 +2,21 @@ const assert = require('node:assert/strict');
 const { loadFrontend } = require('./helpers/frontend.cjs');
 
 (async () => {
-  const { timeline, view } = await loadFrontend({ timeline: 'features/task-board/timeline.js', view: 'features/task-board/view.js' });
+  const { timeline, view, filters } = await loadFrontend({ timeline: 'features/task-board/timeline.js', view: 'features/task-board/view.js', filters: 'features/task-board/filters.js' });
   const task = { id: 'one', title: '<Task>', number: '1', description: '', result: 'Only result search', startDate: '2026-11-20', due: '2026-11-25', priority: 'normal', statusId: 'doing' };
   const tasks = [task, { ...task, id: 'cross', startDate: '2026-10-30', due: '2026-12-02' }, { ...task, id: 'start', startDate: '2026-11-23', due: '' }, { ...task, id: 'end', startDate: '', due: '2026-11-24' }, { ...task, id: 'none', startDate: '', due: '' }, { ...task, id: 'outside', startDate: '2026-12-01', due: '2026-12-03' }];
+  const filterBoard = { tasks, statuses: [{ id: 'doing', completed: false }], documents: [], tags: [] };
+  const matching = overrides => filters.filterBoard(filterBoard, { ...filters.emptyFilters(), ...overrides }).tasks.map(item => item.id);
+  assert.deepEqual(matching({ dateFrom: '2026-11-23', dateTo: '2026-11-24' }), ['one', 'cross', 'start', 'end'], 'Filter matches overlapping ranges, including tasks whose deadline is outside the period');
+  assert.deepEqual(matching({ dateFrom: '2026-11-25', dateTo: '2026-11-25' }), ['one', 'cross'], 'Period boundaries are inclusive');
+  assert.deepEqual(matching({ dateFrom: '2026-12-03' }), ['outside'], 'Lower bound compares the task end');
+  assert.deepEqual(matching({ dateTo: '2026-11-23' }), ['one', 'cross', 'start'], 'Upper bound compares the task start');
+  assert.deepEqual(matching({ dateFrom: '2026-11-26', dateTo: '2026-11-20' }), [], 'Invalid periods have no results');
+  assert.equal(matching({}).length, tasks.length, 'Undated tasks remain visible without date filters');
+  const today = filters.todayDate();
+  const todayBoard = { ...filterBoard, tasks: [{ ...task, id: 'ongoing', startDate: '0001-01-01', due: '9999-12-31' }, { ...task, id: 'start-today', startDate: today, due: '' }, { ...task, id: 'end-today', startDate: '', due: today }, { ...task, id: 'undated', startDate: '', due: '' }] };
+  assert.deepEqual(filters.filterBoard(todayBoard, { ...filters.emptyFilters(), dateMode: 'today' }).tasks.map(item => item.id), ['ongoing', 'start-today', 'end-today'], 'Today includes ongoing and single-date tasks');
+  assert.deepEqual(filters.filterBoard({ ...filterBoard, tasks: [{ ...task, id: 'late', due: '0001-01-01', startDate: '' }, { ...task, id: 'finished', statusId: 'done', due: '0001-01-01' }], statuses: [...filterBoard.statuses, { id: 'done', completed: true }] }, { ...filters.emptyFilters(), dateMode: 'overdue' }).tasks.map(item => item.id), ['late'], 'Overdue still requires a past deadline and unfinished status');
   const model = timeline.weekModel(tasks, '2026-11-25');
   assert.equal(model.days, 7); assert.equal(model.first, '2026-11-23'); assert.equal(model.last, '2026-11-29');
   assert.equal(model.scheduled.length, 4); assert.equal(model.undated.length, 1);
