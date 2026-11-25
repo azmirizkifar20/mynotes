@@ -1,6 +1,6 @@
 # Ruangku
 
-Workspace Markdown dengan Express, EJS, JavaScript biasa, dan PostgreSQL. Tidak ada build frontend. Tampilan memakai Inter, tema terang/sistem, dan dark mode Graphite.
+Workspace pribadi dengan Express, PostgreSQL, dan migrasi bertahap ke TypeScript serta Vue 3. Build memakai Vite; shell EJS dan fitur JavaScript yang belum dimigrasikan tetap digunakan. Tampilan memakai Inter, tema terang/sistem, dan dark mode Graphite.
 
 ## Fitur
 
@@ -106,7 +106,7 @@ Saat dua perangkat mengubah papan bersamaan, revisi lama ditolak. Muat ulang pap
 - Tailscale aktif jika host DB menggunakan alamat jaringan Tailscale.
 
 Font Inter disertakan di `public/fonts/` dengan lisensi pada `OFL-Inter.txt`.
-Editor Vditor disajikan dari dependency npm di server yang sama, tanpa build frontend atau CDN pihak ketiga.
+Editor Vditor disajikan dari dependency npm di server yang sama, tanpa CDN pihak ketiga.
 
 ## Instalasi
 
@@ -171,6 +171,8 @@ Import berjalan dalam satu transaksi dan menolak database yang sudah berisi work
 ## Menjalankan
 
 ```sh
+npm ci
+npm run build
 npm start
 ```
 
@@ -181,6 +183,52 @@ npm run dev
 ```
 
 Nodemon mengabaikan `docs/`, `.data/`, dan `uploads/` agar sinkronisasi tidak memicu restart berulang. Setelah database sudah diimpor, salinan aplikasi lain cukup memakai lima credentials DB yang sama dan menjalankan aplikasi.
+
+### Migrasi Vue / TypeScript (bertahap)
+
+Backend composition, startup, dan HTTP Task board menggunakan TypeScript di
+`src/backend/application.ts`, `startup.ts`, dan `modules/task-board/http.ts`.
+Build menyalin modul JavaScript yang belum dimigrasikan serta schema SQL ke
+`dist/server`. Entry `server.js` tetap sama. Konfigurasi `.env`, mirror `docs/`,
+upload sementara, dan views selalu diambil dari root project, bukan `dist`.
+
+Vite membangun `src/frontend/main.ts` ke `dist/frontend`. Task board memakai
+komponen Vue di `src/frontend/features/task-board`; kontrak API ada di
+`src/shared/contracts`. Primitive shadcn-vue memakai Reka UI dan kelas visual
+existing. Tailwind memakai prefix `tw` tanpa preflight sehingga CSS existing
+tetap menjadi acuan tampilan. Manifest berisi URL relatif agar root dan
+`/mynotes/` menggunakan bundle yang sama.
+
+Shell EJS, drawer/editor task, controller mutasi, dokumen, sticky notes, dan
+halaman pengelolaan masih memakai JavaScript selama migrasi per halaman.
+`allowJs` hanya untuk kompatibilitas transisi; modul JavaScript belum mendapat
+pemeriksaan strict TypeScript. `dist/` tidak disimpan di git, sehingga build
+wajib dilakukan setelah memasang dependencies atau mengubah source.
+
+### Pemeriksaan lokal terisolasi
+
+```sh
+npm run build
+npm test
+npm run preview:fixture
+```
+
+Preview terakhir membuka fixture in-memory di `http://127.0.0.1:8030/?view=tasks`
+dan `/mynotes/?view=tasks`. Data contoh dapat diubah tanpa membaca `.env`, DB
+workspace, atau R2. Fixture hanya untuk lokal dan tidak didaftarkan pada server
+aplikasi. Login fixture tidak membuktikan verifikasi biometrik passkey.
+
+Untuk menjalankan seluruh pemeriksaan lama dengan database disposable lokal,
+set `POSTGRES_BIN` ke direktori binary PostgreSQL (`initdb`, `pg_ctl`, `postgres`),
+lalu jalankan `npm run test:legacy`. Runner membuat cluster baru yang
+hanya listen di loopback, memakai workspace salinan tanpa `.env`, membatasi
+koneksi test ke loopback, dan mematikan cluster setelah selesai. Jangan
+menjalankan pemeriksaan DB langsung terhadap `.env` workspace bersama.
+
+`npm run test:ui` menjalankan Chrome headless terhadap fixture lokal pada kedua
+mount, termasuk drag kartu, CRUD, konflik, retry, pergantian halaman, keyboard,
+tema, dan ukuran mobile. Set `CHROME_PATH` bila Chrome tidak terpasang di lokasi
+default Windows. Screenshot dan profile sementara berada di `.data/`.
 
 Listener default hanya `127.0.0.1`. `HOST` dapat diubah bila memang memerlukan interface lain; akses langsung jaringan harus dibatasi firewall. Di balik nginx setempat, pertahankan `HOST=127.0.0.1`. Aplikasi hanya mempercayai forwarded headers dari peer loopback, sesuai contoh nginx yang meneruskan ke loopback.
 
@@ -238,7 +286,9 @@ Library browser disajikan dari npm lokal pada `/static/passkeys/<version>/`; tid
 Pasang dependencies, isi `.env`, dan lakukan import pertama sebelum mengaktifkan versi baru:
 
 ```sh
-npm ci --omit=dev
+npm ci
+npm run build
+npm prune --omit=dev
 pm2 start server.js --name md-previewer
 pm2 save
 ```
@@ -246,7 +296,9 @@ pm2 save
 Untuk deployment berikutnya:
 
 ```sh
-npm ci --omit=dev
+npm ci
+npm run build
+npm prune --omit=dev
 pm2 restart md-previewer
 pm2 save
 ```
@@ -311,13 +363,13 @@ Gunakan `pg_dump --format=custom --no-owner --no-privileges` dengan client yang 
 | `tests/` | Pemeriksaan terisolasi dan helper import modul frontend |
 | `mockups/` | Referensi mockup HTML |
 
-Backend tetap CommonJS; frontend memakai ES Modules native tanpa build step. `main.js` menghubungkan state, modul fitur dan event delegation melalui `data-action`, tanpa fungsi aplikasi di `window` atau handler HTML inline. CSS dan modul JS disajikan melalui `/static/v/<hash>/`; import relatif mewarisi versi tersebut agar cache browser tidak mencampur modul dari deployment berbeda. Mount root dan `/mynotes/` memakai struktur aset yang sama.
+Backend dikompilasi ke CommonJS. Entry frontend `src/frontend/main.ts` menggabungkan Vue dan modul lama melalui Vite. `public/js/main.js` menghubungkan state, modul fitur dan event delegation melalui `data-action`, tanpa fungsi aplikasi di `window` atau handler HTML inline. Bundle disajikan melalui `/static/app/` dengan nama ber-hash; aset legacy tetap tersedia melalui `/static/v/<hash>/`. Mount root dan `/mynotes/` memakai struktur aset yang sama.
 
 `.env`, `docs/`, `uploads/` dan `.data/` tetap berada di root project. Pemindahan kode tidak mengubah nama tabel, URL API atau format data PostgreSQL.
 
 ## Kendala umum
 
-Pemeriksaan regresi terisolasi tersedia di `node tests/check-sharing.cjs`. Script membuat database sementara dengan nama acak, memeriksa storage/konflik/privacy/prefix dan konsumsi challenge/handoff melalui aplikasi terpisah, lalu menghapus database sementara itu. Role memerlukan `CREATEDB`; script tidak memakai dokumen workspace aktif. Pemeriksaan konfigurasi passkey tersedia di `node tests/check-passkey.cjs`. Pemeriksaan dialog tersedia di `node tests/check-delete-dialog.cjs` dan `node tests/check-upload-dialog.cjs`; keduanya memakai modul frontend dengan mock DOM. Script tidak menggantikan verifikasi passkey memakai perangkat nyata. Jalankan hanya ketika ingin melakukan pemeriksaan.
+Pemeriksaan regresi terisolasi dijalankan melalui `npm run test:legacy` setelah build dan penyiapan binary PostgreSQL lokal sesuai bagian pemeriksaan lokal. Runner membuat cluster loopback dan workspace sementara tanpa `.env`, lalu membersihkannya. Jangan menjalankan `tests/check-sharing.cjs` langsung dari workspace aktif; guard menolak eksekusi di luar fixture. Script tidak menggantikan verifikasi passkey memakai perangkat nyata. Jalankan hanya ketika ingin melakukan pemeriksaan.
 
 `tests/check-runtime-config.cjs` memeriksa penolakan secret lemah, listener dan trust proxy. `tests/check-passkey-flow.cjs` memakai authenticator software ES256 untuk pendaftaran, signature, origin/RP ID, UV, counter, bridge, expiry/replay, step-up dan recovery. Tes flow menulis credential dummy ke DB fixture: jalankan **hanya** pada container disposable tanpa jaringan eksternal, tanpa `.env` aktual, dengan PostgreSQL loopback di namespace yang sama. Guard mengharuskan `MDPREVIEW_TEST_ISOLATED=1`, `DB_HOST=127.0.0.1`, `DB_USER=fixture`, dan `DB_NAME=postgres`; flag ini bukan pengganti isolasi OS. Jangan gunakan credentials/database bersama. Mount source, dependencies dan toolchain read-only; sediakan scratch untuk DB/temp/log, environment aman serta batas resource dan waktu. Tes software tidak memeriksa prompt biometrik, sinkronisasi password manager atau interaksi popup browser nyata.
 

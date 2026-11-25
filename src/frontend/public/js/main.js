@@ -32,10 +32,12 @@ import { createFeature as createDocumentLinks } from "./features/document-links.
 import { createFeature as createInsertMenu } from "./features/editor/insert-menu.js";
 import { createFeature as createStickyNotes } from "./features/sticky-notes/controller.js";
 
+export function startWorkspace(boardRenderer) {
 const state = createState(
   JSON.parse(document.getElementById("bootstrap").textContent),
 );
 const actions = {};
+Object.assign(actions, boardRenderer);
 const context = { state, actions };
 Object.assign(actions, createApi(context));
 Object.assign(actions, createNavigation(context));
@@ -150,3 +152,4 @@ if (state.boot.mode === "workspace") {
 }
 if (state.boot.mode === "workspace" || state.boot.mode === "login")
   actions.initializeAuth();
+}

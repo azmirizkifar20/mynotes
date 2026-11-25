@@ -26,7 +26,7 @@ const { loadFrontend } = require('./helpers/frontend.cjs');
   assert.equal((compact.match(/<li/g) || []).length, 3, 'Two visible badges and one accessible overflow label');
   const shell = ui.shell();
   assert(shell.includes('id="board-settings"')); assert(shell.includes('role="tablist"'));
-  assert(shell.includes('<summary aria-label="Pengaturan task board">'), 'Settings retains an accessible name on mobile');
+  assert(/<summary[^>]*aria-label="Pengaturan task board"/.test(shell), 'Settings retains an accessible name on mobile');
   assert(!shell.includes('class="page-icon"'), 'Compact board header');
   const archive = ui.boardColumns(board, '', true).html;
   assert(archive.includes('tb-archive-row')); assert(archive.includes('restoreBoardTask'));

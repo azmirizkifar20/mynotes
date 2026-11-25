@@ -61,6 +61,7 @@ export function createFeature({ state, actions }) {
       }
       if ((state.stickyDirty || state.stickySaving) && !canLeave()) return false;
       actions.destroyStickyNotes();
+      actions.destroyTaskBoardView();
       actions.destroyLiveEditor();
       state.documentBuffer = null;
       state.current = id;

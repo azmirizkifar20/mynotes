@@ -50,6 +50,7 @@ async function main() {
     getBoundingClientRect: () => ({ top: 40, bottom: 70 }),
   });
   const headings = [200, 1000].map((top, index) => ({
+    closest: () => null,
     id: "section-" + index, textContent: "Heading " + index,
     getBoundingClientRect: () => ({ top: top - window.scrollY }), append() {},
   }));

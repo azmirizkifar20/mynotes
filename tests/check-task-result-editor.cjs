@@ -9,6 +9,7 @@ const { loadFrontend } = require('./helpers/frontend.cjs');
     return elements.get(id);
   };
   const actions = { $, escape: value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])), appUrl: p => '/mynotes' + p };
+  for (const field of ['description', 'result']) $('board-task-' + field).dispatchEvent = () => {};
   const state = { taskBoardDirty: false };
   const description = editor.createFeature({ state, actions });
   const result = editor.createFeature({ state, actions }, 'result');

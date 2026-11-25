@@ -185,6 +185,8 @@ async function main() {
   { const bytes=Buffer.alloc(attachments.limit,32);bytes.write('%PDF-1.7\n');
     const response=await fetch(origin+'/api/task-board/attachments/upload?'+new URLSearchParams({taskId,revision:board.revision}),{method:'POST',headers:{'X-Fixture-Auth':'1','Content-Type':'application/octet-stream','X-Upload-Filename':'exact-100.pdf'},body:bytes});assert.equal(response.status,200,'Exactly 100 MB is accepted');board=(await response.json()).board;assert.equal(board.tasks.find(t=>t.id===taskId).attachments.find(x=>x.filename==='exact-100.pdf').size,attachments.limit);
     const large=await fetch(origin+'/api/task-board/attachments/upload?'+new URLSearchParams({taskId,revision:board.revision}),{method:'POST',headers:{'X-Fixture-Auth':'1','Content-Type':'application/octet-stream','X-Upload-Filename':'too-large.pdf'},body:Buffer.alloc(attachments.limit+1,32)});assert.equal(large.status,413); }
+  // The response can arrive before the route's asynchronous finally cleanup.
+  for (let i = 0; i < 100 && fs.readdirSync(temp).length; i++) await new Promise(resolve => setTimeout(resolve, 20));
   assert.deepEqual(fs.readdirSync(temp),[],'Exact-limit uploads and oversize rejection leave no temporary files');
   const http=require('node:http');
   const interrupted=http.request(origin+'/api/task-board/attachments/upload?'+new URLSearchParams({taskId,revision:board.revision}),{method:'POST',headers:{'X-Fixture-Auth':'1','Content-Type':'application/octet-stream','X-Upload-Filename':'interrupted.pdf','Content-Length':attachments.limit}});

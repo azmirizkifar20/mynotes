@@ -13,5 +13,5 @@
   </script>
   <link rel="preload" href="<%= basePath %>/static/fonts/inter-variable.ttf" as="font" type="font/ttf" crossorigin>
   <% if (JSON.parse(bootstrap).mode === 'workspace') { %><link rel="stylesheet" href="<%= basePath %>/static/editor/<%= editorVersion %>/dist/index.css"><% } %>
-  <link rel="stylesheet" href="<%= basePath %>/static/v/<%= assetVersion %>/css/main.css">
+  <% for (const stylesheet of frontendAssets.styles) { %><link rel="stylesheet" href="<%= basePath %>/static/app/<%= stylesheet %>"><% } %>
 </head>

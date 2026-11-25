@@ -1,5 +1,9 @@
 const path = require("node:path");
-const root = path.resolve(__dirname, "../../..");
+const fs = require("node:fs");
+const sourceRoot = path.resolve(__dirname, "../../..");
+const root = fs.existsSync(path.join(sourceRoot, "package.json"))
+  ? sourceRoot
+  : path.resolve(__dirname, "../../../..");
 module.exports = {
   root,
   docs: path.join(root, "docs"),

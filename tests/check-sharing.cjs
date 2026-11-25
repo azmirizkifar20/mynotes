@@ -7,6 +7,11 @@ const { spawn, execFileSync } = require("node:child_process");
 const { once } = require("node:events");
 const { setTimeout: delay } = require("node:timers/promises");
 const { Client } = require("pg");
+assert.equal(process.env.MDPREVIEW_TEST_ISOLATED, "1", "Use npm run test:legacy; never load the shared .env");
+assert.equal(process.env.DB_HOST, "127.0.0.1");
+assert.equal(process.env.DB_USER, "fixture");
+assert.equal(process.env.DB_NAME, "postgres");
+assert(!fs.existsSync(path.join(__dirname, "../.env")));
 const config = require("../src/backend/database/config");
 const { loadFrontend } = require("./helpers/frontend.cjs");
 
@@ -71,7 +76,7 @@ async function main() {
       "management-content",
       "management-error",
       "tool-dialog",
-    ].map((id) => [id, { innerHTML: "", textContent: "", open: false }]),
+    ].map((id) => [id, { innerHTML: "", textContent: "", open: false, setAttribute() {} }]),
   );
   Object.assign(actions, {
     $: (id) => managementNodes[id],
@@ -284,7 +289,7 @@ async function main() {
 
   const appRoot = path.join(temporary, "app");
   fs.mkdirSync(appRoot);
-  for (const file of ["server.js", "src"])
+  for (const file of ["server.js", "src", "dist", "package.json"])
     fs.cpSync(path.join(root, file), path.join(appRoot, file), {
       recursive: true,
     });
@@ -399,8 +404,14 @@ async function main() {
     const publicPage = await (await fetch(base + prefix + "/Public.md")).text();
     assert.match(publicPage, /"mode":"public"/);
     assert.ok(publicPage.includes(prefix + "/static/v/"));
-    assert.ok(publicPage.includes("/css/main.css"));
-    assert.ok(publicPage.includes("/js/main.js"));
+    const assets = require('../dist/server/backend/rendering/frontend-assets').readFrontendAssets(root);
+    assert.ok(publicPage.includes(prefix + '/static/app/' + assets.styles[0]));
+    assert.ok(publicPage.includes(prefix + '/static/app/' + assets.entry));
+    const script = await fetch(base + prefix + '/static/app/' + assets.entry);
+    assert.equal(script.status, 200);
+    assert.match(script.headers.get('cache-control'), /immutable/);
+    assert.match(script.headers.get('content-type'), /javascript/);
+    assert.equal((await fetch(base + prefix + '/static/app/' + assets.styles[0])).status, 200);
     assert.match(publicPage, /media\?/);
     const privatePage = await (
       await fetch(base + prefix + "/Private.md")

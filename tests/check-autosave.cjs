@@ -36,7 +36,7 @@ async function main() {
         return elements.get(id);
       },
       documentContent: () => state.documentBuffer.content,
-      syncDocumentSave() {}, syncEditorLock() {}, dateLabel: (value) => value,
+      syncDocumentSave() {}, syncEditorLock() {}, animateStatus(node, message) { node.textContent = message; }, dateLabel: (value) => value,
       notify: (message) => notices.push(message), renderDoc() { mounts++; },
       async api(endpoint, body) {
         calls.push({ endpoint, ...body });

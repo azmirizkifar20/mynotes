@@ -27,19 +27,19 @@ export function createFeature({ state, actions }) {
   function paint() {
     if (state.current !== "tasks" || !$("board-columns") || !board) return;
     filters.query = $("board-search").value;
-    const query = filters.query.trim().toLocaleLowerCase(), filtered = filterBoard(board, filters);
+    const filtered = filterBoard(board, filters);
     const archivedView = boardView === "archive", timelineView = boardView === "timeline";
-    const result = timelineView ? view.boardTimeline(filtered, "", timelineWeek) : boardView === "list" ? view.boardList(filtered) : view.boardColumns(filtered, "", archivedView);
+    const result = { count: filtered.tasks.filter((task) => Boolean(task.archivedAt) === archivedView).length };
     const archivedCount = board.tasks.filter((task) => task.archivedAt).length;
     const total = archivedView ? archivedCount : board.tasks.length - archivedCount;
-    $("board-columns").innerHTML = result.html;
+    const filtering = Object.values(filters).some(Boolean);
+    actions.renderBoardContent($("board-columns"), { board: filtered, view: boardView, week: timelineWeek, filtering });
     $("board-columns").classList.toggle("tb-archive", archivedView);
     $("board-columns").classList.toggle("tb-timetable", timelineView);
     $("board-columns").classList.toggle("tb-list-view", boardView === "list");
     $("board-columns").setAttribute("aria-label", timelineView ? "Timeline jadwal task" : archivedView ? "Arsip task" : "Papan task menurut status");
     $("board-summary").textContent = `${board.tasks.length - archivedCount} task aktif · ${board.tasks.filter((task) => !task.archivedAt && board.statuses.find((status) => status.id === task.statusId)?.completed).length} selesai · ${archivedCount} diarsipkan`;
     $("board-archive-count").textContent = archivedCount;
-    const filtering = Object.values(filters).some(Boolean);
     $("board-count").textContent = `${result.count} dari ${total} task`;
     $("board-filter-count").textContent = Object.entries(filters).filter(([key, value]) => key !== "query" && value).length || "";
     renderFilterSummary();
@@ -47,8 +47,6 @@ export function createFeature({ state, actions }) {
     $("board-new-task").hidden = archivedView;
     $("board-view-hint").textContent = archivedView ? "Task arsip tetap menyimpan detail dan mention. Buka task untuk memulihkannya ke papan." : timelineView ? "Klik nama atau bar task untuk mengedit jadwal. Task dengan satu tanggal ditandai sebagai titik." : boardView === "list" ? "Ubah status atau tanggal langsung di tabel; setiap perubahan langsung disimpan. Klik judul untuk detail." : "Seret kartu untuk mengubah status, atau klik kartu untuk mengedit.";
     $("board-empty-search").hidden = !filtering || result.count > 0;
-    if (filtering && !result.count) $("board-columns").innerHTML = "";
-    if (!filtering && !result.count && (timelineView || boardView === "list")) $("board-columns").innerHTML = view.boardColumns(filtered, "").html;
     $("board-view-hint").hidden = !result.count;
     $("board-settings").inert = state.toolBusy;
     $("board-controls").querySelectorAll("button,input,select").forEach((control) => { control.disabled = state.toolBusy; });
@@ -67,11 +65,13 @@ export function createFeature({ state, actions }) {
     const navigation = state.navigationSequence;
     actions.trackOutline([]);
     board = null; timelineWeek = currentWeek();
+    actions.destroyTaskBoardView();
     $("main").innerHTML = view.shell();
     try { await fetchBoard(); const preferences = await taskDrafts.loadPreferences(); if (state.current === "tasks" && navigation === state.navigationSequence) { savedViews = preferences.views || []; viewsToken = preferences.viewsToken || null; renderFilters(); } }
     catch (error) {
       if (state.current !== "tasks" || navigation !== state.navigationSequence || !$("board-error")) return;
       $("board-summary").textContent = "Papan belum dapat dimuat";
+      actions.destroyTaskBoardView();
       $("board-columns").innerHTML = ""; $("board-error").textContent = error.message; $("board-retry").hidden = false;
     }
   }

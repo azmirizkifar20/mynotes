@@ -39,7 +39,7 @@ const { loadFrontend } = require('./helpers/frontend.cjs');
   assert.equal(result.count, 6); assert(!result.html.includes('data-arg="archive"')); assert(result.html.includes('&lt;Task&gt;'));
   assert.equal((result.html.match(/scope="col" class="/g) || []).length, 8, 'Seven date columns and task column');
   assert(result.html.includes('Minggu ini')); assert(result.html.includes('type="date"')); assert(!result.html.includes('type="month"'));
-  assert(result.html.includes('Belum dijadwalkan')); assert(result.html.includes('Mulai belum diisi')); assert(result.html.includes('Akhir belum diisi'));
+  assert(result.html.includes('Belum dijadwalkan')); assert(result.html.includes('Tanpa tanggal mulai')); assert(result.html.includes('Tanpa deadline'));
   assert(!result.html.includes('draggable="true"')); assert(result.html.includes('data-action="openBoardTask"'));
   assert.equal(ui.boardColumns(board, 'only result').count, 6, 'Board search includes results');
   assert.equal(ui.boardTimeline(board, 'missing', '2026-11-23').count, 0);

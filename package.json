@@ -5,7 +5,17 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon --ignore docs/ --ignore .data/ --ignore uploads/ server.js",
+    "dev": "nodemon --watch src --watch vite.config.mts --watch tsconfig.backend.json --watch tsconfig.frontend.json --ext js,ts,mts,vue,css,ejs,sql,json --exec \"npm run build && node server.js\"",
+    "build": "npm run typecheck && npm run build:backend && npm run build:frontend",
+    "build:backend": "node scripts/build-backend.cjs",
+    "build:frontend": "vite build",
+    "typecheck": "npm run typecheck:backend && npm run typecheck:frontend",
+    "typecheck:backend": "tsc -p tsconfig.backend.json --noEmit",
+    "typecheck:frontend": "vue-tsc -p tsconfig.frontend.json",
+    "test": "vitest run && node tests/check-vite-build.cjs",
+    "test:legacy": "node scripts/test-legacy.cjs",
+    "test:ui": "node tests/migration/browser.cjs",
+    "preview:fixture": "node tests/helpers/local-workspace.cjs",
     "db:setup": "node scripts/setup-database.js",
     "docs:sync": "node scripts/sync-docs.js",
     "auth:recover": "node scripts/recover-passkey.js",
@@ -18,6 +28,8 @@
     "@simplewebauthn/browser": "14.0.0",
     "@simplewebauthn/server": "14.1.0",
     "bcrypt": "5.1.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "connect-pg-simple": "^10.0.0",
     "crypto": "1.0.1",
     "dotenv": "16.4.7",
@@ -31,10 +43,28 @@
     "morgan": "1.10.0",
     "multer": "^2.2.0",
     "pg": "^8.23.1",
+    "reka-ui": "^2.11.0",
     "sanitize-html": "2.13.1",
-    "vditor": "4.0.1"
+    "tailwind-merge": "^3.7.1",
+    "vditor": "4.0.1",
+    "vue": "^3.5.46"
   },
   "devDependencies": {
-    "nodemon": "3.1.9"
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/ejs": "^3.1.5",
+    "@types/express": "^4.17.25",
+    "@types/express-session": "^1.19.0",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.10",
+    "@types/pg": "^8.23.1",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "jsdom": "^29.1.1",
+    "nodemon": "3.1.9",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1",
+    "vue-tsc": "^3.3.14"
   }
 }

@@ -12,6 +12,10 @@ body { font-size: 13px; line-height: 1.6; background: var(--sidebar); }
 .nav-item.active { color: var(--accent); background: var(--tint); }
 [data-theme=dark] .nav-item.active { color: var(--ink); background: var(--hover); }
 .nav-item kbd { font-size: 10px; border-color: var(--line); padding: 0 3px; }
+.sidebar-search.nav-item { min-height: 48px; margin-top: 4px; padding: 8px 10px; gap: 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); box-shadow: 0 2px 5px #00000008; }
+.sidebar-search.nav-item:hover { background: var(--inset); border-color: var(--border); }
+.sidebar-search svg { width: 28px; height: 28px; padding: 6px; border-radius: 6px; background: var(--inset); color: var(--muted); }
+.sidebar-search kbd { flex-shrink: 0; white-space: nowrap; }
 .nav-section { margin-top: 24px; }
 .section-label { padding: 0 10px 8px; font-size: 10px; font-weight: 550; }
 .tree-children { margin-left: 16px; padding-left: 7px; border-color: var(--line); }

@@ -42,6 +42,7 @@ async function main() {
     removeEventListener(type, callback) { if (this.click === callback) this.click = null; },
   };
   const headings = [100, 900, 1600].map((top) => ({
+    closest: () => null,
     getBoundingClientRect: () => ({ top: top - window.scrollY }),
   }));
   let links = headings.map((heading, index) => ({

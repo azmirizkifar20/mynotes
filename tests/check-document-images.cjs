@@ -38,7 +38,7 @@ async function main() {
   require("../src/backend/modules/documents/mirror").sync = async () => {};
   const express = require("express"), app = express(), router = express.Router(), api = express.Router();
   app.set("views", path.join(__dirname, "../src/frontend/views")); app.set("view engine", "ejs");
-  Object.assign(app.locals, { assetVersion: "fixture", editorVersion: "4.0.1", passkeyBrowserVersion: "14.0.0" });
+  Object.assign(app.locals, { assetVersion: "fixture", editorVersion: "4.0.1", passkeyBrowserVersion: "14.0.0", frontendAssets: require('../dist/server/backend/rendering/frontend-assets').readFrontendAssets(path.resolve(__dirname, '..')) });
   app.use("/mynotes", router); app.use(router); router.use(express.json());
   router.use((req,res,next) => { res.locals.basePath=req.baseUrl; req.session={authenticated:req.get("X-Fixture-Auth")==="1"}; next(); });
   router.use("/api",require("../src/backend/middleware/origin"));

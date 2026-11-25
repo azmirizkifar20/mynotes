@@ -10,7 +10,11 @@ async function main() {
   const page = security.createFeature({ state, actions });
   await page.renderPasskeys();
   const html = nodes["passkey-content"].innerHTML;
-  for (const content of ['data-action="reauthenticate"', 'data-submit="addPasskey"', 'data-submit="renamePasskey"', 'data-action="confirmRevokePasskey"', 'aria-labelledby="registered-passkeys-title"', '&lt;phone&gt;', 'Sesi ini']) assert.ok(html.includes(content), content);
+  for (const content of ['data-action="reauthenticate"', 'data-submit="addPasskey"', 'data-action="editPasskeyName"', 'data-action="confirmRevokePasskey"', 'aria-labelledby="add-passkey-title"', '&lt;phone&gt;', 'Sesi ini']) assert.ok(html.includes(content), content);
+  let renameForm;
+  actions.tool = (_title, form) => { renameForm = form; };
+  page.editPasskeyName('key');
+  assert.ok(renameForm.includes('data-submit="renamePasskey"'));
   state.basePath = "";
   global.location.origin = "https://mdpreview.azmirf.my.id";
   await page.renderPasskeys();
