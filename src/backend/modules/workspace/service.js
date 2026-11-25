@@ -28,7 +28,7 @@ function page(row, ids) {
 async function workspace() {
   const rows = (
     await query(
-      "SELECT id,path,kind,revision,modified,visibility FROM mdpreview.entries WHERE deleted_at IS NULL AND kind IN ('folder','doc','pdf') ORDER BY path",
+      "SELECT id,path,kind,revision,modified,visibility FROM mdpreview.entries WHERE deleted_at IS NULL AND kind IN ('folder','doc','pdf','image') ORDER BY path",
     )
   ).rows.filter((row) => !hiddenFromListing(row.path));
   const ids = new Map(rows.map((row) => [row.path, pageId(row)]));

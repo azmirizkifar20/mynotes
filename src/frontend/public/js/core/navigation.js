@@ -31,10 +31,14 @@ export function createFeature({ state, actions }) {
     historyMode = "push",
     completingMutation = false,
   ) {
+    const page = state.pages.find((p) => p.id === id);
+    if (page?.type === "image") {
+      window.open(actions.urlFor(page), "_blank", "noopener,noreferrer");
+      return true;
+    }
     if (!completingMutation && !canLeave()) return false;
     const pageChanged = id !== state.current || !actions.$("main").childElementCount;
     const previousDraft = actions.documentContent();
-    const page = state.pages.find((p) => p.id === id);
     if (!page && id !== "recent" && !Object.hasOwn(state.managementPages, id))
       return false;
     state.navigationPending++;

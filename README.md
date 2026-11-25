@@ -13,6 +13,7 @@ Pengembangan workspace pribadi terbaru: **Hari ini**, fokus harian maksimal tiga
 - Dokumen publik untuk guest memiliki daftar isi dari heading dokumen dengan penanda aktif saat klik/scroll. Sidebar tetap terlihat di desktop; pada layar kecil, daftar isi pindah ke atas dokumen. Dokumen tanpa heading memakai lebar baca penuh tanpa sidebar kosong.
 - Pencarian judul, path, dan isi dokumen dengan PostgreSQL full-text search.
 - Buat folder/dokumen, rename, pindahkan, unduh, dan upload Markdown dengan konfirmasi nama/isi.
+- Upload beberapa file sekaligus melalui drag & drop atau **Pilih file**: Markdown, PDF, PNG, JPEG, GIF, dan WebP, maksimal 5 MB per file. Dialog menyediakan daftar pilihan, pratinjau per file, ubah nama, dan keluarkan file sebelum **Upload semua**. Upload berjalan berurutan; retry melewati file yang sudah berhasil. Gambar folder disimpan privat di PostgreSQL sebagai `image`, ikut mirror `docs/`, muncul pada filter **Gambar**, dan dibuka di tab baru setelah login. Gambar yang disisipkan melalui editor tetap berupa `asset` dan tidak ikut daftar folder.
 - Upload PDF dengan pratinjau sebelum konfirmasi, viewer PDF, serta mention PDF di task board.
 - Klik judul file pada halaman dokumen untuk mengganti nama, lalu klik **Simpan nama**. Nama tidak mengikuti autosave isi dokumen; **Batal** atau Escape membatalkan. Klik di luar kolom tidak menyimpan. Rename mengubah URL path file; pengaturan akses dan link lama `/share/:id` tetap tersimpan.
 - Akses publik/privat, URL path asli, serta kompatibilitas link lama `/share/:id`.
@@ -32,7 +33,7 @@ Klik gambar di tab **Dokumen**, atur lebar lewat slider atau input piksel, lalu 
 
 ### Upload dan membaca PDF
 
-Drag & drop satu file `.pdf` ke halaman workspace atau pilih lewat upload file. Dialog menampilkan nama, folder tujuan, dan pratinjau PDF dari perangkat. Periksa atau ubah nama dengan ekstensi `.pdf`, lalu klik **Upload**. Menutup dialog membatalkan; file belum dikirim sebelum konfirmasi. Ukuran maksimal 5 MB dan nama yang sudah ada tidak ditimpa.
+Drag & drop satu atau beberapa file `.pdf` ke halaman workspace atau pilih lewat upload file. PDF dapat dicampur dengan Markdown dan gambar. Dialog menampilkan nama, folder tujuan, dan pratinjau per file dari perangkat. Periksa atau ubah nama dengan ekstensi `.pdf`, lalu klik **Upload** atau **Upload semua**. Menutup dialog sebelum konfirmasi membatalkan pilihan. Ukuran maksimal 5 MB per file dan nama yang sudah ada tidak ditimpa. Jika sebagian upload sudah berhasil, menutup dialog tidak menghapus file yang sudah tersimpan.
 
 PDF disimpan sebagai byte asli di PostgreSQL (`entries.kind='pdf'`, kolom `content`) dan dimaterialisasi ke `docs/`. File baru **privat**; pengaturan publik/privat, share path asli, favorit, terakhir dibuka, rename, pindah, dan Sampah berlaku juga untuk PDF. Klik file untuk membuka viewer; tersedia tautan buka tab baru dan unduh jika viewer browser tidak tampil. Endpoint `/media?document=<path>` selalu memeriksa akses terkini dan tidak menyimpan cache respons. Nginx mengizinkan frame dari origin yang sama hanya pada endpoint media; halaman aplikasi tetap memakai `X-Frame-Options: DENY`.
 

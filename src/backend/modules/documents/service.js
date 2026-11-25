@@ -150,6 +150,8 @@ async function move(from, to, ip) {
     const row = await get(from, client);
     if (row.kind === "asset")
       throw fail(400, "Hanya folder atau dokumen yang dapat dipindahkan.");
+    if (row.kind === "image" && path.posix.extname(from).toLowerCase().replace(".jpeg", ".jpg") !== path.posix.extname(to).toLowerCase().replace(".jpeg", ".jpg"))
+      throw fail(400, "Pertahankan ekstensi gambar saat mengganti nama.");
     if ((row.kind === "doc" && !/\.md$/i.test(to)) || (row.kind === "pdf" && !/\.pdf$/i.test(to)))
       throw fail(400, `Nama file harus berakhiran ${row.kind === "pdf" ? ".pdf" : ".md"}.`);
     const parent = await get(parentPath(to), client);

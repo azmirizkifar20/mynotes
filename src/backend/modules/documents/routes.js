@@ -143,11 +143,13 @@ module.exports = function register(api, { documentData, upload }) {
         )
           throw db.fail(400, "Nama file tidak valid.");
         const normalized = name.replace(/\.markdown$/i, ".md");
-        if (!/\.(md|markdown|pdf)$/i.test(req.file.originalname) || /\.pdf$/i.test(normalized) !== /\.pdf$/i.test(req.file.originalname))
-          throw db.fail(400, "Gunakan ekstensi yang sesuai dengan file Markdown atau PDF asal.");
+        const extension = value => path.posix.extname(value).toLowerCase().replace(".markdown", ".md").replace(".jpeg", ".jpg");
+        if (!/\.(md|markdown|pdf|png|jpe?g|gif|webp)$/i.test(req.file.originalname) || extension(normalized) !== extension(req.file.originalname))
+          throw db.fail(400, "Gunakan ekstensi yang sesuai dengan file Markdown, PDF, atau gambar asal.");
         const key = folder.path.replace(/\/$/, "") + "/" + normalized;
-        const pdf = /\.pdf$/i.test(normalized);
-        const row = await (pdf ? db.savePdf : db.save)(key, fs.readFileSync(req.file.path, pdf ? undefined : "utf8"), {
+        const markdown = /\.md$/i.test(normalized);
+        const save = markdown ? db.save : /\.pdf$/i.test(normalized) ? db.savePdf : require("./images").saveWorkspaceImage;
+        const row = await save(key, fs.readFileSync(req.file.path, markdown ? "utf8" : undefined), {
           create: true,
           ip: req.ip,
         });

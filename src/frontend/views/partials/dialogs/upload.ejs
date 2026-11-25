@@ -4,6 +4,7 @@
       <div class="dialog-body">
         <p id="upload-description" class="upload-description">Periksa nama dan isi file. File baru akan disimpan sebagai privat setelah kamu klik Upload.</p>
         <div class="upload-meta"><span>Folder tujuan</span><strong id="upload-target"></strong><small id="upload-size"></small></div>
+        <div id="upload-files" class="upload-file-list" role="group" aria-label="File pilihan. Pilih file untuk meninjau nama dan isinya."></div>
         <label class="field-label" for="upload-name">Nama file</label><input class="text-input" id="upload-name" required autocomplete="off" spellcheck="false" aria-describedby="upload-name-hint"><p class="edit-hint" id="upload-name-hint">Gunakan ekstensi .md. File dengan nama yang sama tidak akan ditimpa.</p>
         <label class="field-label" id="upload-content-label" for="upload-content">Isi file</label><textarea id="upload-content" class="upload-content" readonly spellcheck="false" aria-describedby="upload-status"></textarea><div id="upload-pdf-preview" hidden></div><p id="upload-status" class="edit-hint" role="status"></p>
         <p id="upload-draft" class="delete-warning" hidden>Setelah upload berhasil, kamu akan kembali ke folder tujuan. Perubahan dokumen yang belum disimpan akan dibuang. Pilih Batal untuk menyimpannya terlebih dahulu.</p>

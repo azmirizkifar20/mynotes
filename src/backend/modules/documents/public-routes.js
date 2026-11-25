@@ -39,7 +39,7 @@ routes.get(
     try { image = await db.get(req.query.file); } catch { return res.sendStatus(404); }
     if (
       document.kind !== "doc" ||
-      image.kind !== "asset" ||
+      !["asset", "image"].includes(image.kind) ||
       !/\.(png|jpe?g|gif|webp|avif)$/i.test(image.path) ||
       (!req.session?.authenticated && document.visibility !== "public")
     )
@@ -125,7 +125,7 @@ routes.get(
         },
       });
     }
-    if (row.kind === "asset") {
+    if (["asset", "image"].includes(row.kind)) {
       if (!/\.(png|jpe?g|gif|webp|avif)$/i.test(row.path))
         return res.sendStatus(404);
       res.set({ "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });

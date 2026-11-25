@@ -63,6 +63,8 @@ export function bindActions({ state, actions }) {
       "openSearch",
       "openCreate",
       "chooseDocumentUpload",
+      "selectUploadFile",
+      "removeUploadFile",
       "deleteItem",
       "moveDocument",
       "setEditing",

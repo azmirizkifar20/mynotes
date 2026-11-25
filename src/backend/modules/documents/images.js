@@ -3,7 +3,7 @@ const path = require("node:path");
 const { transaction, fail } = require("../../database/connection");
 const { audit } = require("../../database/audit");
 const { get } = require("./service");
-const { validPath } = require("./paths");
+const { validPath, parentPath } = require("./paths");
 
 function imageType(bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length < 14 || bytes.length > 5 * 1024 * 1024) return null;
@@ -31,4 +31,21 @@ async function saveImage(documentPath, bytes, ip) {
     return { path: key, filename };
   });
 }
-module.exports = { imageType, saveImage };
+async function saveWorkspaceImage(key, bytes, options = {}) {
+  const type = imageType(bytes);
+  const extension = typeof key === "string" ? path.posix.extname(key).toLowerCase().replace(".jpeg", ".jpg") : "";
+  if (!validPath(key) || !type || extension !== "." + type)
+    throw fail(400, "Gunakan gambar PNG, JPEG, GIF, atau WebP yang valid, maksimal 5 MB, dengan ekstensi yang sesuai.");
+  return transaction(async client => {
+    const folder = await get(parentPath(key), client);
+    if (folder.kind !== "folder") throw fail(400, "Folder tujuan tidak valid.");
+    key = folder.path.replace(/\/$/, "") + "/" + path.posix.basename(key);
+    const row = (await client.query(
+      "INSERT INTO mdpreview.entries(id,path,kind,content,visibility,search_vector) VALUES($1,$2,'image',$3,'private',to_tsvector('simple',$2)) RETURNING *",
+      [randomUUID(), key, bytes],
+    )).rows[0];
+    await audit("IMAGE_UPLOAD", key, options.ip, client);
+    return row;
+  });
+}
+module.exports = { imageType, saveImage, saveWorkspaceImage };

@@ -18,10 +18,10 @@
   <%- include('partials/dialogs/visitor') %>
   <%- include('partials/dialogs/manage') %>
   <%- include('partials/dialogs/delete') %>
-  <div id="file-drop-zone" class="file-drop-zone" role="status" hidden><div class="file-drop-card"><svg aria-hidden="true"><use href="#i-upload"/></svg><strong>Lepaskan file di sini</strong><span id="file-drop-target"></span><small>Markdown/PDF: tinjau sebelum upload. Gambar pada halaman Markdown: langsung diupload dan disisipkan. Satu file, maksimal 5 MB.</small></div></div>
+  <div id="file-drop-zone" class="file-drop-zone" role="status" hidden><div class="file-drop-card"><svg aria-hidden="true"><use href="#i-upload"/></svg><strong>Lepaskan file di sini</strong><span id="file-drop-target"></span><small>Pilih beberapa Markdown, PDF, atau gambar untuk ditinjau sebelum upload. Maksimal 5 MB per file. Satu gambar pada editor Markdown tetap langsung disisipkan.</small></div></div>
   <%- include('partials/dialogs/upload') %>
   <%- include('partials/dialogs/auth') %>
-  <input id="upload-input" type="file" accept=".md,.markdown,.pdf,text/markdown,text/plain,application/pdf" hidden>
+  <input id="upload-input" type="file" accept=".md,.markdown,.pdf,.png,.jpg,.jpeg,.gif,.webp,text/markdown,text/plain,application/pdf,image/png,image/jpeg,image/gif,image/webp" multiple hidden>
   <%- include('partials/dialogs/tool') %>
   <%- include('partials/dialogs/task-board') %>
   <div class="toast" id="toast" role="status" hidden></div>

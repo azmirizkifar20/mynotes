@@ -8,6 +8,7 @@ function setup() {
       "file-drop-target",
       "upload-dialog",
       "upload-form",
+      "upload-files",
       "upload-name",
       "upload-content",
       "upload-content-label",
@@ -195,7 +196,7 @@ async function main() {
     throw new Error("Nama sama sudah ada");
   };
   await check.submit();
-  assert.equal(check.ui["upload-error"].textContent, "Nama sama sudah ada");
+  assert(check.ui["upload-error"].textContent.includes("Nama sama sudah ada"));
   assert(check.ui["upload-dialog"].open);
   assert(!check.context.saving);
   assert(!check.ui["confirm-upload"].disabled);
@@ -220,6 +221,8 @@ async function main() {
   check.events.dragleave();
   assert(check.ui["file-drop-zone"].hidden);
   let image;
+  check.context.current = "document";
+  check.context.pages.push({ id: "document", type: "doc", path: "/project/note.md" });
   check.context.uploadDocumentImage = (value) => { image = value; };
   const picture = file("picture.png");
   check.events.drop(drop([picture]));
@@ -228,7 +231,8 @@ async function main() {
   check.events.drop(drop([file("wrong.txt")]));
   assert(!check.ui["upload-dialog"].open);
   check.events.drop(drop([file(), file()]));
-  assert(!check.ui["upload-dialog"].open);
+  assert(check.ui["upload-dialog"].open);
+  check.context.closeUploadDialog();
   check.events.drop({
     ...drop([file()]),
     dataTransfer: {

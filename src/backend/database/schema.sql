@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS mdpreview.settings (
 CREATE TABLE IF NOT EXISTS mdpreview.entries (
   id uuid PRIMARY KEY,
   path text NOT NULL,
-  kind text NOT NULL CHECK (kind IN ('folder','doc','asset','pdf')),
+  kind text NOT NULL CHECK (kind IN ('folder','doc','asset','pdf','image')),
   content bytea,
   visibility text NOT NULL DEFAULT 'private' CHECK (visibility IN ('public','private')),
   share_id text UNIQUE,
@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS mdpreview.entries (
   search_vector tsvector NOT NULL DEFAULT ''::tsvector
 );
 DO $$ BEGIN
-  IF position('''pdf''' in pg_get_constraintdef((SELECT oid FROM pg_constraint WHERE conrelid='mdpreview.entries'::regclass AND conname='entries_kind_check'))) = 0 THEN
+  IF position('''image''' in pg_get_constraintdef((SELECT oid FROM pg_constraint WHERE conrelid='mdpreview.entries'::regclass AND conname='entries_kind_check'))) = 0 THEN
     ALTER TABLE mdpreview.entries DROP CONSTRAINT entries_kind_check;
-    ALTER TABLE mdpreview.entries ADD CONSTRAINT entries_kind_check CHECK (kind IN ('folder','doc','asset','pdf'));
+    ALTER TABLE mdpreview.entries ADD CONSTRAINT entries_kind_check CHECK (kind IN ('folder','doc','asset','pdf','image'));
   END IF;
 END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS entries_active_path ON mdpreview.entries (lower(path)) WHERE deleted_at IS NULL;

@@ -63,9 +63,10 @@ export function createFeature({ state, actions }) {
         <button class="tab ${state.filter === "folder" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "folder"}" data-action="setFilter" data-arg="folder">Folder</button>
         <button class="tab ${state.filter === "doc" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "doc"}" data-action="setFilter" data-arg="doc">Markdown</button>
         <button class="tab ${state.filter === "pdf" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "pdf"}" data-action="setFilter" data-arg="pdf">PDF</button>
+        <button class="tab ${state.filter === "image" ? "selected" : ""}" role="tab" aria-selected="${state.filter === "image"}" data-action="setFilter" data-arg="image">Gambar</button>
       </div><div class="library-actions"><button class="small-button" data-action="openSearch">${actions.icon("search")}Cari</button><button class="small-button" data-action="openCreate" data-arg="folder">${actions.icon("folder")}Folder</button></div></div>
       <div class="table-wrap"><table><thead><tr><th>Nama</th><th class="access-column">Akses</th><th class="date-column">Diperbarui</th><th class="action-column"><span class="sr-only">Aksi file</span></th></tr></thead><tbody id="entries"></tbody></table></div>
-    </section><aside class="workspace-upload">${actions.icon("upload")}<div><strong>Tambahkan dokumen ke workspace</strong>Seret file .md atau PDF ke halaman ini.</div><button class="small-button" data-action="chooseDocumentUpload">Pilih file</button></aside><p class="workspace-note">Dokumen baru bersifat privat. Atur akses melalui Bagikan.</p>`;
+    </section><aside class="workspace-upload">${actions.icon("upload")}<div><strong>Tambahkan file ke workspace</strong>Seret beberapa Markdown, PDF, atau gambar ke halaman ini.</div><button class="small-button" data-action="chooseDocumentUpload">Pilih file</button></aside><p class="workspace-note">File baru bersifat privat. Akses Markdown/PDF dapat diatur melalui Bagikan.</p>`;
     renderEntries();
     actions.$("outline").innerHTML = "";
     actions.trackOutline([]);
@@ -87,10 +88,10 @@ export function createFeature({ state, actions }) {
       ? items
           .map(
             (p) => `<tr>
-      <td><button class="entry" data-action="navigate" data-arg="${p.id}">${actions.icon(p.type === "folder" ? "folder" : "doc", p.type === "folder" ? "folder-icon" : "")}<span>${actions.escape(p.title)}<small>${p.type === "folder" ? "Koleksi dokumen" : p.type === "pdf" ? "Dokumen PDF" : "Markdown"}</small></span></button></td>
+      <td><button class="entry" data-action="navigate" data-arg="${p.id}">${actions.icon(p.type === "folder" ? "folder" : "doc", p.type === "folder" ? "folder-icon" : "")}<span>${actions.escape(p.title)}<small>${p.type === "folder" ? "Koleksi dokumen" : p.type === "pdf" ? "Dokumen PDF" : p.type === "image" ? "Gambar · buka tab baru" : "Markdown"}</small></span></button></td>
       <td class="access-column">${p.type !== "folder" ? `<span class="file-access ${p.visibility === "public" ? "public-access" : ""}">${actions.accessLabel(p)}</span>` : '<span class="subtle">Folder</span>'}</td>
       <td class="date-column">${actions.escape(actions.dateLabel(p.modified))}</td>
-      <td class="action-column">${p.type !== "folder" ? `<div class="row-actions"><button class="small-button row-share" data-action="openShare" data-arg="${p.id}" aria-label="Bagikan ${actions.escape(p.title)}" title="Bagikan file">${actions.icon("share")}<span>Bagikan</span></button><button class="small-button row-delete" data-action="deleteItem" data-arg="${p.id}" aria-label="Hapus ${actions.escape(p.title)}" title="Hapus file">${actions.icon("trash")}<span>Hapus</span></button></div>` : ""}</td>
+      <td class="action-column">${p.type !== "folder" ? `<div class="row-actions">${p.type === "image" ? "" : `<button class="small-button row-share" data-action="openShare" data-arg="${p.id}" aria-label="Bagikan ${actions.escape(p.title)}" title="Bagikan file">${actions.icon("share")}<span>Bagikan</span></button>`}<button class="small-button row-delete" data-action="deleteItem" data-arg="${p.id}" aria-label="Hapus ${actions.escape(p.title)}" title="Hapus file">${actions.icon("trash")}<span>Hapus</span></button></div>` : ""}</td>
     </tr>`,
           )
           .join("")

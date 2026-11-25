@@ -93,11 +93,9 @@ actions
 actions.$("search-input").addEventListener("input", actions.scheduleSearch);
 actions
   .$("upload-name")
-  .addEventListener("input", () =>
-    actions.$("upload-name").setCustomValidity(""),
-  );
+  .addEventListener("input", actions.updateUploadName);
 actions.$("upload-input").addEventListener("change", (event) => {
-  actions.openUploadPreview(event.target.files[0]);
+  actions.openUploadPreview(event.target.files);
   event.target.value = "";
 });
 document.addEventListener("keydown", (event) => {
