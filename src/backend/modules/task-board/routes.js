@@ -1,8 +1,15 @@
 const { asyncRoute } = require("../../rendering/http");
 const board = require("./service");
 const preferences = require("./preferences");
+const today = require("./today");
 
 module.exports = function register(api) {
+  api.get("/today", asyncRoute(async (req, res) =>
+    res.json({ success: true, today: await today.list() }),
+  ));
+  api.post("/today", asyncRoute(async (req, res) =>
+    res.json({ success: true, today: await today.save(req.body, req.ip) }),
+  ));
   api.get("/task-board/documents/:id/open", asyncRoute(async (req, res) => {
     const path = await board.mentionedDocument(req.params.id);
     res.redirect(302, req.baseUrl.replace(/\/api$/, "") + path.split("/").map(encodeURIComponent).join("/"));

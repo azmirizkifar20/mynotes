@@ -47,7 +47,7 @@ export function createFeature({ state, actions, getBoard, setBoard, getTaskId, i
     }, "Lampiran dihapus.", true));
   }
   function validation(files) {
-    return files.length + (task()?.attachments?.length || 0) > 10 ? "Maksimal 10 lampiran per task." : files.some((file) => !file.size || file.size > 50 * 1024 * 1024) ? "Pilih file berisi data, maksimal 50 MB per file." : files.some((file) => !extensions.test(file.name)) ? "Ada format file yang tidak didukung. Periksa daftar format lampiran." : "";
+    return files.length + (task()?.attachments?.length || 0) > 10 ? "Maksimal 10 lampiran per task." : files.some((file) => !file.size || file.size > 100 * 1024 * 1024) ? "Pilih file berisi data, maksimal 100 MB per file." : files.some((file) => !extensions.test(file.name)) ? "Ada format file yang tidak didukung. Periksa daftar format lampiran." : "";
   }
   function pendingList() {
     $("board-confirm-files").innerHTML = (pending?.files || []).map((file) => `<li><span>${esc(file.name)}</span><small>${size(file.size)}</small></li>`).join("");
@@ -64,10 +64,10 @@ export function createFeature({ state, actions, getBoard, setBoard, getTaskId, i
       while (pending.files.length) {
         const file = pending.files[0];
         $("board-confirm-progress").textContent = `Mengupload ${uploaded + 1}/${count}: ${file.name}`;
-        const form = new FormData();
-        form.append("taskId", pending.taskId); form.append("revision", getBoard().revision); form.append("filename", file.name); form.append("file", file);
+        // A raw file body leaves the full 100 MB available under Cloudflare's request limit.
+        const query = new URLSearchParams({ taskId: pending.taskId, revision: getBoard().revision });
         try {
-          setBoard((await actions.api("task-board/attachments/upload", form)).board);
+          setBoard((await actions.api("task-board/attachments/upload?" + query, file)).board);
           pending.files.shift(); uploaded++; pendingList();
         } catch (error) { error.message = `${file.name}: ${error.message} ${uploaded ? `${uploaded} lampiran sebelumnya sudah tersimpan. ` : ""}Daftar hanya memuat file yang belum berhasil diupload.`; throw error; }
       }

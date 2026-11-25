@@ -3,6 +3,12 @@ export function createFeature({ state, actions }) {
     const options =
       body instanceof FormData
         ? { method: "POST", body }
+        : body instanceof Blob
+          ? {
+              method: "POST",
+              headers: { "Content-Type": "application/octet-stream", "X-Upload-Filename": encodeURIComponent(body.name || "") },
+              body,
+            }
         : body === undefined
           ? {}
           : {

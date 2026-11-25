@@ -11,7 +11,7 @@ export function createFeature({ state, actions, getBody, applyBody, getKey, getR
   function status(message, session = active) {
     if (session !== active) return;
     const element = $("board-draft-status");
-    if (element) element.textContent = message;
+    actions.animateStatus(element, message);
   }
   function stopTimer() { clearTimeout(timer); timer = null; }
   function snapshot(session) { return { ...structuredClone(getBody()), revision: session.revision }; }

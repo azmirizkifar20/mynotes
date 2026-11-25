@@ -42,12 +42,14 @@ export function createFeature({ state, actions }) {
       !state.draftState.conflict;
     if (state.liveEditorReady)
       enabled ? state.liveEditor.enable() : state.liveEditor.disabled();
+    if (!enabled) actions.closeDocumentMenu?.();
     if (actions.$("markdown-editor"))
       actions.$("markdown-editor").readOnly = !enabled;
     syncDocumentSave();
   }
 
   function destroyLiveEditor() {
+    actions.destroyDocumentMenu?.();
     actions.hideDocumentSelection?.();
     globalThis.CSS?.highlights?.delete("markdown-underline");
     actions.trackOutline([]);
@@ -119,10 +121,12 @@ export function createFeature({ state, actions }) {
             syncEditorLock();
             refreshLiveOutline();
             actions.scrollToHash();
+            actions.mountDocumentMenu?.();
           }),
       });
       state.liveEditor = instance;
       element.addEventListener("keydown", (event) => {
+        if (actions.handleDocumentMenuKey?.(event)) return;
         if (
           generation !== state.liveEditorGeneration ||
           !state.liveEditorReady ||
@@ -215,6 +219,7 @@ export function createFeature({ state, actions }) {
   function refreshLiveOutline() {
     if (!state.liveEditorReady || !actions.$("live-editor")) return;
     actions.decorateEditorImages?.();
+    actions.decorateDocumentLinks?.();
     decorateUnderline(actions.$("live-editor"));
     actions.$("outline").innerHTML =
       '<div class="outline-title">DI HALAMAN INI</div>';

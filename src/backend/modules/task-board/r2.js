@@ -1,7 +1,9 @@
 const { createHash } = require("node:crypto");
+const { createReadStream } = require("node:fs");
+const { finished } = require("node:stream/promises");
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadBucketCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
-require("../../config/env");
+const { taskAttachmentSizeLimit } = require("../../config/env");
 const { fail } = require("../../database/connection");
 
 const prefix = "md-preview/task-attachments/";
@@ -17,7 +19,7 @@ function connection() {
       region: "auto", endpoint: endpoint.href,
       credentials: { accessKeyId: process.env.R2_ACCESS_KEY_ID, secretAccessKey: process.env.R2_SECRET_ACCESS_KEY },
       requestChecksumCalculation: "WHEN_REQUIRED",
-      maxAttempts: 2, requestHandler: { connectionTimeout: 10000, requestTimeout: 60000 },
+      maxAttempts: 2, requestHandler: { connectionTimeout: 10000, requestTimeout: 120000 },
     });
   }
   return client;
@@ -26,13 +28,18 @@ const bucket = () => { connection(); return process.env.R2_BUCKET; };
 const key = (taskId, id, filename) => prefix + taskId + "/" + id + "/" + filename;
 async function send(Command, Bucket, Key, extra = {}) {
   if (Key && !Key.startsWith(prefix)) throw new Error("Invalid attachment object prefix");
-  return connection().send(new Command({ Bucket, ...(Key ? { Key } : {}), ...extra }), { abortSignal: AbortSignal.timeout(120000) });
+  return connection().send(new Command({ Bucket, ...(Key ? { Key } : {}), ...extra }), { abortSignal: AbortSignal.timeout(180000) });
 }
-async function put(Bucket, Key, bytes) {
-  await send(PutObjectCommand, Bucket, Key, {
-    Body: bytes, ContentLength: bytes.length, ContentType: "application/octet-stream",
-    ContentMD5: createHash("md5").update(bytes).digest("base64"),
-  });
+async function put(Bucket, Key, source) {
+  const buffered = Buffer.isBuffer(source), body = buffered ? source : createReadStream(source.path);
+  try {
+    await send(PutObjectCommand, Bucket, Key, {
+      Body: body, ContentLength: buffered ? source.length : source.size, ContentType: "application/octet-stream",
+      ContentMD5: buffered ? createHash("md5").update(source).digest("base64") : source.md5,
+    });
+  } finally {
+    if (!buffered) { body.destroy(); await finished(body, { cleanup: true }).catch(() => {}); }
+  }
 }
 async function get(Bucket, Key) {
   const response = await send(GetObjectCommand, Bucket, Key);
@@ -41,7 +48,7 @@ async function get(Bucket, Key) {
   try {
     for await (const chunk of response.Body) {
       length += chunk.length;
-      if (length > 50 * 1024 * 1024) throw new Error("Attachment object exceeds size limit");
+      if (length > taskAttachmentSizeLimit) throw new Error("Attachment object exceeds size limit");
       chunks.push(chunk);
     }
     return Buffer.concat(chunks);

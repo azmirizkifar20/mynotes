@@ -7,7 +7,15 @@ Object.assign(r2, {
   configured: () => true,
   bucket: () => 'fixture-private',
   check: async () => {},
-  put: async (bucket, key, bytes) => { objects.set(bucket + ':' + key, bytes); },
+  put: async (bucket, key, source) => {
+    if (Buffer.isBuffer(source)) { objects.set(bucket + ':' + key, source); return; }
+    const chunks = [];
+    for await (const chunk of require('node:fs').createReadStream(source.path)) chunks.push(chunk);
+    const bytes = Buffer.concat(chunks);
+    assert.equal(bytes.length, source.size);
+    assert.equal(require('node:crypto').createHash('md5').update(bytes).digest('base64'), source.md5);
+    objects.set(bucket + ':' + key, bytes);
+  },
   get: async (bucket, key) => {
     const bytes = objects.get(bucket + ':' + key);
     if (!bytes) throw new Error('NoSuchKey');

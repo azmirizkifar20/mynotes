@@ -61,6 +61,7 @@ export function createState(boot) {
     availableTemplates: [],
     selectedVersion: null,
     managementPages: {
+      today: { title: "Hari ini", icon: "calendar", description: "Fokus dan pekerjaan hari ini." },
       tasks: {
         title: "Task board",
         icon: "board",

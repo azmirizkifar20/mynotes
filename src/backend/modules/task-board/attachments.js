@@ -1,4 +1,5 @@
-const { randomUUID } = require("node:crypto");
+const { randomUUID, createHash } = require("node:crypto");
+const { createReadStream } = require("node:fs");
 const { TextDecoder } = require("node:util");
 const { transaction, query, fail } = require("../../database/connection");
 const { audit } = require("../../database/audit");
@@ -6,14 +7,14 @@ const { snapshot, advance } = require("./service");
 const storage = require("./attachment-storage");
 const r2 = require("./r2");
 
-const limit = 50 * 1024 * 1024;
+const { taskAttachmentSizeLimit: limit } = require("../../config/env");
 const uuid = (value) => typeof value === "string" && /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value);
-function validateFile(filename, bytes) {
+function validateHeader(filename, head, size) {
   if (typeof filename !== "string" || !filename.trim() || filename.length > 200 || /[\x00-\x1f\x7f/\\]/.test(filename) || filename.startsWith(".") || /[. ]$/.test(filename))
     throw fail(400, "Nama lampiran tidak valid. Gunakan maksimal 200 karakter tanpa pemisah folder.");
-  if (!Buffer.isBuffer(bytes) || !bytes.length || bytes.length > limit) throw fail(400, "Lampiran harus berisi data, maksimal 50 MB per file.");
+  if (!Number.isInteger(size) || size < 1 || size > limit) throw fail(400, "Lampiran harus berisi data, maksimal 100 MB per file.");
   const ext = filename.slice(filename.lastIndexOf(".") + 1).toLowerCase();
-  const head = bytes.subarray(0, 32), hex = head.toString("hex"), text = head.toString("latin1");
+  const hex = head.toString("hex"), text = head.toString("latin1");
   const zip = /^(504b0304|504b0506|504b0708)/.test(hex), ole = hex.startsWith("d0cf11e0a1b11ae1");
   const video = text.slice(4, 8) === "ftyp", ebml = hex.startsWith("1a45dfa3");
   const checks = {
@@ -25,10 +26,36 @@ function validateFile(filename, bytes) {
     mp4: video, m4v: video, mov: video, webm: ebml, mkv: ebml,
     avi: text.startsWith("RIFF") && text.slice(8, 12) === "AVI ",
   };
-  if (["md", "markdown", "csv"].includes(ext)) {
+  if (["md", "markdown", "csv"].includes(ext)) return true;
+  if (!checks[ext]) throw fail(400, "Format atau isi file tidak didukung. Pilih PDF, ZIP, RAR, Excel, PowerPoint, Markdown, gambar, atau video.");
+  return false;
+}
+function validateFile(filename, bytes) {
+  if (!Buffer.isBuffer(bytes)) throw fail(400, "Lampiran tidak valid.");
+  if (validateHeader(filename, bytes.subarray(0, 32), bytes.length)) {
     try { new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { throw fail(400, "Lampiran teks harus menggunakan UTF-8."); }
     if (bytes.includes(0)) throw fail(400, "Lampiran teks berisi data biner.");
-  } else if (!checks[ext]) throw fail(400, "Format atau isi file tidak didukung. Pilih PDF, ZIP, RAR, Excel, PowerPoint, Markdown, gambar, atau video.");
+  }
+}
+async function prepareFile(filename, file) {
+  if (Buffer.isBuffer(file)) { validateFile(filename, file); return { source: file, size: file.length }; }
+  const hash = createHash("md5"), decoder = new TextDecoder("utf-8", { fatal: true });
+  let size = 0, textFile = false;
+  for await (const chunk of createReadStream(file.path)) {
+    if (!size) textFile = validateHeader(filename, chunk.subarray(0, 32), file.size);
+    size += chunk.length;
+    if (size > limit) throw fail(400, "Ukuran lampiran terlalu besar. Maksimal 100 MB per file.");
+    hash.update(chunk);
+    if (textFile) {
+      try { decoder.decode(chunk, { stream: true }); } catch { throw fail(400, "Lampiran teks harus menggunakan UTF-8."); }
+      if (chunk.includes(0)) throw fail(400, "Lampiran teks berisi data biner.");
+    }
+  }
+  if (!size || size !== file.size) throw fail(400, "Ukuran lampiran tidak valid. Pilih file dan upload ulang.");
+  if (textFile) {
+    try { decoder.decode(); } catch { throw fail(400, "Lampiran teks harus menggunakan UTF-8."); }
+  }
+  return { source: { path: file.path, size, md5: hash.digest("base64") }, size };
 }
 async function activeTask(client, id) {
   if (!uuid(id)) throw fail(400, "Task tidak valid.");
@@ -37,8 +64,8 @@ async function activeTask(client, id) {
   if (task.archived_at) throw fail(409, "Pulihkan task dari arsip sebelum mengubah lampiran.", { conflict: true });
   return task;
 }
-async function add(body, bytes, ip) {
-  validateFile(body.filename, bytes);
+async function add(body, file, ip) {
+  const { source, size } = await prepareFile(body.filename, file);
   // Reject stale/archived/full requests before uploading; recheck inside the final transaction.
   await transaction(async (client) => {
     if (!Number.isInteger(body.revision) || body.revision < 1) throw fail(400, "Revisi papan tidak valid.");
@@ -49,14 +76,14 @@ async function add(body, bytes, ip) {
     if (row.count >= 10) throw fail(400, "Maksimal 10 lampiran per task. Hapus salah satu lampiran terlebih dahulu.");
   });
   const id = randomUUID();
-  const object = await storage.stage(body.taskId, id, body.filename, bytes);
+  const object = await storage.stage(body.taskId, id, body.filename, source);
   return transaction(async (client) => {
     await advance(client, body.revision);
     const task = await activeTask(client, body.taskId);
     const { rows: [available] } = await client.query("SELECT n AS slot FROM generate_series(1,10) n WHERE NOT EXISTS(SELECT 1 FROM mdpreview.task_attachments WHERE task_id=$1 AND slot=n) ORDER BY n LIMIT 1", [body.taskId]);
     if (!available) throw fail(400, "Maksimal 10 lampiran per task. Hapus salah satu lampiran terlebih dahulu.");
     await client.query("SELECT object_key FROM mdpreview.task_attachment_objects WHERE object_key=$1 FOR KEY SHARE", [object.key]);
-    await client.query("INSERT INTO mdpreview.task_attachments(id,task_id,slot,filename,object_key,size) VALUES($1,$2,$3,$4,$5,$6)", [id, body.taskId, available.slot, body.filename, object.key, bytes.length]);
+    await client.query("INSERT INTO mdpreview.task_attachments(id,task_id,slot,filename,object_key,size) VALUES($1,$2,$3,$4,$5,$6)", [id, body.taskId, available.slot, body.filename, object.key, size]);
     await audit("TASK_ATTACHMENT_ADD", task.title + ": " + body.filename, ip, client);
     return { board: await snapshot(client) };
   });

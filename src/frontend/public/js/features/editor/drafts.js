@@ -83,7 +83,7 @@ export function createFeature({ state, actions }) {
   function showSaveState(message) {
     for (const id of ["save-state", "document-save-state"]) {
       const element = actions.$(id);
-      if (element) element.textContent = message;
+      actions.animateStatus(element, message);
     }
   }
 
@@ -137,6 +137,7 @@ export function createFeature({ state, actions }) {
         draftToken: draft.token || undefined,
       });
       page.body = content;
+      actions.refreshDocumentRelations?.(page);
       page.html = data.html;
       page.modified = data.modified;
       page.revision = data.revision;

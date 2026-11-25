@@ -64,7 +64,7 @@ html:has(.tb-drawer[open],.tb-status-dialog[open],.tb-confirm-dialog[open]) { ov
 .tb-draft-line #board-draft-status { font-size:11px; }.tb-draft-line>span:last-child { flex-shrink:0; }
 .tb-drawer .dialog-body { padding:0;overflow:auto; }
 .tb-drawer .tb-title-input { display:block;width:100%;border:0;border-radius:0;background:none;padding:24px 24px 14px;font-size:25px;font-weight:600;letter-spacing:-.6px;line-height:1.3;min-height:95px;resize:none;overflow:hidden; }
-.tb-detail-grid { display:grid;grid-template-columns:minmax(0,1fr) 242px;min-height:calc(100% - 114px); }
+.tb-detail-grid { display:grid;grid-template-columns:minmax(0,1fr) 242px;min-height:calc(100% - 114px);padding-top:20px; }
 .tb-content-column { min-width:0;padding:0 24px 26px; }.tb-properties { min-width:0;border-left:1px solid var(--line);padding:0 22px 24px; }
 #board-properties>summary { font-size:12px;font-weight:550;cursor:pointer;padding:4px 0 15px; }#board-property-summary { display:none; }
 .tb-property-fields { display:flex;flex-direction:column;gap:18px; }.tb-property-fields .tb-field { margin:0; }

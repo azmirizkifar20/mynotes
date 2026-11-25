@@ -53,6 +53,7 @@ export function createFeature({ state, actions }) {
     $("board-settings").inert = state.toolBusy;
     $("board-controls").querySelectorAll("button,input,select").forEach((control) => { control.disabled = state.toolBusy; });
     selects.refresh();
+    actions.updateTabIndicator(document.querySelector(".tb-views"));
   }
   async function fetchBoard() {
     const sequence = ++loadSequence, navigation = state.navigationSequence;
@@ -81,7 +82,9 @@ export function createFeature({ state, actions }) {
   function clearBoardSearch() { filters = emptyFilters(); selectedView = ""; renderFilters(); paint(); $("board-search").focus(); }
   function setBoardView(value) {
     if (!board || state.toolBusy || taskBoardDialogOpen()) return;
-    boardView = ["archive", "timeline", "list"].includes(value) ? value : "active"; paint();
+    const next = ["archive", "timeline", "list"].includes(value) ? value : "active";
+    if (next === boardView) return;
+    boardView = next; paint(); actions.animateContent($("board-columns"));
   }
   function moveBoardWeek(value) {
     if (!board || state.toolBusy || taskBoardDialogOpen() || !["-1", "1", "today"].includes(String(value))) return;
@@ -106,7 +109,14 @@ export function createFeature({ state, actions }) {
     $("board-filter-error").textContent = filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo ? "Deadline sampai tidak boleh sebelum tanggal dari." : "";
     $("board-filters").querySelectorAll("[data-action=setBoardDateFilter]").forEach((button) => button.setAttribute("aria-pressed", String(filters.dateMode === button.dataset.arg)));
   }
-  function toggleBoardFilters() { $("board-filters").hidden = !$("board-filters").hidden; $("board-filter-toggle").setAttribute("aria-expanded", String(!$("board-filters").hidden)); }
+  function toggleBoardFilters() {
+    const panel = $("board-filters");
+    const returnFocus = panel.contains(document.activeElement);
+    panel.hidden = !panel.hidden;
+    panel.inert = panel.hidden;
+    $("board-filter-toggle").setAttribute("aria-expanded", String(!panel.hidden));
+    if (panel.hidden && returnFocus) $("board-filter-toggle").focus();
+  }
   function removeBoardFilter(key) { if (!(key in filters) || state.toolBusy) return; filters[key] = ""; renderFilters(); paint(); }
   function setBoardDateFilter(value) { filters.dateMode = filters.dateMode === value ? "" : value; renderFilters(); paint(); }
   function openBoardSaveView() {
@@ -252,14 +262,28 @@ export function createFeature({ state, actions }) {
     updateTaskFeedback();
     taskDrafts.open(Boolean(task?.archivedAt));
   }
+  async function closeBoardDialog(id) {
+    const dialog = $(id);
+    if (id !== "board-task-dialog" || !dialog.open) { dialog.close(); return; }
+    dialog.classList.add("is-closing");
+    const form = $("board-task-form");
+    form.inert = true;
+    try {
+      await Promise.allSettled(dialog.getAnimations().map((animation) => animation.finished));
+    } finally {
+      dialog.close();
+      dialog.classList.remove("is-closing");
+      form.inert = false;
+    }
+  }
   function closeTaskBoardDialog(id) {
-    if (state.toolBusy || !dialogIds.includes(id)) return;
+    if (state.toolBusy || !dialogIds.includes(id) || $(id).classList.contains("is-closing")) return;
     if (id !== "board-confirm-dialog" && state.taskBoardDirty) {
       ask("Tutup editor?", id === "board-task-dialog" ? "Perubahan belum diterapkan ke papan. Simpan sebagai draft untuk melanjutkan nanti." : "Ada pengaturan yang belum disimpan. Tutup dan buang perubahan form ini?", id === "board-task-dialog" ? "Simpan draft & tutup" : "Buang perubahan", async () => {
         if (id === "board-task-dialog") { try { await taskDrafts.flush(); } catch (error) { $("board-confirm-error").textContent = error.message; return; } }
-        state.taskBoardDirty = false; $("board-confirm-dialog").close(); $(id).close();
+        state.taskBoardDirty = false; $("board-confirm-dialog").close(); await closeBoardDialog(id);
       });
-    } else $(id).close();
+    } else return closeBoardDialog(id);
   }
   function renderStatuses() {
     $("board-status-rows").innerHTML = view.statusRows(draft);
@@ -309,6 +333,7 @@ export function createFeature({ state, actions }) {
   }
   function setBoardEditor(field) {
     if (state.toolBusy || !["description", "result"].includes(field)) return;
+    const changed = $("board-" + field + "-panel").hidden;
     editors.forEach((editor) => editor.close());
     for (const name of ["description", "result"]) {
       const selected = name === field;
@@ -317,6 +342,7 @@ export function createFeature({ state, actions }) {
       $("board-" + name + "-label").tabIndex = selected ? 0 : -1;
     }
     updateTaskFeedback();
+    if (changed) actions.animateContent($("board-" + field + "-panel"), 0);
   }
   function updateTaskFeedback() {
     const filled = Boolean($("board-task-result").value.trim());
@@ -324,11 +350,12 @@ export function createFeature({ state, actions }) {
     $("board-result-indicator").textContent = filled ? "Terisi" : "";
     $("board-result-label").setAttribute("aria-label", filled ? "Hasil task, sudah terisi" : "Hasil task, belum terisi");
     const archived = Boolean(board?.tasks.find((task) => task.id === editingId)?.archivedAt);
-    $("board-task-save-state").textContent = archived ? "Hanya baca" : state.toolBusy ? "Menyimpan…" : state.taskBoardDirty ? "Perubahan belum disimpan" : "Belum ada perubahan";
+    actions.animateStatus($("board-task-save-state"), archived ? "Hanya baca" : state.toolBusy ? "Menyimpan…" : state.taskBoardDirty ? "Perubahan belum disimpan" : "Belum ada perubahan");
     for (const field of ["description", "result"]) $("board-" + field + "-length").textContent = `${$("board-task-" + field).value.length.toLocaleString("id-ID")}/3.000`;
     $("board-property-summary").textContent = [$("board-task-status").selectedOptions[0]?.textContent, $("board-task-due").value ? `Deadline ${$("board-task-due").value}` : "Tanpa deadline"].filter(Boolean).join(" · ");
     const title = $("board-task-name"); title.style.height = "auto"; title.style.height = title.scrollHeight + "px";
     selects.refresh();
+    actions.updateTabIndicator(document.querySelector(".tb-editor-tabs"));
   }
   function renderSelectedTags() {
     const selected = selectedTags(), archived = Boolean(board.tasks.find((task) => task.id === editingId)?.archivedAt);
@@ -431,7 +458,8 @@ export function createFeature({ state, actions }) {
       const result = await actions.api("task-board/" + endpoint, { ...body, revision: board.revision });
       board = result.board; conflicted = false;
       if (endpoint === "tasks/save" && type === "task") taskDrafts.published(body);
-      closeIds.forEach((id) => $(id).close()); state.taskBoardDirty = false;
+      for (const id of closeIds) await closeBoardDialog(id);
+      state.taskBoardDirty = false;
       paint(); actions.notify(message);
       if (closeIds.includes("board-task-dialog")) focusAfter = result.taskId ? `[data-action="openBoardTask"][data-arg="${result.taskId}"]` : '#board-controls [data-action="openBoardTask"]';
       else if (closeIds.includes("board-status-dialog") || closeIds.includes("board-tag-dialog")) focusAfter = "#board-settings > summary";
@@ -552,7 +580,7 @@ export function createFeature({ state, actions }) {
     editors.forEach((editor) => editor.bind());
     for (const id of ["board-task-dialog", "board-status-dialog", "board-tag-dialog", "board-views-dialog"]) $(id).addEventListener("cancel", (event) => {
       if (state.toolBusy) return;
-      if (state.taskBoardDirty) { event.preventDefault(); closeTaskBoardDialog(id); }
+      if (id === "board-task-dialog" || state.taskBoardDirty) { event.preventDefault(); closeTaskBoardDialog(id); }
     });
     document.addEventListener("keydown", (event) => {
       if (event.defaultPrevented) return;
@@ -626,6 +654,11 @@ export function createFeature({ state, actions }) {
       if (event.target.dataset.boardField && draft) {
         const status = draft.find((s) => s.id === event.target.closest("[data-board-status-id]").dataset.boardStatusId);
         status[event.target.dataset.boardField] = event.target.type === "checkbox" ? event.target.checked : event.target.value; state.taskBoardDirty = true;
+        if (event.target.checked && ["completed", "inProgress"].includes(event.target.dataset.boardField)) {
+          const other = event.target.dataset.boardField === "completed" ? "inProgress" : "completed";
+          status[other] = false;
+          event.target.closest("[data-board-status-id]").querySelector(`[data-board-field="${other}"]`).checked = false;
+        }
         $("board-status-rows").querySelectorAll("input").forEach((input) => input.setCustomValidity(""));
       }
     });

@@ -26,6 +26,10 @@ import { createFeature as createHistory } from "./features/management/history.js
 import { createFeature as createPasskeys } from "./features/management/passkeys.js";
 import { createFeature as createTaskBoard } from "./features/task-board/controller.js";
 import { createFeature as createDocumentTools } from "./features/document-tools.js";
+import { createFeature as createMotion } from "./components/motion.js";
+import { createFeature as createToday } from "./features/today.js";
+import { createFeature as createDocumentLinks } from "./features/document-links.js";
+import { createFeature as createInsertMenu } from "./features/editor/insert-menu.js";
 
 const state = createState(
   JSON.parse(document.getElementById("bootstrap").textContent),
@@ -35,6 +39,7 @@ const context = { state, actions };
 Object.assign(actions, createApi(context));
 Object.assign(actions, createNavigation(context));
 Object.assign(actions, createDom(context));
+Object.assign(actions, createMotion(context));
 Object.assign(actions, createSidebar(context));
 Object.assign(actions, createBreadcrumbs(context));
 Object.assign(actions, createDialogs(context));
@@ -58,12 +63,17 @@ Object.assign(actions, createHistory(context));
 Object.assign(actions, createPasskeys(context));
 Object.assign(actions, createTaskBoard(context));
 Object.assign(actions, createDocumentTools(context));
+Object.assign(actions, createToday(context));
+Object.assign(actions, createDocumentLinks(context));
+Object.assign(actions, createInsertMenu(context));
 bindActions(context);
+actions.bindMotion();
 actions.bindUpload();
 actions.bindDocumentImages();
 actions.bindNavigation();
 actions.bindTaskBoard();
 actions.bindDocumentTools();
+actions.bindDocumentLinks();
 matchMedia("(prefers-color-scheme: dark)").addEventListener(
   "change",
   actions.applyTheme,

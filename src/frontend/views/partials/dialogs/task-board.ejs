@@ -23,7 +23,7 @@
       </div>
       <details class="tb-detail-section tb-checklist" id="board-checklist-section"><summary><span id="board-checklist-title">Checklist <span id="board-checklist-progress"></span></span></summary><div class="tb-section-content"><div id="board-checklist-items"></div><button class="tb-text-button" type="button" id="board-checklist-add" data-action="addBoardChecklist">+ Tambah item</button><p class="tb-hint">Diterapkan bersama Simpan task.</p></div></details>
       <details class="tb-detail-section tb-attachments" id="board-attachments"><summary><span id="board-attachment-title">Lampiran <span id="board-attachment-count">0/10</span></span><small>Langsung disimpan</small></summary><div class="tb-section-content">
-        <div class="tb-attachment-head"><p class="tb-hint">Maks. 10 file · 50 MB per file</p><label class="small-button tb-attachment-picker">Tambah file<input id="board-attachment-input" type="file" multiple accept=".pdf,.zip,.rar,.xls,.xlsx,.csv,.ppt,.pptx,.md,.markdown,.png,.jpg,.jpeg,.gif,.webp,.avif,.bmp,.mp4,.m4v,.mov,.webm,.mkv,.avi" aria-label="Tambah lampiran" aria-describedby="board-attachment-hint board-attachment-formats"></label></div>
+        <div class="tb-attachment-head"><p class="tb-hint">Maks. 10 file · 100 MB per file</p><label class="small-button tb-attachment-picker">Tambah file<input id="board-attachment-input" type="file" multiple accept=".pdf,.zip,.rar,.xls,.xlsx,.csv,.ppt,.pptx,.md,.markdown,.png,.jpg,.jpeg,.gif,.webp,.avif,.bmp,.mp4,.m4v,.mov,.webm,.mkv,.avi" aria-label="Tambah lampiran" aria-describedby="board-attachment-hint board-attachment-formats"></label></div>
         <button type="button" id="board-attachment-drop" class="tb-attachment-drop" data-action="chooseBoardAttachments">Seret file ke sini atau pilih Tambah file</button>
         <p id="board-attachment-hint" class="tb-hint"></p>
         <ul id="board-attachment-list" class="tb-attachment-list"></ul>
@@ -58,7 +58,7 @@
     <div class="dialog-head"><h2 id="board-status-title">Kelola status</h2><button type="button" class="icon-button" data-action="closeTaskBoardDialog" data-arg="board-status-dialog" aria-label="Tutup pengaturan status"><svg><use href="#i-close"/></svg></button></div>
     <div class="dialog-body">
       <p class="tb-hint">Sesuaikan alur kerja papan ini. Urutan di bawah mengikuti urutan kolom, dari kiri ke kanan. Centang Selesai agar task pada status tersebut bisa diarsipkan secara manual.</p>
-      <div id="board-status-rows" class="tb-status-rows"></div>
+      <p class="edit-hint">Tandai status Dikerjakan untuk halaman Hari ini. Status Selesai disembunyikan dari pekerjaan aktif.</p><div id="board-status-rows" class="tb-status-rows"></div>
       <button type="button" class="small-button tb-add-status" data-action="addBoardStatus"><svg aria-hidden="true"><use href="#i-plus"/></svg>Tambah status</button>
       <p class="tb-hint">Saat menghapus status yang berisi task, pilih status tujuan. Task tidak ikut dihapus. Semua perubahan diterapkan saat disimpan.</p>
       <p class="delete-error" id="board-status-error" role="alert"></p>

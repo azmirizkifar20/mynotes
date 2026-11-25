@@ -19,7 +19,7 @@ function validateTask(body) {
 }
 function validateStatuses(statuses, moves) {
   if (!Array.isArray(statuses) || !statuses.length || statuses.length > 50 ||
-      statuses.some((s) => !s || !uuid(s.id) || !validText(s.name, 32) || !tones.has(s.tone) || (s.completed !== undefined && typeof s.completed !== "boolean")) ||
+      statuses.some((s) => !s || !uuid(s.id) || !validText(s.name, 32) || !tones.has(s.tone) || (s.completed !== undefined && typeof s.completed !== "boolean") || (s.inProgress !== undefined && typeof s.inProgress !== "boolean") || (s.completed && s.inProgress)) ||
       new Set(statuses.map((s) => s.id.toLowerCase())).size !== statuses.length ||
       new Set(statuses.map((s) => s.name.trim().toLowerCase())).size !== statuses.length ||
       !moves || typeof moves !== "object" || Array.isArray(moves) ||
@@ -28,7 +28,7 @@ function validateStatuses(statuses, moves) {
 }
 async function snapshot(client) {
   const { rows: [board] } = await client.query("SELECT revision FROM mdpreview.task_board WHERE id=1");
-  const { rows: statuses } = await client.query("SELECT id,name,tone,position,completed FROM mdpreview.task_statuses ORDER BY position,id");
+  const { rows: statuses } = await client.query('SELECT id,name,tone,position,completed,in_progress AS "inProgress" FROM mdpreview.task_statuses ORDER BY position,id');
   const { rows: tasks } = await client.query("SELECT id,number,title,description,result,checklist,start_date::text AS \"startDate\",status_id AS \"statusId\",priority,due::text AS due,modified,archived_at AS \"archivedAt\" FROM mdpreview.tasks ORDER BY number");
   const { rows: tags } = await client.query("SELECT id,name FROM mdpreview.task_tags ORDER BY lower(name),id");
   const { rows: links } = await client.query("SELECT task_id,tag_id FROM mdpreview.task_tag_links ORDER BY tag_id");
@@ -156,7 +156,7 @@ async function saveStatuses(body, ip) {
     for (const { id } of previous)
       await client.query("UPDATE mdpreview.task_statuses SET name=$2 WHERE id=$1", [id, randomUUID().slice(0, 32)]);
     for (const [position, status] of statuses.entries())
-      await client.query("INSERT INTO mdpreview.task_statuses(id,name,tone,position,completed) VALUES($1,$2,$3,$4,COALESCE($5,false)) ON CONFLICT(id) DO UPDATE SET name=$2,tone=$3,position=$4,completed=COALESCE($5,mdpreview.task_statuses.completed)", [status.id, status.name, status.tone, position, status.completed ?? null]);
+      await client.query("INSERT INTO mdpreview.task_statuses(id,name,tone,position,completed,in_progress) VALUES($1,$2,$3,$4,COALESCE($5,false),COALESCE($6,false)) ON CONFLICT(id) DO UPDATE SET name=$2,tone=$3,position=$4,completed=COALESCE($5,mdpreview.task_statuses.completed),in_progress=CASE WHEN COALESCE($5,mdpreview.task_statuses.completed) THEN false ELSE COALESCE($6,mdpreview.task_statuses.in_progress) END", [status.id, status.name, status.tone, position, status.completed ?? null, status.inProgress ?? null]);
     for (const { id } of previous) {
       if (ids.has(id)) continue;
       if (moves[id]) await client.query("UPDATE mdpreview.tasks SET status_id=$2,modified=now() WHERE status_id=$1", [id, moves[id]]);

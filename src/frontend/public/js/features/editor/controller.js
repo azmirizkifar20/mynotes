@@ -177,6 +177,7 @@ export function createFeature({ state, actions }) {
     }
     state.editing = value;
     renderDoc(state.pages.find((p) => p.id === state.current));
+    actions.animateContent(actions.$(state.editing ? "markdown-editor" : "live-editor"), 0);
     if (state.editing) actions.$("markdown-editor").focus();
   }
 

@@ -28,6 +28,7 @@ export function createFeature({ state, actions }) {
     completingMutation = false,
   ) {
     if (!completingMutation && !canLeave()) return false;
+    const pageChanged = id !== state.current || !actions.$("main").childElementCount;
     const previousDraft = actions.documentContent();
     const page = state.pages.find((p) => p.id === id);
     if (!page && id !== "recent" && !Object.hasOwn(state.managementPages, id))
@@ -97,6 +98,7 @@ export function createFeature({ state, actions }) {
       state.activeUrl = url;
       await rendering;
       if (sequence !== state.navigationSequence) return false;
+      if (pageChanged) actions.animateContent(actions.$("main"));
       if (page?.type === "doc") {
         try {
           await actions.loadDraft(page);
@@ -184,6 +186,10 @@ export function createFeature({ state, actions }) {
         actions.renderTree();
         if (state.current === "tasks") {
           await actions.refreshTaskBoard();
+          return;
+        }
+        if (state.current === "today") {
+          await actions.refreshToday();
           return;
         }
         if (Object.hasOwn(state.managementPages, state.current)) return;

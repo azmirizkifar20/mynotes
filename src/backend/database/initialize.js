@@ -24,6 +24,10 @@ async function initialize() {
       if ((await client.query("UPDATE mdpreview.task_statuses SET completed=true WHERE lower(btrim(name))='selesai' AND NOT completed")).rowCount)
         await client.query("UPDATE mdpreview.task_board SET revision=revision+1 WHERE id=1");
     }
+    if ((await client.query("INSERT INTO mdpreview.settings(key,value) VALUES('today_status_seeded','true') ON CONFLICT DO NOTHING RETURNING key")).rowCount) {
+      if ((await client.query("UPDATE mdpreview.task_statuses SET in_progress=true WHERE lower(btrim(name)) IN ('dikerjakan','sedang dikerjakan','in progress') AND NOT completed")).rowCount)
+        await client.query("UPDATE mdpreview.task_board SET revision=revision+1 WHERE id=1");
+    }
     const templates = [
       [
         "Catatan meeting",

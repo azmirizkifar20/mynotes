@@ -14,6 +14,7 @@ module.exports = {
   host: process.env.HOST || "127.0.0.1",
   jsonBodyLimit: process.env.JSON_BODY_LIMIT || "5mb",
   uploadFileSizeLimit: 5 * 1024 * 1024,
+  taskAttachmentSizeLimit: 100 * 1024 * 1024,
   accessCodeHash: process.env.ACCESS_CODE_HASH || "",
   sessionSecret,
   production: process.env.NODE_ENV === "production",

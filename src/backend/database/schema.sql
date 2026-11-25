@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS mdpreview.tasks (
 );
 CREATE INDEX IF NOT EXISTS tasks_status ON mdpreview.tasks(status_id);
 ALTER TABLE mdpreview.task_statuses ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false;
+ALTER TABLE mdpreview.task_statuses ADD COLUMN IF NOT EXISTS in_progress boolean NOT NULL DEFAULT false;
 ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS archived_at timestamptz;
 ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS result text NOT NULL DEFAULT '' CHECK(length(result) <= 3000);
 ALTER TABLE mdpreview.tasks ADD COLUMN IF NOT EXISTS start_date date CHECK(start_date IS NULL OR due IS NULL OR start_date <= due);
@@ -152,7 +153,9 @@ CREATE TABLE IF NOT EXISTS mdpreview.task_attachment_objects (
 );
 ALTER TABLE mdpreview.task_attachments ALTER COLUMN content DROP NOT NULL;
 ALTER TABLE mdpreview.task_attachments ADD COLUMN IF NOT EXISTS object_key text REFERENCES mdpreview.task_attachment_objects(object_key) ON DELETE RESTRICT;
-ALTER TABLE mdpreview.task_attachments ADD COLUMN IF NOT EXISTS size integer CHECK(size BETWEEN 1 AND 52428800);
+ALTER TABLE mdpreview.task_attachments ADD COLUMN IF NOT EXISTS size integer;
+ALTER TABLE mdpreview.task_attachments DROP CONSTRAINT IF EXISTS task_attachments_size_check;
+ALTER TABLE mdpreview.task_attachments ADD CONSTRAINT task_attachments_size_check CHECK(size BETWEEN 1 AND 104857600);
 CREATE UNIQUE INDEX IF NOT EXISTS task_attachment_object ON mdpreview.task_attachments(object_key);
 ALTER TABLE mdpreview.task_attachments DROP CONSTRAINT IF EXISTS task_attachment_storage;
 ALTER TABLE mdpreview.task_attachments ADD CONSTRAINT task_attachment_storage CHECK(

@@ -19,6 +19,8 @@ const status = code => error => error.status === code;
 const pdf = Buffer.from('%PDF-1.7\nfixture\n%%EOF');
 let server, taskId;
 async function main() {
+  await db.initialize();
+  await db.query('ALTER TABLE mdpreview.task_attachments DROP CONSTRAINT task_attachments_size_check; ALTER TABLE mdpreview.task_attachments ADD CONSTRAINT task_attachments_size_check CHECK(size BETWEEN 1 AND 52428800)');
   await db.initialize(); await db.initialize();
   const fixtures = {
     pdf, zip:Buffer.from('504b0304','hex'), rar:Buffer.from('526172211a070100','hex'),
@@ -122,6 +124,8 @@ async function main() {
   require('../src/backend/modules/task-board/attachment-routes')(api);router.use('/api',api);router.use(require('../src/backend/middleware/error-handler'));
   server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
   const origin='http://127.0.0.1:'+server.address().port;
+  const originalReadFileSync=fs.readFileSync;
+  fs.readFileSync=function(filename,...args){assert.notEqual(path.dirname(String(filename)),temp,'Upload must not read the whole temporary file into RAM');return originalReadFileSync.call(this,filename,...args);};
   for(const prefix of ['','/mynotes']){
     const url=origin+prefix+'/api/task-board/attachments', headers={'X-Fixture-Auth':'1'};
     const post=async({name='Résumé ü.pdf',bytes=pdf,auth=true,revision=board.revision,extra={}}={})=>{
@@ -160,13 +164,34 @@ async function main() {
     assert.equal((await fetch(url+'/'+file.id+'/download',{headers})).status,404);
     assert.equal((await fetch(url+'/'+file.id+'/view',{headers,redirect:'manual'})).status,404);
     assert.deepEqual(fs.readdirSync(temp),[],'Temporary uploads cleaned after success and failure');
+    const raw=async(name,bytes,extra={})=>fetch(url+'/upload?'+new URLSearchParams({taskId,revision:board.revision}),{method:'POST',headers:{...headers,'Content-Type':'application/octet-stream','X-Upload-Filename':encodeURIComponent(name),...extra},body:bytes});
+    const direct=await raw('raw ü.pdf',pdf);assert.equal(direct.status,200);board=(await direct.json()).board;
+    const rawFile=board.tasks.find(t=>t.id===taskId).attachments.find(x=>x.filename==='raw ü.pdf');assert(rawFile);assert.equal(rawFile.size,pdf.length);
+    const dropRaw=await fetch(url+'/delete',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({id:rawFile.id,taskId,confirm:true,revision:board.revision})});assert.equal(dropRaw.status,200);board=(await dropRaw.json()).board;
+    assert.equal((await raw('bad.pdf',Buffer.from('fake'))).status,400);
+    assert.equal((await raw('bad.md',Buffer.from([255]))).status,400);
+    assert.equal((await raw('binary.md',Buffer.from('a\0b'))).status,400);
+    const split=Buffer.concat([Buffer.alloc(65535,32),Buffer.from('é')]);
+    const utf8=await raw('split.md',split);assert.equal(utf8.status,200);board=(await utf8.json()).board;
+    const missing=await raw('truncated.md',split.subarray(0,split.length-1));assert.equal(missing.status,400);
+    assert.equal((await raw('bad.pdf',pdf,{'X-Upload-Filename':'%invalid'})).status,400);
+    assert.deepEqual(fs.readdirSync(temp),[],'Raw uploads cleaned after success and validation failures');
+    for(const item of board.tasks.find(t=>t.id===taskId).attachments.filter(x=>['raw ü.pdf','split.md'].includes(x.filename))){const removed=await fetch(url+'/delete',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({id:item.id,taskId,confirm:true,revision:board.revision})});assert.equal(removed.status,200);board=(await removed.json()).board;}
   }
   // Multipart size enforcement must have its own limit, independent of document uploads.
   { const form=new FormData();form.append('taskId',taskId);form.append('revision',board.revision);form.append('filename','large.md');form.append('file',new Blob([Buffer.alloc(attachments.limit+1,32)]),'large.md');
-    const response=await fetch(origin+'/api/task-board/attachments/upload',{method:'POST',headers:{'X-Fixture-Auth':'1'},body:form});assert.equal(response.status,400);assert((await response.json()).message.includes('50 MB')); }
+    const response=await fetch(origin+'/api/task-board/attachments/upload',{method:'POST',headers:{'X-Fixture-Auth':'1'},body:form});assert.equal(response.status,400);assert((await response.json()).message.includes('100 MB')); }
   assert.deepEqual(fs.readdirSync(temp),[]);
-  { const bytes=Buffer.alloc(attachments.limit,32);bytes.write('%PDF-1.7\n');const form=new FormData();form.append('taskId',taskId);form.append('revision',board.revision);form.append('filename','exact-50.pdf');form.append('file',new Blob([bytes]),'exact-50.pdf');
-    const response=await fetch(origin+'/api/task-board/attachments/upload',{method:'POST',headers:{'X-Fixture-Auth':'1'},body:form});assert.equal(response.status,200,'Exactly 50 MB is accepted');board=(await response.json()).board;assert.equal(board.tasks.find(t=>t.id===taskId).attachments.find(x=>x.filename==='exact-50.pdf').size,attachments.limit); }
+  { const bytes=Buffer.alloc(attachments.limit,32);bytes.write('%PDF-1.7\n');
+    const response=await fetch(origin+'/api/task-board/attachments/upload?'+new URLSearchParams({taskId,revision:board.revision}),{method:'POST',headers:{'X-Fixture-Auth':'1','Content-Type':'application/octet-stream','X-Upload-Filename':'exact-100.pdf'},body:bytes});assert.equal(response.status,200,'Exactly 100 MB is accepted');board=(await response.json()).board;assert.equal(board.tasks.find(t=>t.id===taskId).attachments.find(x=>x.filename==='exact-100.pdf').size,attachments.limit);
+    const large=await fetch(origin+'/api/task-board/attachments/upload?'+new URLSearchParams({taskId,revision:board.revision}),{method:'POST',headers:{'X-Fixture-Auth':'1','Content-Type':'application/octet-stream','X-Upload-Filename':'too-large.pdf'},body:Buffer.alloc(attachments.limit+1,32)});assert.equal(large.status,413); }
+  assert.deepEqual(fs.readdirSync(temp),[],'Exact-limit uploads and oversize rejection leave no temporary files');
+  const http=require('node:http');
+  const interrupted=http.request(origin+'/api/task-board/attachments/upload?'+new URLSearchParams({taskId,revision:board.revision}),{method:'POST',headers:{'X-Fixture-Auth':'1','Content-Type':'application/octet-stream','X-Upload-Filename':'interrupted.pdf','Content-Length':attachments.limit}});
+  interrupted.on('error',()=>{});interrupted.write(pdf);await new Promise(resolve=>setTimeout(resolve,30));interrupted.destroy();
+  for(let n=0;n<40&&fs.readdirSync(temp).length;n++)await new Promise(resolve=>setTimeout(resolve,25));
+  assert.deepEqual(fs.readdirSync(temp),[],'Disconnected request removes its partial temporary file');
+  fs.readFileSync=originalReadFileSync;
   const oldIds=board.tasks.find(t=>t.id===taskId).attachments.map(x=>x.id);
   ({board}=await boardService.removeTask({id:taskId,confirm:true,revision:board.revision}));
   assert.equal((await db.query('SELECT id FROM mdpreview.task_attachments WHERE task_id=$1',[taskId])).rowCount,0);
@@ -209,6 +234,6 @@ async function main() {
   await boardService.removeTask({id:taskId,confirm:true,revision:board.revision});
   await storage.cleanup();
   assert.equal(objects.size,0);
-  console.log('Task attachment assertions passed: formats, 50 MB, 10 slots/concurrency, rollback, archive, auth/origin, both mounts, cleanup, cascade.');
+  console.log('Task attachment assertions passed: formats, inclusive 100 MB/oversize, raw/multipart, UTF-8 across chunks, 50-to-100 MB schema upgrade, 10 slots/concurrency, rollback, archive, auth/origin, both mounts, disconnect cleanup, cascade.');
 }
 main().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{if(server)await new Promise(resolve=>server.close(resolve));if(taskId)await db.query('DELETE FROM mdpreview.tasks WHERE id=$1',[taskId]);await db.pool.end();fs.rmSync(temp,{recursive:true,force:true});});

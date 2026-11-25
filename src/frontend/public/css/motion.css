@@ -1,0 +1,161 @@
+:root {
+  --motion-ease: cubic-bezier(.2, .8, .2, 1);
+}
+/* shortcut: older browsers skip other dialogs' native exit/auto-height motion; task drawers wait before closing. */
+
+.motion-tabs { position: relative; }
+.motion-tabs::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  width: var(--tab-width);
+  translate: var(--tab-left) 0;
+  background: var(--ink);
+  pointer-events: none;
+}
+.motion-tabs > [role=tab]::after { content: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  dialog {
+    opacity: 0;
+    scale: .98;
+    transition: opacity 140ms ease-in, scale 140ms ease-in, display 140ms, overlay 140ms;
+    transition-behavior: allow-discrete;
+  }
+  dialog[open] {
+    opacity: 1;
+    scale: 1;
+    transition-duration: 180ms;
+    transition-timing-function: var(--motion-ease);
+  }
+  dialog:not([open]), dialog:not([open]) * { pointer-events: none; }
+  dialog:not([open])::backdrop { pointer-events: none; }
+  dialog::backdrop {
+    opacity: 0;
+    transition: opacity 180ms ease, display 180ms, overlay 180ms;
+    transition-behavior: allow-discrete;
+  }
+  dialog[open]::backdrop { opacity: 1; }
+  .tb-drawer {
+    scale: 1;
+    translate: 100% 0;
+    transition: translate 180ms ease-in, opacity 180ms ease-in, display 180ms, overlay 180ms;
+    transition-behavior: allow-discrete;
+  }
+  .tb-drawer[open] {
+    translate: 0 0;
+    transition-duration: 240ms;
+    transition-timing-function: var(--motion-ease);
+  }
+  .tb-drawer[open].is-closing {
+    translate: 100% 0;
+    opacity: 0;
+    transition-duration: 220ms;
+    transition-timing-function: ease-in;
+  }
+  .tb-drawer.is-closing::backdrop { opacity: 0; }
+  @starting-style {
+    dialog[open] { opacity: 0; scale: .98; }
+    .tb-drawer[open] { opacity: 0; scale: 1; translate: 100% 0; }
+    dialog[open]::backdrop { opacity: 0; }
+  }
+
+  .tb-select-popup[popover] {
+    opacity: 0;
+    translate: 0 -4px;
+    transition: opacity 120ms ease, translate 120ms var(--motion-ease), display 120ms, overlay 120ms;
+    transition-behavior: allow-discrete;
+  }
+  .tb-select-popup:popover-open { opacity: 1; translate: 0 0; }
+  .tb-select-popup:not(:popover-open) { pointer-events: none; }
+  .tb-mention-menu:not([hidden]), .tb-menu, .access-page {
+    animation: motion-reveal 160ms var(--motion-ease);
+  }
+  @starting-style {
+    .tb-select-popup:popover-open { opacity: 0; translate: 0 -4px; }
+  }
+
+  .motion-tabs::after { transition: translate 180ms var(--motion-ease), width 180ms var(--motion-ease); }
+  :is(.entry, .recent-card, .nav-item, .small-button, .icon-button, .tb-select-option, .tb-select-trigger) {
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+  }
+  .tb-card { transition: border-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease, translate 120ms ease, rotate 120ms ease; }
+  @media (hover: hover) and (pointer: fine) {
+    .tb-card:hover { box-shadow: 0 3px 9px #0000000d; translate: 0 -2px; }
+    [data-theme=dark] .tb-card:hover { box-shadow: 0 3px 9px #0003; }
+  }
+  .tb-card.tb-dragging { translate: 0 -3px; rotate: -.5deg; }
+  .tb-column { transition: background-color 120ms ease, border-color 120ms ease; }
+  .tree-group > summary > svg, .tb-detail-section > summary::before {
+    transition: transform 180ms var(--motion-ease);
+  }
+
+  @supports (interpolate-size: allow-keywords) {
+    :is(.tree-group, .tb-detail-section, #board-properties, .document-related)::details-content {
+      interpolate-size: allow-keywords;
+      block-size: 0;
+      overflow: clip;
+      transition: block-size 180ms var(--motion-ease), content-visibility 180ms;
+      transition-behavior: allow-discrete;
+    }
+    :is(.tree-group, .tb-detail-section, #board-properties, .document-related)[open]::details-content { block-size: auto; }
+    #board-filters {
+      interpolate-size: allow-keywords;
+      block-size: 0;
+      opacity: 0;
+      overflow: clip;
+      padding-block: 0;
+      margin-bottom: 0;
+      border-block-width: 0;
+      transition: block-size 180ms var(--motion-ease), padding-block 180ms var(--motion-ease), margin-bottom 180ms var(--motion-ease), border-block-width 180ms, opacity 140ms ease, display 180ms;
+      transition-behavior: allow-discrete;
+    }
+    #board-filters:not([hidden]) { block-size: auto; opacity: 1; padding-block: 18px; margin-bottom: 20px; border-block-width: 1px; }
+    @media (max-width: 760px) { #board-filters:not([hidden]) { padding-block: 14px; } }
+    @starting-style {
+      #board-filters:not([hidden]) { block-size: 0; opacity: 0; padding-block: 0; margin-bottom: 0; border-block-width: 0; }
+    }
+  }
+
+  .toast {
+    opacity: 0;
+    translate: 0 8px;
+    transition: opacity 160ms ease, translate 160ms var(--motion-ease), display 160ms;
+    transition-behavior: allow-discrete;
+    pointer-events: none;
+  }
+  .toast:not([hidden]) { opacity: 1; translate: 0 0; }
+  @starting-style { .toast:not([hidden]) { opacity: 0; translate: 0 8px; } }
+
+  @media (max-width: 760px) {
+    .sidebar, .sidebar-hidden .sidebar {
+      transition: transform 220ms var(--motion-ease), visibility 220ms;
+    }
+    .scrim {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: var(--overlay);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 180ms ease, visibility 180ms;
+    }
+    .mobile-open .scrim { opacity: 1; visibility: visible; pointer-events: auto; }
+  }
+}
+
+@keyframes motion-reveal {
+  from { opacity: 0; translate: 0 4px; }
+  to { opacity: 1; translate: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after, dialog::backdrop {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

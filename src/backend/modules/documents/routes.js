@@ -27,6 +27,9 @@ module.exports = function register(api, { documentData, upload }) {
       });
     }),
   );
+  api.get("/document-links", asyncRoute(async (req, res) => {
+    res.json({ success: true, ...await require("./links").relations(req.query.document) });
+  }));
   api.post(
     "/share",
     asyncRoute(async (req, res) => {

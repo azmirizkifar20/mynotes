@@ -2,6 +2,11 @@ export function bindActions({ state, actions }) {
   const handlers = Object.fromEntries(
     [
       "navigate",
+      "refreshToday",
+      "openTodayFocus",
+      "saveTodayFocus",
+      "createTodayTask",
+      "refreshDocumentRelations",
       "openBoardTask",
       "toggleBoardFilters",
       "removeBoardFilter",

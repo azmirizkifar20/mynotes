@@ -86,7 +86,7 @@ export function createFeature({ state, actions }) {
     const source = `\n\nSumber: ${mention}`;
     if (text.length + source.length > 3000)
       throw new Error("Teks pilihan dan sumber melebihi 3.000 karakter. Pilih teks yang lebih pendek.");
-    const title = text.replace(/\s+/g, " ").slice(0, 120);
+    const title = text.split(/\r?\n/)[0].trim().slice(0, 120);
     if (!await saveBeforeTaskNavigation() || state.current !== page.id) return;
     hideDocumentSelection();
     await actions.openBoardTaskFromDocument({ title, description: text + source });
@@ -96,6 +96,14 @@ export function createFeature({ state, actions }) {
     const page = state.current;
     if (!await saveBeforeTaskNavigation() || state.current !== page) return;
     await actions.openRelatedTask(id, archived);
+  }
+
+  async function createTaskFromDocument() {
+    const page = state.pages.find((page) => page.id === state.current);
+    if (!page || page.type !== "doc") return;
+    const description = `Sumber: @[${encodeURIComponent(page.path.split("/").pop())}](doc:${page.id})`;
+    if (!await saveBeforeTaskNavigation() || state.current !== page.id) return;
+    return actions.openBoardTaskFromDocument({ title: "", description });
   }
 
   async function loadDocumentTasks(page, element) {
@@ -115,7 +123,7 @@ export function createFeature({ state, actions }) {
     hideDocumentSelection();
     const main = actions.$("main");
     if (page.type === "doc" && !state.editing) {
-      main.insertAdjacentHTML("beforeend", `<div class="document-selection-tools" id="document-selection-tools" role="toolbar" aria-label="Format teks pilihan" hidden><button type="button" data-document-tool="bold" title="Tebal (Ctrl+B)" aria-label="Tebal"><strong>B</strong></button><button type="button" data-document-tool="italic" title="Miring (Ctrl+I)" aria-label="Miring"><em>I</em></button><button type="button" data-document-tool="heading" title="Jadikan heading 2" aria-label="Jadikan heading 2">H2</button><button type="button" data-document-tool="link" title="Tautan" aria-label="Tautan">Tautan</button><button type="button" data-document-tool="inline-code" title="Kode" aria-label="Kode">${actions.icon("code")}</button><button type="button" class="selection-task" data-document-tool="create-task">${actions.icon("plus")}Buat task</button></div>`);
+      main.insertAdjacentHTML("beforeend", `<div class="document-selection-tools" id="document-selection-tools" role="toolbar" aria-label="Format teks pilihan" hidden><button type="button" data-document-tool="bold" title="Tebal (Ctrl+B)" aria-label="Tebal"><strong>B</strong></button><button type="button" data-document-tool="italic" title="Miring (Ctrl+I)" aria-label="Miring"><em>I</em></button><button type="button" data-document-tool="heading" title="Jadikan heading 2" aria-label="Jadikan heading 2">H2</button><button type="button" data-document-tool="link" title="Tautan" aria-label="Tautan">Tautan</button><button type="button" data-document-tool="inline-code" title="Kode" aria-label="Kode">${actions.icon("code")}</button><button type="button" class="selection-task" data-document-tool="create-task">${actions.icon("plus")}Jadikan task</button></div>`);
       const hint = main.querySelector(":scope > .edit-hint");
       if (hint) {
         const note = document.createElement("span");
@@ -125,6 +133,8 @@ export function createFeature({ state, actions }) {
     }
     main.insertAdjacentHTML("beforeend", '<details class="document-related"><summary>Dokumen terkait dan aksi lainnya</summary><section aria-labelledby="related-task-heading"><h2 id="related-task-heading">Task terkait</h2><div id="document-related-tasks"></div><div class="tool-actions"><button class="small-button" data-action="openMove" data-state="current">Pindahkan</button><button class="small-button danger" data-action="deleteItem" data-state="current">Hapus dokumen</button></div></section></details>');
     loadDocumentTasks(page, actions.$("document-related-tasks"));
+    main.querySelector(".document-related").insertAdjacentHTML("beforeend", '<div class="document-relations" id="document-relations"><p class="edit-hint" role="status">Memuat hubungan dokumen…</p></div>');
+    actions.refreshDocumentRelations(page);
   }
 
   function bindDocumentTools() {
@@ -169,5 +179,5 @@ export function createFeature({ state, actions }) {
     });
   }
 
-  return { bindDocumentTools, mountDocumentTools, hideDocumentSelection, openDocumentProperties };
+  return { bindDocumentTools, mountDocumentTools, hideDocumentSelection, openDocumentProperties, createTaskFromDocument };
 }

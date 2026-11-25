@@ -6,6 +6,17 @@ const { asyncRoute } = require("../../rendering/http");
 const { renderMarkdown, documentData } = require("./markdown");
 const renderPage = require("../../rendering/page");
 const routes = express.Router();
+routes.get("/share/document/:id", asyncRoute(async (req, res) => {
+  const id = req.params.id;
+  const row = require("../task-board/validation").uuid(id) && (await db.query(
+    "SELECT path,visibility FROM mdpreview.entries WHERE id=$1 AND deleted_at IS NULL AND kind IN ('doc','pdf') AND path !~* '^/(steering|superpowers)(/|$)'",
+    [id],
+  )).rows[0];
+  if (!row) return renderPage(res, { mode: "unavailable", message: "Dokumen tidak tersedia" }, 404);
+  res.set("Cache-Control", "no-store");
+  if (!req.session?.authenticated && row.visibility !== "public") return renderPage(res, { mode: "login" });
+  res.redirect(302, req.baseUrl + row.path.split("/").map(encodeURIComponent).join("/"));
+}));
 routes.get(
   "/media",
   asyncRoute(async (req, res) => {
