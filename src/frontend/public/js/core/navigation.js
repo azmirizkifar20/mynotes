@@ -77,8 +77,7 @@ export function createFeature({ state, actions }) {
         actions.savePreference({ action: "opened", id });
       }
       actions.renderBreadcrumbs();
-      actions.$("save-state").textContent =
-        ["doc", "pdf"].includes(page?.type) ? "" : "Workspace pribadi";
+      actions.$("width-button").hidden = !["doc", "pdf"].includes(page?.type);
       actions.$("manage-button").hidden = id === "home" || !page;
       actions.$("favorite-button").hidden = !page;
       document

@@ -28,8 +28,6 @@ body { font-size: 13px; line-height: 1.6; background: var(--sidebar); }
 .breadcrumb-path, .breadcrumb-path li { gap: 10px; }
 .breadcrumbs button, .breadcrumbs a { font-size: 11px; padding: 4px 0; }
 .top-actions { gap: 7px; }
-.top-actions .save-state { font-size: 10px; }
-.workspace:has(.document-header) .top-actions .save-state { display: none; }
 .sidebar-toggle { display: grid; }
 .mobile-menu-label { display: none; }
 .mobile-sidebar-close { display: none; margin-left: auto; }
@@ -41,8 +39,7 @@ body { font-size: 13px; line-height: 1.6; background: var(--sidebar); }
 .page-layout:has(.pdf-document) { grid-template-columns: minmax(0, 1fr); }
 .page-layout.task-board-layout { min-height: 100%; max-width: none; padding: 28px 30px; }
 .task-board .tb-timeline-table { width: 100%; }
-.full-width .page-layout { max-width: none; }
-.full-width .page-layout:has(.document-header) { grid-template-columns: minmax(0,1fr); }
+.full-width .page-layout:has(.document-header) { max-width: none; grid-template-columns: minmax(0,1fr); }
 .full-width .page-layout .outline { display: none; }
 .workspace main [id] { scroll-margin-top: 24px; }
 .sidebar-hidden .app { grid-template-columns: 0 minmax(0, 1fr); gap: 0; padding-left: 12px; }

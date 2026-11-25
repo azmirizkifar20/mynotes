@@ -81,10 +81,7 @@ export function createFeature({ state, actions }) {
   }
 
   function showSaveState(message) {
-    for (const id of ["save-state", "document-save-state"]) {
-      const element = actions.$(id);
-      actions.animateStatus(element, message);
-    }
+    actions.animateStatus(actions.$("document-save-state"), message);
   }
 
   function scheduleDraft() {

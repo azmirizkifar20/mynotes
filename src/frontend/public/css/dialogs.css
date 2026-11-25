@@ -381,7 +381,7 @@ dialog::backdrop {
 [hidden] {
   display: none !important;
 }
-.full-width .page-layout {
+.full-width .page-layout:has(.document-header) {
   grid-template-columns: minmax(0, 1fr);
   max-width: 1500px;
   margin: auto;

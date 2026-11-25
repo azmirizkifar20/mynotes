@@ -103,4 +103,4 @@ Identitas project dan pencarian dikelompokkan dalam header tetap. Menu Ruang ker
 
 ## Identitas Ruangku
 
-Nama dan ikon di mockup mengikuti Ruangku / R. Urutan menu: Hari ini, Workspace, Task board, Sticky notes, Terakhir dibuka. Implementasi aplikasi dan penyimpanan PostgreSQL dijelaskan pada [laporan fitur](../reports/2026-11-25-ruangku-sticky-notes.md); HTML ini tetap prototype dengan data browser terpisah.
+Nama dan ikon di mockup mengikuti Ruangku / R. (dengan titik). Urutan menu: Hari ini, Workspace, Task board, Sticky notes, Terakhir dibuka. Implementasi aplikasi dan penyimpanan PostgreSQL dijelaskan pada [laporan fitur](../reports/2026-11-25-ruangku-sticky-notes.md); HTML ini tetap prototype dengan data browser terpisah.

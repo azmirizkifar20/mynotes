@@ -75,9 +75,6 @@
   .top-actions {
     gap: 5px;
   }
-  .save-state {
-    display: none;
-  }
   .page-layout {
     padding: 24px 23px 50px;
   }

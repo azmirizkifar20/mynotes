@@ -265,8 +265,8 @@ export function createFeature({ state, actions }) {
   function renderAccessPage() {
     actions.$("access-page").hidden = false;
     const theme = `<label class="theme-setting" for="visitor-theme">${actions.icon("theme")}<span>Tampilan</span><select id="visitor-theme" data-change="setTheme" data-input-value="true"><option value="system">Sistem</option><option value="light">Terang</option><option value="dark">Gelap</option></select></label>`;
-    const toolbar = `<header class="public-topbar"><a class="public-brand" href="${actions.escape(actions.appUrl("/"))}"><span class="brand-mark" aria-hidden="true">R</span>Ruangku</a>${theme}</header>`;
-    const story = `<section class="auth-story"><div class="brand"><span class="brand-mark" aria-hidden="true">R</span><div>Ruangku<small>Personal workspace</small></div></div><h1>Ruang tenang untuk catatan dan pekerjaan.</h1><p>Buka dokumen, lanjutkan pekerjaan, dan simpan konteks yang kamu perlukan.</p></section>`;
+    const toolbar = `<header class="public-topbar"><a class="public-brand" href="${actions.escape(actions.appUrl("/"))}"><span class="brand-mark" aria-hidden="true">R.</span>Ruangku</a>${theme}</header>`;
+    const story = `<section class="auth-story"><div class="brand"><span class="brand-mark" aria-hidden="true">R.</span><div>Ruangku<small>Personal workspace</small></div></div><h1>Ruang tenang untuk catatan dan pekerjaan.</h1><p>Buka dokumen, lanjutkan pekerjaan, dan simpan konteks yang kamu perlukan.</p></section>`;
     if (state.boot.mode === "public") {
       document.title = state.boot.document.title + " · Ruangku";
       actions.$("access-page").innerHTML =
