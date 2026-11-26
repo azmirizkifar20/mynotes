@@ -43,6 +43,7 @@ describe('typed backend boundaries', () => {
       board: { list: async () => ({ revision: 1, tasks: [], statuses: [], documents: [], tags: [] }), mentionedDocument: async () => '/folder/my notes.md', suggestDocuments: async () => [], relatedTasks: async () => [], saveTask: mutate, removeTask: mutate, archiveTask: mutate, restoreTask: mutate, saveStatuses: mutate, saveTags: mutate },
       preferences: { preferences: async () => ({}), saveViews: mutate, saveDraft: mutate, discardDraft: mutate },
       today: { list: async () => ({}), save: mutate },
+      todos: { create: mutate, complete: mutate, remove: mutate, restore: mutate },
     })
     app.use('/mynotes/api', router)
     app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => res.status(500).json({ message: error.message }))
@@ -56,6 +57,11 @@ describe('typed backend boundaries', () => {
     const body = { title: 'Fixture', revision: 1 }
     expect((await fetch(origin + '/task-board/tasks/save', { method: 'POST', headers, body: JSON.stringify(body) })).status).toBe(200)
     expect(received).toEqual(body)
+    for (const action of ['create', 'complete', 'delete', 'restore']) {
+      expect((await fetch(origin + '/today/todos/' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status).toBe(401)
+      expect((await fetch(origin + '/today/todos/' + action, { method: 'POST', headers, body: JSON.stringify(body) })).status).toBe(200)
+      expect(received).toEqual(body)
+    }
     const redirect = await fetch(origin + '/task-board/documents/document/open', { headers, redirect: 'manual' })
     expect(redirect.headers.get('location')).toBe('/mynotes/folder/my%20notes.md')
   })

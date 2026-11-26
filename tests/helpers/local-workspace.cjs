@@ -36,9 +36,26 @@ sampleDoc.html = '<h1 id="fixture-document-heading">Catatan meeting</h1><p>Keput
 pages.push({id:'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',title:'Catatan API',path:'/work/api notes.md',parent:'home',type:'doc',modified:'2026-11-25',visibility:'private'});
 board.statuses[2].inProgress = true;
 let focusIds = [board.tasks[0].id], focusToken = null;
-const todayData = () => ({day:'2026-11-25',token:focusToken,focusIds,statuses:board.statuses,tasks:board.tasks.filter(t=>!t.archivedAt&&!board.statuses.find(s=>s.id===t.statusId).completed)});
+const todos = [];
+const todayData = () => ({day:'2026-11-25',token:focusToken,focusIds,statuses:board.statuses,tasks:board.tasks.filter(t=>!t.archivedAt&&!board.statuses.find(s=>s.id===t.statusId).completed),todos:todos.filter(item=>!item.deleted)});
 router.get('/api/today',(req,res)=>res.json({success:true,today:todayData()}));
 router.post('/api/today',(req,res)=>{focusIds=req.body.ids;focusToken=randomUUID();res.json({success:true,today:todayData()});});
+router.post('/api/today/todos/:action',(req,res)=>{
+ const {action}=req.params,body=req.body;
+ if(!['create','complete','delete','restore'].includes(action))return res.sendStatus(404);
+ let item=todos.find(item=>item.id===body.id);
+ if(action==='create'){
+  if(typeof body.text!=='string'||!body.text.trim()||body.text.length>200)return res.status(400).json({success:false,message:'Tulis to-do antara 1 dan 200 karakter.'});
+  if(item&&(item.text!==body.text.trim()||item.deleted))return res.status(409).json({success:false,message:'To-do berubah.'});
+  if(!item){item={id:body.id,text:body.text.trim(),done:false,revision:1,createdAt:new Date().toISOString()};todos.push(item);}
+ }else{
+  if(!item||item.revision!==body.revision||Boolean(item.deleted)!==(action==='restore'))return res.status(409).json({success:false,message:'To-do berubah di perangkat lain.'});
+  if(action==='complete'&&typeof body.done!=='boolean')return res.status(400).json({success:false,message:'Data to-do tidak valid.'});
+  if(action==='complete')item.done=body.done;else item.deleted=action==='delete';
+  item.revision++;
+ }
+ res.json({success:true,todos:todayData().todos,item:{id:item.id,revision:item.revision}});
+});
 router.get('/api/document-links',(req,res)=>res.json({success:true,incoming:[{id:'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',path:'/work/api notes.md',kind:'doc'}],outgoing:[]}));
 
 router.get('/api/passkeys',(req,res)=>res.json({success:true,authURL:'http://127.0.0.1:'+req.socket.localPort+req.baseUrl,items:[{id:'fixture-key',name:'Laptop pribadi',current:true,created_at:'2026-11-20',last_used_at:'2026-11-25',backed_up:true}]}));

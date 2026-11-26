@@ -6,6 +6,7 @@ export function bindActions({ state, actions }) {
       "openTodayFocus",
       "saveTodayFocus",
       "createTodayTask",
+      "focusTodayTodo",
       "refreshDocumentRelations",
       "openBoardTask",
       "toggleBoardFilters",

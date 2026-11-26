@@ -179,3 +179,13 @@ CREATE TABLE IF NOT EXISTS mdpreview.sticky_board (
   modified timestamptz NOT NULL DEFAULT now()
 );
 INSERT INTO mdpreview.sticky_board(id) VALUES(1) ON CONFLICT DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS mdpreview.todos (
+  id uuid PRIMARY KEY,
+  text text NOT NULL CHECK(length(btrim(text)) BETWEEN 1 AND 200),
+  done boolean NOT NULL DEFAULT false,
+  revision integer NOT NULL DEFAULT 1 CHECK(revision > 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  modified timestamptz NOT NULL DEFAULT now(),
+  deleted_at timestamptz
+);

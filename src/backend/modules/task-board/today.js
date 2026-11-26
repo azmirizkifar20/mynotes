@@ -3,6 +3,7 @@ const { transaction, fail } = require("../../database/connection");
 const { audit } = require("../../database/audit");
 const { uuid } = require("./validation");
 const board = require("./service");
+const todos = require("./todos");
 
 function dayInJakarta() {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -20,6 +21,7 @@ async function snapshot(client) {
   const setting = (await client.query("SELECT value FROM mdpreview.settings WHERE key='today_focus'")).rows[0]?.value;
   return {
     day, token: setting?.day === day ? setting.token : null,
+    todos: await todos.snapshot(client),
     focusIds: setting?.day === day ? setting.ids.filter((id) => tasks.some((task) => task.id === id)) : [],
     statuses: data.statuses,
     tasks: tasks.map(({ id, number, title, statusId, priority, due, startDate }) =>

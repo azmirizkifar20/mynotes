@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hari ini · To-do · Ruangku · Mockup</title>
+<link rel="icon" href="../src/frontend/public/favicon.svg">
+<style>
+@font-face{font-family:Inter;src:url('../src/frontend/public/fonts/inter-variable.ttf');font-weight:100 900;font-display:swap}
+:root{color-scheme:light;--td-ground:#f6f8fa;--td-surface:#fff;--td-inset:#f5f6f5;--td-text:#292a28;--td-muted:#5c605b;--td-line:#d8ddda;--td-control:#7f867f;--td-hover:#edf0ed;--td-accent:#98472e;--td-tint:#f6ece6;--td-primary:#30332e;--td-on-primary:#fff;--td-danger:#a1332c;--td-green:#356447;--td-green-bg:#eaf2ec;--td-blue:#425f7b;--td-blue-bg:#edf2f7}
+:root[data-theme=dark]{color-scheme:dark;--td-ground:#191a1c;--td-surface:#242629;--td-inset:#2a2c2f;--td-text:#ecece8;--td-muted:#b1b6bd;--td-line:#3c4045;--td-control:#79808a;--td-hover:#34383c;--td-accent:#dfbd94;--td-tint:#3b332b;--td-primary:#dfbd94;--td-on-primary:#23201b;--td-danger:#f0b1a9;--td-green:#b8d1bc;--td-green-bg:#293d32;--td-blue:#bacde1;--td-blue-bg:#2e3b49}
+*{box-sizing:border-box}body{margin:0;background:var(--td-ground);color:var(--td-text);font:14px/1.6 Inter,Arial,sans-serif}button,input,select{font:inherit;color:inherit}button,a{touch-action:manipulation}button{cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}button,a,input,select{transition:background .14s,border-color .14s,color .14s}a{color:inherit;text-decoration:none}button{border:0;background:none}button:hover,a.nav:hover{background:var(--td-hover)}:focus-visible{outline:2px solid var(--td-accent);outline-offset:3px}[hidden]{display:none!important}h1,h2,h3,p{margin:0}svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none;pointer-events:none}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.skip{position:fixed;top:-90px;left:20px;padding:12px;background:var(--td-surface);z-index:100}.skip:focus{top:12px}
+.prototype{display:flex;align-items:center;gap:16px;min-height:40px;padding:6px 22px;border-bottom:1px solid var(--td-line);font-size:12px;color:var(--td-muted)}.prototype strong{color:var(--td-text);font-weight:600}.prototype span{flex:1}.prototype button{padding:3px 8px;border-radius:4px;text-decoration:underline;text-underline-offset:3px}
+.app{display:grid;grid-template-columns:236px minmax(0,1fr);gap:12px;padding:14px 14px 14px 0;min-height:calc(100dvh - 40px)}.sidebar{padding:2px 12px 24px 18px;min-width:0}.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 17px}.mark{background:var(--td-tint);color:var(--td-accent);font-size:26px;font-weight:750;letter-spacing:-2px;border-radius:7px;width:37px;height:39px;display:grid;place-items:center;padding-right:3px}.brand strong{font-size:15px;display:block}.brand small{display:block;color:var(--td-muted);font-size:11px}.search-card{display:flex;align-items:center;gap:10px;border:1px solid var(--td-line);background:var(--td-surface);box-shadow:0 2px 4px #00000007;border-radius:9px;min-height:49px;padding:8px 10px;margin-bottom:22px;font-size:12px}.search-card svg{color:var(--td-muted)}kbd{margin-left:auto;color:var(--td-muted);font-size:10px;font-family:inherit;border:1px solid var(--td-line);border-radius:3px;padding:0 3px;white-space:nowrap}.nav{display:flex;align-items:center;gap:11px;min-height:41px;padding:8px 11px;border-radius:6px;color:var(--td-muted);font-size:13px;margin:2px 0}.nav.active{background:var(--td-tint);color:var(--td-accent);font-weight:600}.group-label{font-size:11px;color:var(--td-muted);margin:26px 11px 10px;display:flex;justify-content:space-between}.side-note{font-size:12px;color:var(--td-muted);padding:0 11px}.side-folder{padding-left:20px}.logout{margin-top:10px}.sidebar-foot{margin:25px 10px 0;padding-top:15px;border-top:1px solid var(--td-line)}.theme-label{display:flex;align-items:center;gap:8px;color:var(--td-muted);font-size:12px}.theme-label select{margin-left:auto;max-width:90px;border:1px solid var(--td-control);border-radius:5px;background:var(--td-surface);min-height:36px;padding:4px 7px}
+.stage{min-width:0;background:var(--td-surface);border:1px solid var(--td-line);border-radius:13px;box-shadow:0 2px 4px #00000005;overflow:hidden}.topbar{display:flex;align-items:center;gap:14px;min-height:59px;padding:8px 26px;border-bottom:1px solid var(--td-line);font-size:12px}.topbar .muted{margin-left:auto}.icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:5px;flex:none}.muted{color:var(--td-muted)}.content{max-width:1290px;margin:auto;padding:34px clamp(20px,3vw,42px) 44px}.page-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:32px}.date{font-size:12px;color:var(--td-muted);margin-bottom:6px}h1{font-size:clamp(28px,2.5vw,34px);font-weight:680;letter-spacing:-1.1px;line-height:1.3}.lead{color:var(--td-muted);font-size:14px;margin-top:9px}.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;border:1px solid var(--td-control);border-radius:6px;padding:7px 13px;font-size:12px;white-space:nowrap;background:var(--td-surface)}.button.primary{background:var(--td-primary);border-color:var(--td-primary);color:var(--td-on-primary)}.button.primary:hover{filter:brightness(1.12)}.heading-actions{display:flex;gap:10px;flex:none}
+.columns{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr);gap:28px;align-items:start}.todo-panel{min-width:0;border:1px solid var(--td-line);border-radius:10px;overflow:hidden}.todo-heading{padding:24px 24px 20px}.section-title{display:flex;align-items:center;gap:9px;justify-content:space-between}h2{font-size:17px;font-weight:620;letter-spacing:-.3px}.todo-heading p{font-size:12px;color:var(--td-muted);margin-top:5px}.count{font-size:11px;font-weight:500;padding:3px 8px;border-radius:4px;background:var(--td-inset);color:var(--td-muted);white-space:nowrap}.progress{height:3px;background:var(--td-line);margin-top:19px;border-radius:2px;overflow:hidden}.progress span{display:block;height:100%;background:var(--td-green);width:0;transition:width .2s}
+.todo-form{display:flex;align-items:center;gap:8px;margin:0 24px 17px;padding:5px 5px 5px 13px;border:1px solid var(--td-control);border-radius:7px}.todo-form:focus-within{outline:2px solid var(--td-accent);outline-offset:2px}.todo-form>svg{width:17px;color:var(--td-muted)}.todo-form input{min-width:0;flex:1;width:100%;border:0;background:none;outline:0!important;padding:7px 0;font-size:13px}.todo-form input::placeholder{color:var(--td-muted)}.todo-form .button{min-height:34px;font-size:11px;padding:6px 10px}.todo-list{list-style:none;padding:0;margin:0}.todo-row{display:flex;align-items:flex-start;gap:2px;min-height:62px;padding:8px 16px 8px 14px;border-top:1px solid var(--td-line)}.todo-row:hover{background:var(--td-inset)}.todo-label{display:flex;gap:13px;align-items:flex-start;padding:10px;flex:1;min-width:0;cursor:pointer;font-size:13px;line-height:1.6}.todo-check{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:22px;height:22px;margin:0;border:1.5px solid var(--td-control);border-radius:5px;background:var(--td-surface);cursor:pointer}.todo-check:checked{background:var(--td-primary);border-color:var(--td-primary)}.todo-check:checked:after{content:'';position:absolute;left:6px;top:3px;width:6px;height:10px;border-right:2px solid var(--td-on-primary);border-bottom:2px solid var(--td-on-primary);transform:rotate(45deg)}.todo-text{padding-top:1px;overflow-wrap:anywhere}.todo-row.done .todo-text{text-decoration:line-through;color:var(--td-muted)}.delete-todo{color:var(--td-muted);margin-top:5px}.delete-todo svg{width:16px;height:16px}.delete-todo:hover{color:var(--td-danger);background:var(--td-tint)}.completed{border-top:1px solid var(--td-line);background:var(--td-inset)}.completed-toggle{display:flex;align-items:center;gap:9px;min-height:48px;width:100%;padding:12px 24px;text-align:left;font-size:12px;color:var(--td-muted)}.completed-toggle svg{width:15px;height:15px;transition:transform .15s}.completed-toggle[aria-expanded=false] svg{transform:rotate(-90deg)}.completed .todo-row{background:var(--td-surface)}.todo-bottom{padding:13px 24px;font-size:11px;color:var(--td-muted);border-top:1px solid var(--td-line)}.todo-empty{padding:26px 24px 30px;border-top:1px solid var(--td-line)}.todo-empty strong{font-size:13px;font-weight:550;display:block;margin-bottom:5px}.todo-empty p{font-size:12px;color:var(--td-muted)}
+.context{min-width:0;display:grid;gap:28px}.context-section>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.context-section h2{font-size:15px}.text-button{font-size:11px;color:var(--td-accent);border-radius:4px;padding:5px 7px;white-space:nowrap}.focus-list{border:1px solid var(--td-line);border-radius:9px;overflow:hidden}.task-link{display:flex;align-items:center;gap:12px;width:100%;min-height:83px;padding:16px;text-align:left}.task-link+.task-link{border-top:1px solid var(--td-line)}.task-link:hover{background:var(--td-inset)}.task-copy{flex:1;min-width:0}.task-code{color:var(--td-muted);font-size:10px;display:block;margin-bottom:3px;letter-spacing:.2px}.task-title{font-size:12px;font-weight:550;display:block;overflow-wrap:anywhere}.task-meta{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--td-muted)}.task-link>svg{width:15px;height:15px;color:var(--td-muted)}.status{padding:2px 6px;border-radius:4px;font-size:10px;white-space:nowrap;background:var(--td-blue-bg);color:var(--td-blue)}.status.ready{background:var(--td-inset);color:var(--td-muted)}.focus-note{font-size:11px;color:var(--td-muted);margin-top:10px;line-height:1.7}.agenda{border-top:1px solid var(--td-line)}.agenda details{border-bottom:1px solid var(--td-line)}.agenda summary{cursor:pointer;min-height:49px;display:flex;align-items:center;gap:9px;font-size:12px;list-style:none}.agenda summary::-webkit-details-marker{display:none}.agenda summary svg{height:14px;width:14px}.agenda details[open] summary svg{transform:rotate(90deg)}.agenda .count{margin-left:auto}.agenda .task-link{padding:10px 0 17px;min-height:70px}.late{color:var(--td-danger)}.context-foot{display:flex;align-items:center;justify-content:space-between;padding:14px 0;font-size:11px;color:var(--td-muted)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:18px;max-width:calc(100% - 32px);padding:10px 12px 10px 17px;border-radius:8px;border:1px solid var(--td-control);background:var(--td-surface);box-shadow:0 6px 25px #0002;font-size:12px;z-index:60}.toast button{font-size:12px;color:var(--td-accent);padding:8px;border-radius:4px}.notice{min-height:24px;color:var(--td-danger);font-size:12px;padding:0 24px 8px}.mobile-menu{display:none}.backdrop{display:none}dialog{border:1px solid var(--td-line);background:var(--td-surface);color:var(--td-text);border-radius:12px;max-width:460px;width:calc(100% - 32px);padding:24px}dialog::backdrop{background:#14161666}dialog header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}dialog h2{font-size:18px}dialog p{font-size:13px;color:var(--td-muted);white-space:pre-line;overflow-wrap:anywhere}dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}.focus-option{display:flex;align-items:center;gap:12px;font-size:13px;padding:12px 0;border-bottom:1px solid var(--td-line)}
+@media(min-width:1400px){.columns{gap:40px;grid-template-columns:minmax(0,1.55fr) minmax(310px,1fr)}.todo-row{min-height:66px}.content{padding-top:40px}.page-heading{margin-bottom:38px}}
+@media(max-width:1120px){.app{grid-template-columns:210px minmax(0,1fr);gap:8px}.sidebar{padding-left:10px;padding-right:9px}.columns{grid-template-columns:1fr;gap:30px}.context{grid-template-columns:1fr 1fr;gap:22px}.page-heading{gap:18px}.heading-actions .button:first-child{display:none}.content{padding:28px}.todo-row{min-height:60px}}
+@media(max-width:740px){.prototype{padding:8px 13px;gap:10px}.prototype span{display:none}.prototype button{margin-left:auto}.app{display:block;padding:8px;min-height:calc(100dvh - 40px)}.sidebar{display:none}.app.menu-open .sidebar{display:block;position:fixed;left:0;top:0;bottom:0;width:250px;padding:22px 15px;background:var(--td-ground);overflow:auto;z-index:51}.app.menu-open .backdrop{display:block;position:fixed;inset:0;background:#1117;z-index:50}.topbar{padding:6px 12px;gap:10px}.topbar .muted{font-size:10px}.mobile-menu{display:inline-flex}.desktop-panel{display:none}.stage{border-radius:10px}.content{padding:24px 17px 30px}.page-heading{align-items:flex-start;flex-wrap:wrap;margin-bottom:25px;gap:16px}.lead{font-size:13px}.heading-actions{width:100%}.heading-actions .button:first-child{display:inline-flex}.heading-actions .button{min-height:44px}.context{grid-template-columns:1fr;gap:26px}.todo-heading{padding:20px 18px 17px}.todo-form{margin:0 18px 18px;padding-left:10px;gap:4px}.todo-form>svg{display:none}.todo-form input{font-size:16px;padding:7px 0}.todo-form .button{font-size:12px;min-height:40px;padding:8px}.todo-row{padding:8px 7px 8px 7px}.todo-label{font-size:14px}.delete-todo,.icon{min-width:44px;min-height:44px}.todo-bottom{padding:13px 18px}.completed-toggle{padding:13px 18px}.theme-label select{min-height:44px}.text-button{min-height:44px}.task-title{font-size:13px}.task-meta{font-size:11px}.toast{bottom:12px}.todo-form .button svg{display:none}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@keyframes todo-enter{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}@media(prefers-reduced-motion:no-preference){.todo-row.is-new{animation:todo-enter .18s ease-out}}
+</style>
+</head>
+<body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><defs>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 11h18"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v11h-6v-8H9v8H3z"/></symbol>
+<symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M6 7v4M12 7v7M18 7v3"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M4 3h16v12l-6 6H4zM14 21v-6h6M8 8h8M8 12h5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 5h7l2 3h9v13H3z"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5zM14 3v6h5M9 13h6M9 17h6"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+<symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H4v16h5M10 12h11m-4-4 4 4-4 4"/></symbol>
+<symbol id="i-theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+</defs></svg>
+<a class="skip" href="#main">Langsung ke to-do</a>
+<div class="prototype"><strong>Mockup · Hari ini + To-do</strong><span>Data contoh · Perubahan hanya berlaku selama halaman ini dibuka.</span><button type="button" id="reset-demo">Reset contoh</button></div>
+<div class="app" id="app">
+<button type="button" class="backdrop" id="backdrop" aria-label="Tutup menu"></button>
+<aside class="sidebar" id="sidebar" aria-label="Navigasi utama">
+<a class="brand" href="workspace-floating-redesign.html#home"><span class="mark" aria-hidden="true">R.</span><div><strong>Ruangku</strong><small>Personal workspace</small></div></a>
+<a class="search-card" href="workspace-floating-redesign.html#home"><svg aria-hidden="true"><use href="#i-search"/></svg>Cari catatan<kbd>Ctrl K</kbd></a>
+<nav aria-label="Halaman workspace">
+<a class="nav active" href="#main" aria-current="page"><svg aria-hidden="true"><use href="#i-calendar"/></svg>Hari ini</a>
+<a class="nav" href="workspace-floating-redesign.html#home"><svg aria-hidden="true"><use href="#i-home"/></svg>Workspace</a>
+<a class="nav" href="task-board-workspace-review.html"><svg aria-hidden="true"><use href="#i-board"/></svg>Task board</a>
+<a class="nav" href="sticky-notes.html"><svg aria-hidden="true"><use href="#i-note"/></svg>Sticky notes</a>
+<a class="nav" href="workspace-floating-redesign.html#recent"><svg aria-hidden="true"><use href="#i-clock"/></svg>Terakhir dibuka</a>
+</nav>
+<div class="group-label">Favorit</div><p class="side-note">Belum ada halaman favorit.</p>
+<div class="group-label">Workspace <span>docs /</span></div>
+<a class="nav side-folder" href="workspace-floating-redesign.html#notes"><svg aria-hidden="true"><use href="#i-folder"/></svg>notes</a>
+<a class="nav side-folder" href="workspace-floating-redesign.html#pitjarus"><svg aria-hidden="true"><use href="#i-folder"/></svg>pitjarus</a>
+<a class="nav side-folder" href="workspace-floating-redesign.html#tutorial"><svg aria-hidden="true"><use href="#i-folder"/></svg>tutorial</a>
+<div class="group-label">Pengelolaan</div>
+<a class="nav" href="workspace-floating-redesign.html#trash"><svg aria-hidden="true"><use href="#i-trash"/></svg>Sampah</a>
+<a class="nav" href="workspace-floating-redesign.html#templates"><svg aria-hidden="true"><use href="#i-doc"/></svg>Template</a>
+<a class="nav" href="workspace-floating-redesign.html#activity"><svg aria-hidden="true"><use href="#i-clock"/></svg>Aktivitas</a>
+<a class="nav" href="workspace-floating-redesign.html#security"><svg aria-hidden="true"><use href="#i-lock"/></svg>Keamanan</a>
+<a class="nav logout" href="workspace-floating-redesign.html#login"><svg aria-hidden="true"><use href="#i-logout"/></svg>Keluar</a>
+<div class="sidebar-foot"><label class="theme-label"><svg aria-hidden="true"><use href="#i-theme"/></svg>Tampilan<select id="theme"><option value="light">Terang</option><option value="dark">Gelap</option></select></label></div>
+</aside>
+<section class="stage" aria-label="Halaman Hari ini">
+<header class="topbar"><button class="icon desktop-panel" id="collapse-sidebar" aria-label="Sembunyikan sidebar" aria-expanded="true" aria-controls="sidebar"><svg aria-hidden="true"><use href="#i-panel"/></svg></button><button class="icon mobile-menu" id="mobile-menu" aria-label="Buka menu" aria-expanded="false" aria-controls="sidebar"><svg aria-hidden="true"><use href="#i-menu"/></svg></button><span>Hari ini</span><span class="muted">Preview interaktif</span></header>
+<main class="content" id="main" tabindex="-1">
+<header class="page-heading"><div><p class="date">Rabu, 25 November 2026 · WIB</p><h1>Hari ini</h1><p class="lead">Mulai dari yang penting. Satu langkah setiap kali.</p></div><div class="heading-actions"><a class="button" href="task-board-workspace-review.html">Task board</a><button class="button primary" id="add-shortcut"><svg aria-hidden="true"><use href="#i-plus"/></svg>Tambah to-do</button></div></header>
+<div class="columns">
+<section class="todo-panel" aria-labelledby="todo-title">
+<header class="todo-heading"><div class="section-title"><h2 id="todo-title">To-do hari ini</h2><span class="count" id="todo-progress-text"></span></div><p>Catat hal kecil yang ingin kamu selesaikan hari ini.</p><div class="progress" role="progressbar" aria-label="To-do selesai" aria-valuemin="0" aria-valuemax="100" id="todo-progress"><span id="todo-progress-fill"></span></div></header>
+<form class="todo-form" id="todo-form"><svg aria-hidden="true"><use href="#i-plus"/></svg><label class="sr" for="todo-input">To-do baru</label><input id="todo-input" placeholder="Apa yang mau diselesaikan?" maxlength="200" autocomplete="off" required><button type="submit" class="button primary">Tambah</button></form>
+<p class="notice" id="form-error" role="alert" hidden></p>
+<ul class="todo-list" id="active-todos" aria-label="To-do belum selesai"></ul>
+<div class="todo-empty" id="todo-empty" hidden><strong>Belum ada to-do.</strong><p>Tulis satu hal yang ingin kamu kerjakan lewat kolom di atas.</p></div>
+<div class="todo-empty" id="all-complete" hidden><strong>Semua to-do sudah selesai.</strong><p>Kamu bisa menambah item atau membuka kembali to-do di bagian Selesai.</p></div>
+<section class="completed" id="completed-section"><button type="button" class="completed-toggle" id="completed-toggle" aria-expanded="true" aria-controls="completed-todos"><svg aria-hidden="true"><use href="#i-down"/></svg><span id="completed-title">Selesai</span></button><ul class="todo-list" id="completed-todos" aria-label="To-do selesai"></ul></section>
+<footer class="todo-bottom">To-do ini terpisah dari task board.</footer>
+</section>
+<aside class="context" aria-label="Task dari task board">
+<section class="context-section"><header><h2>Fokus hari ini <span class="muted" id="focus-count" style="font-size:12px;font-weight:400"></span></h2><button type="button" class="text-button" id="choose-focus">Pilih fokus</button></header><div class="focus-list" id="focus-list"></div><p class="focus-note">Pilih hingga 3 task dari task board untuk jadi fokus hari ini.</p></section>
+<section class="context-section"><header><h2>Dari task board</h2></header><div class="agenda">
+<details open><summary><svg aria-hidden="true"><use href="#i-chevron"/></svg>Deadline hari ini<span class="count">1</span></summary><button class="task-link" data-task="dashboard"><span class="task-copy"><span class="task-code">T-002</span><span class="task-title">Revisi mini dashboard</span><span class="task-meta">Deadline 25 Nov 2026</span></span><svg aria-hidden="true"><use href="#i-chevron"/></svg></button></details>
+<details><summary><svg aria-hidden="true"><use href="#i-chevron"/></svg><span class="late">Lewat Deadline</span><span class="count">1</span></summary><button class="task-link" data-task="query"><span class="task-copy"><span class="task-code">T-006</span><span class="task-title">Validasi query Hospital Tiger</span><span class="task-meta late">Deadline 24 Nov 2026</span></span><svg aria-hidden="true"><use href="#i-chevron"/></svg></button></details>
+<details><summary><svg aria-hidden="true"><use href="#i-chevron"/></svg>Sedang dikerjakan<span class="count">2</span></summary><button class="task-link" data-task="dashboard"><span class="task-copy"><span class="task-code">T-002</span><span class="task-title">Revisi mini dashboard</span><span class="task-meta">Dikerjakan</span></span><svg aria-hidden="true"><use href="#i-chevron"/></svg></button><button class="task-link" data-task="query"><span class="task-copy"><span class="task-code">T-006</span><span class="task-title">Validasi query Hospital Tiger</span><span class="task-meta">Dikerjakan</span></span><svg aria-hidden="true"><use href="#i-chevron"/></svg></button></details>
+</div><div class="context-foot"><span>Task tetap dikelola di task board.</span><a class="text-button" href="task-board-workspace-review.html">Buka papan →</a></div></section>
+</aside>
+</div>
+</main>
+</section>
+</div>
+<div class="toast" id="toast" hidden><span id="toast-text" role="status"></span><button type="button" id="undo-delete">Urungkan</button><button type="button" id="dismiss-toast" aria-label="Tutup notifikasi"><svg aria-hidden="true"><use href="#i-close"/></svg></button></div>
+<p class="sr" id="announcement" role="status" aria-live="polite"></p>
+<dialog id="task-dialog" aria-labelledby="task-dialog-title"><header><h2 id="task-dialog-title">Detail task contoh</h2><button type="button" class="icon" data-close-dialog aria-label="Tutup detail"><svg aria-hidden="true"><use href="#i-close"/></svg></button></header><p id="task-dialog-content"></p><footer><button type="button" class="button" data-close-dialog>Tutup</button><a class="button primary" href="task-board-workspace-review.html">Lihat mockup task board</a></footer></dialog>
+<dialog id="focus-dialog" aria-labelledby="focus-dialog-title"><form id="focus-form"><header><h2 id="focus-dialog-title">Pilih fokus hari ini</h2><button type="button" class="icon" data-close-dialog aria-label="Tutup pilihan"><svg aria-hidden="true"><use href="#i-close"/></svg></button></header><p>Pilih hingga 3 task. Ini memakai data contoh.</p><div id="focus-options"></div><footer><button type="button" class="button" data-close-dialog>Batal</button><button type="submit" class="button primary">Simpan fokus</button></footer></form></dialog>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const icon = name => `<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
+const escapeHTML = value => String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+const sampleTodos = [
+  {id:'todo-1',text:'Siapkan agenda meeting Hospital Tiger',done:false},
+  {id:'todo-2',text:'Cek ulang hasil query mini dashboard',done:false},
+  {id:'todo-3',text:'Rapikan catatan meeting kemarin',done:false},
+  {id:'todo-4',text:'Kirim rangkuman ke tim',done:true},
+  {id:'todo-5',text:'Review PRD revisi Tiger Ebook',done:true}
+];
+const tasks = [
+  {id:'dashboard',code:'T-002',title:'Revisi mini dashboard',status:'Dikerjakan',date:'25 Nov 2026'},
+  {id:'ebook',code:'T-005',title:'Review PRD revisi Tiger Ebook',status:'Siap dikerjakan',date:'26 Nov 2026'},
+  {id:'query',code:'T-006',title:'Validasi query Hospital Tiger',status:'Dikerjakan',date:'24 Nov 2026'}
+];
+let todos = structuredClone(sampleTodos), focused = ['dashboard','ebook'], serial = 5, removed = null, toastTimer;
+function row(todo, freshId) {
+  return `<li class="todo-row${todo.done ? ' done' : ''}${todo.id === freshId ? ' is-new' : ''}" data-todo="${todo.id}"><label class="todo-label"><input class="todo-check" type="checkbox" data-check="${todo.id}" ${todo.done ? 'checked' : ''}><span class="todo-text">${escapeHTML(todo.text)}</span></label><button type="button" class="icon delete-todo" data-delete="${todo.id}" aria-label="Hapus to-do: ${escapeHTML(todo.text)}" title="Hapus to-do">${icon('trash')}</button></li>`;
+}
+function render(freshId) {
+  const done = todos.filter(todo => todo.done), active = todos.filter(todo => !todo.done);
+  $('active-todos').innerHTML = active.map(todo => row(todo, freshId)).join('');
+  $('completed-todos').innerHTML = done.map(todo => row(todo, freshId)).join('');
+  $('todo-progress-text').textContent = `${done.length}/${todos.length} selesai`;
+  $('completed-title').textContent = `Selesai (${done.length})`;
+  const percent = todos.length ? Math.round(done.length / todos.length * 100) : 0;
+  $('todo-progress-fill').style.width = `${percent}%`;
+  $('todo-progress').setAttribute('aria-valuenow', String(percent));
+  $('todo-progress').setAttribute('aria-valuetext', `${done.length} dari ${todos.length} to-do selesai`);
+  $('completed-section').hidden = done.length === 0;
+  $('todo-empty').hidden = todos.length > 0;
+  $('all-complete').hidden = active.length > 0 || todos.length === 0;
+}
+function renderFocus() {
+  const chosen = tasks.filter(task => focused.includes(task.id));
+  $('focus-count').textContent = `${chosen.length}/3`;
+  $('focus-list').innerHTML = chosen.map(task => `<button type="button" class="task-link" data-task="${task.id}"><span class="task-copy"><span class="task-code">${task.code}</span><span class="task-title">${escapeHTML(task.title)}</span><span class="task-meta"><span class="status${task.status === 'Siap dikerjakan' ? ' ready' : ''}">${task.status}</span><span>· ${task.date}</span></span></span>${icon('chevron')}</button>`).join('') || '<p style="padding:18px;font-size:12px" class="muted">Belum ada fokus. Klik Pilih fokus untuk memilih task.</p>';
+}
+function announce(message) { $('announcement').textContent = message; }
+function dismissToast() { clearTimeout(toastTimer); $('toast').hidden = true; removed = null; }
+$('todo-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const text = $('todo-input').value.trim();
+  if (!text) { $('form-error').textContent = 'Tulis isi to-do terlebih dahulu.'; $('form-error').hidden = false; $('todo-input').focus(); return; }
+  const todo = {id:`todo-${++serial}`,text,done:false};
+  todos.push(todo); $('todo-input').value = ''; $('form-error').hidden = true; render(todo.id); $('todo-input').focus(); announce('To-do ditambahkan.');
+});
+$('todo-input').addEventListener('input', () => { $('form-error').hidden = true; });
+document.addEventListener('change', event => {
+  const id = event.target.dataset.check;
+  if (!id) return;
+  const todo = todos.find(item => item.id === id);
+  if (!todo) return;
+  todo.done = event.target.checked;
+  if (todo.done) { $('completed-todos').hidden = false; $('completed-toggle').setAttribute('aria-expanded','true'); }
+  render();
+  document.querySelector(`[data-check="${id}"]`).focus();
+  announce(todo.done ? 'To-do selesai.' : 'To-do dikembalikan ke daftar aktif.');
+});
+document.addEventListener('click', event => {
+  const deleteButton = event.target.closest('[data-delete]');
+  if (deleteButton) {
+    dismissToast();
+    const index = todos.findIndex(todo => todo.id === deleteButton.dataset.delete);
+    if (index < 0) return;
+    removed = {todo:todos[index],index}; todos.splice(index,1); render();
+    $('toast-text').textContent = 'To-do dihapus.'; $('toast').hidden = false; $('undo-delete').focus();
+    toastTimer = setTimeout(() => { const focusedToast = $('toast').contains(document.activeElement); dismissToast(); if (focusedToast) $('todo-input').focus(); }, 12000);
+  }
+  const taskButton = event.target.closest('[data-task]');
+  if (taskButton) {
+    const task = tasks.find(item => item.id === taskButton.dataset.task);
+    $('task-dialog-title').textContent = task.title;
+    $('task-dialog-content').textContent = `${task.code} · ${task.status}\nDeadline ${task.date}\n\nDetail ini memakai data contoh. Pengelolaan task lengkap tersedia pada mockup task board.`;
+    $('task-dialog').showModal();
+  }
+  if (event.target.closest('[data-close-dialog]')) event.target.closest('dialog').close();
+});
+$('undo-delete').addEventListener('click', () => {
+  if (!removed) return;
+  const id = removed.todo.id;
+  todos.splice(Math.min(removed.index,todos.length),0,removed.todo);
+  if (removed.todo.done) { $('completed-todos').hidden = false; $('completed-toggle').setAttribute('aria-expanded','true'); }
+  render(id); dismissToast(); document.querySelector(`[data-check="${id}"]`).focus(); announce('To-do dipulihkan.');
+});
+$('dismiss-toast').addEventListener('click', () => { dismissToast(); $('todo-input').focus(); });
+$('completed-toggle').addEventListener('click', () => { const expanded = $('completed-toggle').getAttribute('aria-expanded') === 'true'; $('completed-toggle').setAttribute('aria-expanded',String(!expanded)); $('completed-todos').hidden = expanded; });
+$('add-shortcut').addEventListener('click', () => { $('todo-input').scrollIntoView({block:'center'}); $('todo-input').focus(); });
+$('reset-demo').addEventListener('click', () => { dismissToast(); todos = structuredClone(sampleTodos); serial = 5; focused = ['dashboard','ebook']; $('todo-input').value = ''; $('form-error').hidden = true; $('completed-todos').hidden = false; $('completed-toggle').setAttribute('aria-expanded','true'); render(); renderFocus(); announce('Data contoh dikembalikan.'); });
+$('theme').addEventListener('change', () => { document.documentElement.dataset.theme = $('theme').value; });
+function closeMenu() { $('app').classList.remove('menu-open'); $('mobile-menu').setAttribute('aria-expanded','false'); }
+$('mobile-menu').addEventListener('click', () => { $('sidebar').hidden = false; const open = $('app').classList.toggle('menu-open'); $('mobile-menu').setAttribute('aria-expanded',String(open)); if (open) $('sidebar').querySelector('a').focus(); });
+$('backdrop').addEventListener('click', () => { closeMenu(); $('mobile-menu').focus(); });
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && $('app').classList.contains('menu-open')) { closeMenu(); $('mobile-menu').focus(); } });
+$('collapse-sidebar').addEventListener('click', () => { const collapsed = $('sidebar').hidden = !$('sidebar').hidden; $('app').style.gridTemplateColumns = collapsed ? 'minmax(0,1fr)' : ''; $('app').style.paddingLeft = collapsed ? '14px' : ''; $('collapse-sidebar').setAttribute('aria-expanded',String(!collapsed)); $('collapse-sidebar').setAttribute('aria-label',collapsed ? 'Tampilkan sidebar' : 'Sembunyikan sidebar'); });
+$('choose-focus').addEventListener('click', () => { $('focus-options').innerHTML = tasks.map(task => `<label class="focus-option"><input type="checkbox" class="todo-check" name="focus" value="${task.id}" ${focused.includes(task.id) ? 'checked' : ''}><span>${task.code} · ${escapeHTML(task.title)}</span></label>`).join(''); $('focus-dialog').showModal(); });
+$('focus-form').addEventListener('submit', event => { event.preventDefault(); focused = [...$('focus-options').querySelectorAll('input:checked')].map(input => input.value).slice(0,3); renderFocus(); $('focus-dialog').close(); announce('Fokus contoh diperbarui.'); });
+render(); renderFocus();
+</script>
+</body>
+</html>

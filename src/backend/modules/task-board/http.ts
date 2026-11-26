@@ -13,16 +13,19 @@ interface Services {
   }
   preferences: { preferences(): Promise<Record<string, unknown>>; saveViews: Mutation; saveDraft: Mutation; discardDraft: Mutation }
   today: { list(): Promise<unknown>; save: Mutation }
+  todos: { create: Mutation; complete: Mutation; remove: Mutation; restore: Mutation }
 }
 const asyncRoute = (work: (req: Request, res: Response) => Promise<unknown>) =>
   (req: Request, res: Response, next: NextFunction) => { Promise.resolve(work(req, res)).catch(next) }
 
 export default function register(api: Router, services: Services = {
-  board: require('./service'), preferences: require('./preferences'), today: require('./today'),
+  board: require('./service'), preferences: require('./preferences'), today: require('./today'), todos: require('./todo-service'),
 }) {
-  const { board, preferences, today } = services
+  const { board, preferences, today, todos } = services
   api.get('/today', asyncRoute(async (_req, res) => res.json({ success: true, today: await today.list() })))
   api.post('/today', asyncRoute(async (req, res) => res.json({ success: true, today: await today.save(req.body, req.ip) })))
+  for (const [path, mutation] of [['create', todos.create], ['complete', todos.complete], ['delete', todos.remove], ['restore', todos.restore]] as Array<[string, Mutation]>)
+    api.post('/today/todos/' + path, asyncRoute(async (req, res) => res.json({ success: true, ...await mutation(req.body, req.ip) })))
   api.get('/task-board/documents/:id/open', asyncRoute(async (req, res) => {
     const path = await board.mentionedDocument(req.params.id)
     res.redirect(302, req.baseUrl.replace(/\/api$/, '') + path.split('/').map(encodeURIComponent).join('/'))
